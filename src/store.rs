@@ -20,118 +20,26 @@
 //!
 //! _Setters_ set a value for the current time. To ensure thread safety setters are
 //! invoked via LocalEnv.
-//use env::*;
+use std::collections::HashMap;
 use time::*;
 
-pub mod internals
+#[allow(unused)]	// TODO: remove this
+pub struct Store
 {
-	use std::collections::HashMap;
-	use time::*;
+	pub descriptions: HashMap<String, String>,
 
-	#[allow(unused)]	// TODO: remove this
-	pub struct Store
-	{
-		pub descriptions: HashMap<String, String>,
-	
-		pub int_settings: HashMap<String, (Time, i64)>,
-		pub int_data: HashMap<String, (Time, i64)>,
-	
-		pub float_settings: HashMap<String, (Time, f64)>,
-		pub float_data: HashMap<String, (Time, f64)>,
-	
-		pub string_settings: HashMap<String, (Time, String)>,
-		pub string_data: HashMap<String, (Time, String)>,
-	}
-	
-	#[allow(unused)]	// TODO: remove this
-	impl Store
-	{
-		pub fn new() -> Store
-		{
-			Store{
-				descriptions: HashMap::new(),
-				
-				int_settings: HashMap::new(),
-				int_data: HashMap::new(),
-				
-				float_settings: HashMap::new(),
-				float_data: HashMap::new(),
-				
-				string_settings: HashMap::new(),
-				string_data: HashMap::new()
-			}
-		}
+	pub int_settings: HashMap<String, (Time, i64)>,
+	pub int_data: HashMap<String, (Time, i64)>,
 
-		// TODO: call this when the simulation exits
-	//	pub fn check_descriptions(&self, local: &mut LocalEnv)
-	//	{
-	//		// instead of a LocalEnv take a logger trait
-	//		// then for testing can uise a special version
-	//		// if any values are missing a description then call a log method on LocalEnv
-	//		// should use an "error" topic
-	//	}
-	
-		pub fn set_int_setting(&mut self, key: &str, value: i64, time: Time)
-		{
-			if let Some(old) = self.int_settings.insert(key.to_string(), (time, value)) {
-				if old.0 == time {
-					// If it becomes annoying to be unable to set a value more than once then
-					// we could add change methods (or maybe weaken the precondition by allowing
-					// people to set the same value more than once).
-					panic!("int key '{}' has already been set", key)
-				}
-			}
-		}
-	
-		pub fn set_float_setting(&mut self, key: &str, value: f64, time: Time)
-		{
-			if let Some(old) = self.float_settings.insert(key.to_string(), (time, value)) {
-				if old.0 == time {
-					panic!("float key '{}' has already been set", key)
-				}
-			}
-		}
-	
-		pub fn set_string_setting(&mut self, key: &str, value: &str, time: Time)
-		{
-			if let Some(old) = self.string_settings.insert(key.to_string(), (time, value.to_string())) {
-				if old.0 == time {
-					panic!("string key '{}' has already been set", key)
-				}
-			}
-		}
-	
-		pub fn set_int_data(&mut self, key: &str, value: i64, time: Time)
-		{
-			if let Some(old) = self.int_data.insert(key.to_string(), (time, value)) {
-				if old.0 == time {
-					panic!("int key '{}' has already been set", key)
-				}
-			}
-		}
-	
-		pub fn set_float_data(&mut self, key: &str, value: f64, time: Time)
-		{
-			if let Some(old) = self.float_data.insert(key.to_string(), (time, value)) {
-				if old.0 == time {
-					panic!("float key '{}' has already been set", key)
-				}
-			}
-		}
-		
-		pub fn set_string_data(&mut self, key: &str, value: &str, time: Time)
-		{
-			if let Some(old) = self.string_data.insert(key.to_string(), (time, value.to_string())) {
-				if old.0 == time {
-					panic!("string key '{}' has already been set", key)
-				}
-			}
-		}
-	}
+	pub float_settings: HashMap<String, (Time, f64)>,
+	pub float_data: HashMap<String, (Time, f64)>,
+
+	pub string_settings: HashMap<String, (Time, String)>,
+	pub string_data: HashMap<String, (Time, String)>,
 }
 
 #[allow(unused)]	// TODO: remove this
-impl internals::Store
+impl Store
 {
 	// --- descriptions ----------------------------------------------------------
 	pub fn get_description(&self, key: &str) -> String
@@ -199,35 +107,122 @@ impl internals::Store
 		}
 	}
 
+	// --- private methods -------------------------------------------------------
+	#[doc(hidden)]
+	pub fn _new() -> Store
+	{
+		Store{
+			descriptions: HashMap::new(),
+			
+			int_settings: HashMap::new(),
+			int_data: HashMap::new(),
+			
+			float_settings: HashMap::new(),
+			float_data: HashMap::new(),
+			
+			string_settings: HashMap::new(),
+			string_data: HashMap::new()
+		}
+	}
+	
+		// TODO: call this when the simulation exits
+	// #[doc(hidden)]
+	//	pub fn _check_descriptions(&self, local: &mut LocalEnv)
+	//	{
+	//		// instead of a LocalEnv take a logger trait
+	//		// then for testing can uise a special version
+	//		// if any values are missing a description then call a log method on LocalEnv
+	//		// should use an "error" topic
+	//	}
+	
+	#[doc(hidden)]
+	pub fn _set_int_setting(&mut self, key: &str, value: i64, time: Time)
+	{
+		if let Some(old) = self.int_settings.insert(key.to_string(), (time, value)) {
+			if old.0 == time {
+				// If it becomes annoying to be unable to set a value more than once then
+				// we could add change methods (or maybe weaken the precondition by allowing
+				// people to set the same value more than once).
+				panic!("int key '{}' has already been set", key)
+			}
+		}
+	}
+	
+	#[doc(hidden)]
+	pub fn _set_float_setting(&mut self, key: &str, value: f64, time: Time)
+	{
+		if let Some(old) = self.float_settings.insert(key.to_string(), (time, value)) {
+			if old.0 == time {
+				panic!("float key '{}' has already been set", key)
+			}
+		}
+	}
+	
+	#[doc(hidden)]
+	pub fn _set_string_setting(&mut self, key: &str, value: &str, time: Time)
+	{
+		if let Some(old) = self.string_settings.insert(key.to_string(), (time, value.to_string())) {
+			if old.0 == time {
+				panic!("string key '{}' has already been set", key)
+			}
+		}
+	}
+	
+	#[doc(hidden)]
+	pub fn _set_int_data(&mut self, key: &str, value: i64, time: Time)
+	{
+		if let Some(old) = self.int_data.insert(key.to_string(), (time, value)) {
+			if old.0 == time {
+				panic!("int key '{}' has already been set", key)
+			}
+		}
+	}
+	
+	#[doc(hidden)]
+	pub fn _set_float_data(&mut self, key: &str, value: f64, time: Time)
+	{
+		if let Some(old) = self.float_data.insert(key.to_string(), (time, value)) {
+			if old.0 == time {
+				panic!("float key '{}' has already been set", key)
+			}
+		}
+	}
+		
+	#[doc(hidden)]
+	pub fn _set_string_data(&mut self, key: &str, value: &str, time: Time)
+	{
+		if let Some(old) = self.string_data.insert(key.to_string(), (time, value.to_string())) {
+			if old.0 == time {
+				panic!("string key '{}' has already been set", key)
+			}
+		}
+	}
 	// TODO:
 	// persist old state
 	// flush all the state to a file on exit
 	// need to expose state via a REST API
+	// reflected metadata
+	// stuff GUIs will need for replay
 }
 
 #[cfg(test)]
 mod tests
 {
-	// TODO:
-	// richer API
-	//    reflected metadata
-	//     stuff GUIs will need for replay
 	use super::*;
-	use super::internals::*;
 	
 	#[test]
 	#[should_panic(expected = "key 'foo' is missing")]
 	fn mising_key()
 	{
-		let store = Store::new();
+		let store = Store::_new();
 		store.get_int_setting("foo");
 	}
 	
 	#[test]
 	fn has_value()
 	{
-		let mut store = Store::new();
-		store.set_int_setting("weight", 120, Time(0));
+		let mut store = Store::_new();
+		store._set_int_setting("weight", 120, Time(0));
 		let weight = store.get_int_setting("weight");
 		assert_eq!(weight, 120);
 	}
@@ -235,9 +230,9 @@ mod tests
 	#[test]
 	fn has_new_value()
 	{
-		let mut store = Store::new();
-		store.set_int_setting("weight", 120, Time(0));
-		store.set_int_setting("weight", 130, Time(1));
+		let mut store = Store::_new();
+		store._set_int_setting("weight", 120, Time(0));
+		store._set_int_setting("weight", 130, Time(1));
 		let weight = store.get_int_setting("weight");
 		assert_eq!(weight, 130);
 	}
@@ -246,8 +241,8 @@ mod tests
 	#[should_panic(expected = "already been set")]
 	fn changing_value()
 	{
-		let mut store = Store::new();
-		store.set_int_setting("weight", 120, Time(1));
-		store.set_int_setting("weight", 130, Time(1));
+		let mut store = Store::_new();
+		store._set_int_setting("weight", 120, Time(1));
+		store._set_int_setting("weight", 130, Time(1));
 	}
 }

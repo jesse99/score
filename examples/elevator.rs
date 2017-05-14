@@ -2,6 +2,7 @@ extern crate rsimbase;
 
 fn main()
 {
-	rsimbase::hello();
-	//rsimbase::goodbye();
+	print!("starting up\n");
+	rsimbase::run();
+	rsimbase::mprint();
 }

@@ -3,24 +3,12 @@ pub mod env;
 pub mod store;
 pub mod time;
 
-pub fn hello()
-{
-	println!("hey there");
-}
+pub use env::*;
+pub use store::*;
+pub use time::*;
 
-pub fn four() -> i32
+#[allow(unused)]
+pub fn run()
 {
-	4
-}
-
-#[cfg(test)]
-mod tests
-{
-	use super::*;
-	
-	#[test]
-	fn it_works()
-	{
-		assert_eq!(four(), 4);
-	}
+	print!("running\n")
 }
