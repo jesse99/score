@@ -8,11 +8,12 @@ pub struct Env
 	/// execute at.
 	pub time: Time,
 	
-	/// Provides access to simulation state.
+	/// This is where simulation state is stored. As components execute
+	/// they write state to their Context object which is merged into
+	/// the Env state once all the components for a time slice execute.
 	pub store: Store
 }
 
-#[allow(unused)]	// TODO: remove this
 impl Env
 {
 	#[doc(hidden)]

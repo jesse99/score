@@ -1,29 +1,28 @@
-//! This is used to persist all of the significant state within a simulation.
-//! It is a write-once temporal store, i.e. new values can be written to the
-//! current time but values at prior times cannot be overwritten. The store is
-//! normally written to disk to allow for off-line analysis of the results and
-//! to allow the simulation to be replayed. The store contains settings and data.
-//!
-//! _Settings_ are typically configured on startup and not changed. In the elevator
-//! example the number of elevators is a setting.
-//!
-//! _Data_, on the other hand, typically does change as the simulation runs. In the
-//! elevator example the number of people waiting to get on the elevator is data.
-//!
-//! Note that there is no fundamental difference between the two: having them both
-//! simply better expresses intent and makes GUIs a bit nicer.
-//!
-//! _Getters_ take a &str key and return either an i64, an f64, or a &str. The key
-//! is normally a path from the root component through the inner components to a setting
-//! or data name. The value returned is that for the current time. Note that it is a
-//! programmer error if the key or description is missing.
-//!
-//! _Setters_ set a value for the current time. To ensure thread safety setters are
-//! invoked via LocalEnv.
 use std::collections::HashMap;
 use time::*;
 
-#[allow(unused)]	// TODO: remove this
+/// This is used to persist all of the significant state within a simulation.
+/// It is a write-once temporal store, i.e. new values can be written to the
+/// current time but values at prior times cannot be overwritten. The store is
+/// normally written to disk to allow for off-line analysis of the results and
+/// to allow the simulation to be replayed. The store contains settings and data.
+///
+/// _Settings_ are typically configured on startup and not changed. In the elevator
+/// example the number of elevators is a setting.
+///
+/// _Data_, on the other hand, typically does change as the simulation runs. In the
+/// elevator example the number of people waiting to get on the elevator is data.
+///
+/// Note that there is no fundamental difference between the two: having them both
+/// simply better expresses intent and makes GUIs a bit nicer.
+///
+/// _Getters_ take a &str key and return either an i64, an f64, or a &str. The key
+/// is normally a path from the root component through the inner components to a setting
+/// or data name. The value returned is that for the current time. Note that it is a
+/// programmer error if the key or description is missing.
+///
+/// _Setters_ set a value for the current time. To ensure thread safety setters are
+/// invoked via LocalEnv.
 pub struct Store
 {
 	pub descriptions: HashMap<String, String>,
@@ -38,7 +37,6 @@ pub struct Store
 	pub string_data: HashMap<String, (Time, String)>,
 }
 
-#[allow(unused)]	// TODO: remove this
 impl Store
 {
 	// --- descriptions ----------------------------------------------------------
@@ -50,7 +48,7 @@ impl Store
 		}
 	}
 
-	pub fn set_description(&mut self, key: &str, value: i64, time: Time)
+	pub fn set_description(&mut self, key: &str, value: i64)
 	{
 		if let Some(_) = self.descriptions.insert(key.to_string(), value.to_string()) {
 			panic!("description for key '{}' has already been set", key)
@@ -125,7 +123,7 @@ impl Store
 		}
 	}
 	
-		// TODO: call this when the simulation exits
+	// TODO: call this when the simulation exits
 	// #[doc(hidden)]
 	//	pub fn _check_descriptions(&self, local: &mut LocalEnv)
 	//	{

@@ -12,11 +12,11 @@ pub struct Context<'a>
 	/// by the log methods on Context.
 	pub name: String,
 	
-	/// Provides access to simulation state.
+	/// As components execute they write state here. (If they want to read
+	/// state they will ordinarily use env.store).
 	pub store: Store
 }
 
-#[allow(unused)]	// TODO: remove this
 impl<'a> Context<'a>
 {
 	pub fn log_error(&self, message: &str)

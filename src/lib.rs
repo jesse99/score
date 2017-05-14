@@ -13,7 +13,7 @@ pub use time::*;
 
 type Executer = fn (env: &Env, context: &mut Context) -> ();
 
-#[allow(unused)]
+/// Main entry point into the simulation.
 pub fn run(executer: Executer)
 {
 	let env = Env::_new();
