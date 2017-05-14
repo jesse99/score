@@ -1,8 +1,14 @@
 extern crate rsimbase;
 
+use rsimbase::*;
+
+fn execute(env: &rsimbase::Env, context: &mut Context)
+{
+	let _ = env;
+	context.log_info("executing");
+}
+
 fn main()
 {
-	print!("starting up\n");
-	rsimbase::run();
-	rsimbase::mprint();
+	rsimbase::run(execute);
 }
