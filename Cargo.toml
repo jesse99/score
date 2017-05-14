@@ -1,0 +1,10 @@
+[package]
+name = "rsimbase"
+version = "0.0.1"
+authors = ["Jesse Jones <jesse9jones@gmail.com>"]
+
+[[example]]
+	name = "elevator"
+
+[dependencies]
+rand="0.3.0"
