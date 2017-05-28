@@ -8,7 +8,6 @@ use std::sync::mpsc;
 use std::thread;
 
 const NUM_BOTS: i32 = 4;	// TODO: make this a command line option
-const NUM_STAGES: i32 = 1;
 
 type ComponentThread = fn (ComponentID, mpsc::Receiver<DispatchedEvent>, mpsc::Sender<Effector>) -> ();
 
@@ -59,13 +58,15 @@ fn new_random_bot(index: i32) -> (String, ComponentThread)
 // TODO: take a seed option on the command line, if missing use a random seed
 fn main()
 {
-	print!("main\n");
-	let mut sim = Simulation::new();
+	let mut config = Config::new();
+	config.time_units = 1000.0;	// ms
+	config.colorize = false;	// TODO: use a command line option
+	let mut sim = Simulation::new(config);
 	
 	let world = sim.add_component("world", NO_COMPONENT);
 	for i in 0..NUM_BOTS {
 		let (name, thread) = new_random_bot(i);
 		let _ = sim.add_active_component(&name, world, thread);
 	}
-	sim.run(NUM_STAGES);
+	sim.run();
 }

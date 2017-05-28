@@ -1,5 +1,6 @@
 use component::*;
 use components::*;
+use config::*;
 use effector::*;
 use event::*;
 use time::*;
@@ -14,32 +15,31 @@ pub struct Simulation
 	components: Arc<Components>,	// all of these are indexed by ComponentID
 	event_senders: Vec<Option<mpsc::Sender<DispatchedEvent>>>,
 	effector_receivers: Vec<Option<mpsc::Receiver<Effector>>>,
-	time_units: f64,
-	precision: usize,
+	config: Config,
+	precision: usize,	// number of decimal places to include when logging, derived from config.time_units
 	time: Time,
 }
+
+// config
+// time units
+// colorize
+//    maybe escape sequences too
+// num stages?
 	
 impl Simulation
 {
-	/// Creates a simulation using micro-second resolution.
-	pub fn new() -> Simulation
+	pub fn new(config: Config) -> Simulation
 	{
-		Simulation::new_with_time_units(1_000_000.0)
-	}
-	
-	/// Creates a simulation using an arbitrary time resolution.
-	/// Use 1_000.0 for ms, 1.0 for seconds, 0.1667 for minutes, etc.
-	/// Note that larger time units may allow for additional parallelism.
-	pub fn new_with_time_units(units: f64) -> Simulation
-	{
-		assert!(units > 0.0, "time units ({}) are not positive", units);
+		assert!(config.time_units > 0.0, "time units ({}) are not positive", config.time_units);
+		assert!(config.num_init_stages > 0, "num_init_stages ({}) is not positive", config.num_init_stages);	// need an init step to schedule at least one event to process
 		
+		let precision = config.time_units.log10().max(0.0) as usize;
 		Simulation {
 			components: Arc::new(Components::new()),
 			event_senders: Vec::new(),
 			effector_receivers: Vec::new(),
-			time_units: units,
-			precision: units.log10().max(0.0) as usize,
+			config: config,
+			precision,
 			time: Time(0),
 		}
 	}
@@ -87,15 +87,10 @@ impl Simulation
 	}
 	
 	/// Dispatches events until there are no more events left to dispatch
-	/// or time elapses. TODO: elapses how?
-	/// Stages is the number of times to send an init event to the active
-	/// components, e.g. if stages is two then "init 0" and "init 1" events
-	/// will be sent.
-	pub fn run(&mut self, stages: i32)
+	/// or config.max_secs elapses.
+	pub fn run(&mut self)
 	{
-		assert!(stages > 0, "stages ({}) is not positive", stages);	// need an init step to schedule at least one event to process
-		
-		for i in 0..stages {
+		for i in 0..self.config.num_init_stages {
 			self.init_components(i)
 		}
 	}
@@ -112,21 +107,25 @@ impl Simulation
 
 	fn log(&mut self, level: LogLevel, path: &str, message: &str)
 	{
-		let t = (self.time.0 as f64)/self.time_units;
+		let t = (self.time.0 as f64)/self.config.time_units;
 		let t = format!("{:.*}", self.precision, t);
 		
-		match level {
-			LogLevel::Error		=> log_to_console(&t, path, message, &error_escape(), end_escape()),
-			LogLevel::Warning	=> log_to_console(&t, path, message, &warning_escape(), end_escape()),
-			LogLevel::Info		=> log_to_console(&t, path, message, &info_escape(), end_escape()),
-			LogLevel::Debug		=> log_to_console(&t, path, message, &debug_escape(), end_escape()),
-			LogLevel::Excessive	=> log_to_console(&t, path, message, &excessive_escape(), end_escape()),
+		if self.config.colorize {
+			match level {
+				LogLevel::Error		=> log_to_console(&t, path, message, &self.config.error_escape_code, end_escape()),
+				LogLevel::Warning	=> log_to_console(&t, path, message, &self.config.warning_escape_code, end_escape()),
+				LogLevel::Info		=> log_to_console(&t, path, message, &self.config.info_escape_code, end_escape()),
+				LogLevel::Debug		=> log_to_console(&t, path, message, &self.config.debug_escape_code, end_escape()),
+				LogLevel::Excessive	=> log_to_console(&t, path, message, &self.config.excessive_escape_code, end_escape()),
+			}
+		} else {
+			log_to_console(&t, path, message, "", "")
 		}
 	}
 	
 //	fn add_secs(&self, secs: f64) -> Time
 //	{
-//		let delta = secs*self.time_units;
+//		let delta = secs*self.config.time_units;
 //		Time(self.time.0 + i64(delta))
 //	}
 }
@@ -138,33 +137,6 @@ impl Simulation
 fn log_to_console(time: &str, path: &str, message: &str, begin: &str, end: &str)
 {
 	print!("{}{}   {}   {}{}\n", begin, time, path, message, end);
-}
-
-// TODO: escapes should be some sort of config option
-// See https://en.wikipedia.org/wiki/ANSI_escape_code#Colors and https://aweirdimagination.net/2015/02/21/256-color-terminals/
-fn error_escape() -> String		// these could be static references but that probably won't fly once we make these config options
-{
-	"\x1b[31;1m".to_string()	// bright red
-}
-
-fn warning_escape() -> String
-{
-	"\x1b[31m".to_string()		// red
-}
-
-fn info_escape() -> String
-{
-	"\x1b[30;1m".to_string()	// bold black
-}
-
-fn debug_escape() -> String
-{
-	"".to_string()				// black
-}
-
-fn excessive_escape() -> String
-{
-	"\x1b[1;38;5;244m".to_string()	// light gray
 }
 
 fn end_escape() -> &'static str

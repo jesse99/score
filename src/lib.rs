@@ -1,5 +1,6 @@
 pub mod component;
 pub mod components;
+pub mod config;
 pub mod effector;
 pub mod event;
 pub mod simulation;
@@ -8,6 +9,7 @@ pub mod time;
 
 pub use component::*;
 pub use components::*;
+pub use config::*;
 pub use effector::*;
 pub use event::*;
 pub use simulation::*;
