@@ -51,8 +51,13 @@ impl Components
 		self.components.is_empty()
 	}
 	
-	pub fn append(&mut self, component: Component)
+	pub fn append(&mut self, id: ComponentID, component: Component, parent: ComponentID)
 	{
+		if parent != NO_COMPONENT {
+			let mut p = self.components.get_mut(parent.0).unwrap();
+			p.children.push(id);
+		}
+		
 		self.components.push(component);
 	}
 }

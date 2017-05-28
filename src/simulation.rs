@@ -54,15 +54,16 @@ impl Simulation
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
 		
+		let id = ComponentID(self.event_senders.len());
 		let component = Component{
 			name: name.to_string(),
 			parent: parent,
 			children: Vec::new()};
-		let c = Arc::get_mut(&mut self.components).unwrap();
-		c.append(component);
+		let components = Arc::get_mut(&mut self.components).unwrap();
+		components.append(id, component, parent);
 		self.event_senders.push(None);
 		self.effector_receivers.push(None);
-		ComponentID(self.event_senders.len() - 1)
+		id
 	}
 	
 	/// Adds a component with a thread that can be sent a `DispatchedEvent`
@@ -82,8 +83,8 @@ impl Simulation
 			name: name.to_string(),
 			parent: parent,
 			children: Vec::new()};
-		let c = Arc::get_mut(&mut self.components).unwrap();
-		c.append(component);
+		let components = Arc::get_mut(&mut self.components).unwrap();
+		components.append(id, component, parent);
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
@@ -166,6 +167,7 @@ impl Simulation
 
 	fn apply_logs(&mut self, id: ComponentID, effects: &Effector)
 	{
+		// TODO: also need to persist these
 		let path = self.components.path(id);
 		for record in effects.logs.iter() {
 			self.log(&record.level, &path, &record.message);
@@ -174,7 +176,7 @@ impl Simulation
 
 	fn apply_events(&mut self, effects: &Effector)
 	{
-		// TODO: verify that the time is >= current time (could do this when the event is actually queued)
+		// TODO: verify that the time is >= current time
 		assert!(effects.events.is_empty(), "event scheduling isn't implemented yet");
 	}
 

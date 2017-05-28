@@ -12,7 +12,7 @@ run:
 
 .PHONY: battle_bots
 battle_bots:
-	@cargo run --example=battle_bots
+	@RUST_BACKTRACE=1 cargo run --example=battle_bots
 
 # This will update minor version numbers.
 # To upate a major version number you need to edit the cargo file.
