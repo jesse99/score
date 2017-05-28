@@ -25,9 +25,6 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \
 * World -> Assembly?\
 * Update:\
-	- review publics, if in doubt make the item private\
-	- see if pre or post-conditions can be added\
-	- get the lib compiling\
 	- get battle bots initialized\
 	- start supporting battle bot events and dispatching\
 	- save rx into sim scheduled\
@@ -52,20 +49,16 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 * Work on battle bots:\
 	- add a standard top-level component to encapsulate a position\
 	- add a standard event to change the position in that component\
+* What do we do about reproducibility checks?\
+	- an option to examples? integration tests?\
+	- check logs as well as a hash?\
 * Try separate executioners\
 * Use panic! instead of assert!(false)\
 * I think assert! takes an optional message\
 * Try making panic abort\
 	- make sure that we still get a stack trace\
 * Document no option for parent.\
-* Lifetime of Component objects is problematic\
-	{\field{\*\fldinst{HYPERLINK "https://chrismorgan.info/blog/rust-ownership-the-hard-way.html"}}{\fldrslt \cf2 https://chrismorgan.info/blog/rust-ownership-the-hard-way.html}}	- could use Rc but that gets complex\
-	- maybe an extra level of indirection?\
-	- maybe create a simple lib to figure out how to handle components\
-		perhaps rsimbase can use ComponentIDs and the exe can be responsible for dispatch\
-* Add support for initializing settings\
 * Implement _check_descriptions\
-* Need a LocalEnv to accumulate changes\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
 \f1\i\b\fs40 \cf3 /// _Setters_ set a value for the current time. Note that it is a programmer error to
@@ -75,8 +68,7 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \f2\i0\b0 \cf0 \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 * Update the real Rust.mimsy file\
-* goals: deterministic, extensible, parallel, off-line analysis, portable, fast\
+\f0\fs48 \cf2 * goals: deterministic, extensible, parallel, off-line analysis, portable, fast\
 * use a write-once temporal store\
 		- string keys, typed values\
 			` for log lines auto-append onto the last value\
@@ -101,10 +93,6 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 * have to pay close attention to reproducibility, even across architectures\
 * support multiple cores but not the cloud\
 * probably just want to use code to configure\
-* example could be a bank of elevators\
-	- params: number of elevators, speed, behavior (stay in place, move to top, some move to top)\
-			ratio of people getting on at top to at bottom\
-	- track average wait time and worst wait time\
 * wonder if es could be sucked into the store\
 * rsimnet, rsimserver\
 \

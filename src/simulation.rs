@@ -18,7 +18,7 @@ pub struct Simulation
 	precision: usize,
 	time: Time,
 }
-
+	
 impl Simulation
 {
 	/// Creates a simulation using micro-second resolution.
@@ -49,6 +49,9 @@ impl Simulation
 	/// can make navigation nicer within GUIs.
 	pub fn add_component(&mut self, name: &str, parent: ComponentID) -> ComponentID
 	{
+		assert!(!name.is_empty(), "name should not be empty");
+		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
+		
 		let component = Component{
 			name: name.to_string(),
 			parent: parent,
@@ -65,6 +68,9 @@ impl Simulation
 	pub fn add_active_component<T>(&mut self, name: &str, parent: ComponentID, thread: T) -> ComponentID
 		where T: FnOnce (ComponentID, mpsc::Receiver<DispatchedEvent>, mpsc::Sender<Effector>) -> ()
 	{
+		assert!(!name.is_empty(), "name should not be empty");
+		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
+		
 		let (txd, rxd) = mpsc::channel::<DispatchedEvent>();
 		let (txe, rxe) = mpsc::channel::<Effector>();
 

@@ -32,6 +32,11 @@ impl Components
 	
 	// TODO: should be able to get the root and the top/first
 	
+	pub fn is_empty(&self) -> bool
+	{
+		self.components.is_empty()
+	}
+	
 	pub fn append(&mut self, component: Component)
 	{
 		self.components.push(component);

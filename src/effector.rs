@@ -31,9 +31,9 @@ impl Effector
 	}
 	
 	/// Normally you'll use one of the log macros, e.g. log_info!.
-	pub fn log(&mut self, level: LogLevel, path: &str, message: &str)
+	pub fn log(&mut self, level: LogLevel, message: &str)
 	{
-		self.logs.push(LogRecord{level, path: path.to_string(), message: message.to_string()});
+		self.logs.push(LogRecord{level, message: message.to_string()});
 	}
 	
 	/// Dispatch an event to a component after secs time elapses.
@@ -42,6 +42,7 @@ impl Effector
 		// TODO: verify that the time is >= current time (could do this when the event is actually queued)
 		// TODO: might want two versions: one that takes an absolute time and another that takes a relative time
 		// TODO: scheduling in 0s is a little delicate, might want to have a schedule_immediately that uses the smallest time delta
+		assert!(to != NO_COMPONENT);
 		assert!(secs > 0.0, "secs ({:.3}) is not positive", secs);	// negative secs are just bad, for zero secs use schedule_immediately
 
 		self.events.insert(to, (event, secs));
@@ -52,16 +53,19 @@ impl Effector
 	/// onto the component's path.
 	pub fn set_int_data(&mut self, name: &str, value: i64)
 	{
+		assert!(!name.is_empty(), "name should not be empty");
 		self.store.set_int_data(name, value, Time(0));
 	}
 	
 	pub fn set_float_data(&mut self, name: &str, value: f64)
 	{
+		assert!(!name.is_empty(), "name should not be empty");
 		self.store.set_float_data(name, value, Time(0));
 	}
 		
 	pub fn set_string_data(&mut self, name: &str, value: &str)
 	{
+		assert!(!name.is_empty(), "name should not be empty");
 		self.store.set_string_data(name, value, Time(0));
 	}
 }
@@ -69,7 +73,6 @@ impl Effector
 struct LogRecord
 {
 	level: LogLevel,
-	path: String,
 	message: String,
 }
 

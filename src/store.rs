@@ -127,6 +127,7 @@ impl WriteableStore for Store
 	// --- descriptions ----------------------------------------------------------
 	fn set_description(&mut self, key: &str, value: &str)
 	{
+		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(_) = self.descriptions.insert(key.to_string(), value.to_string()) {
 			panic!("description for key '{}' has already been set", key)
 		}
@@ -135,6 +136,7 @@ impl WriteableStore for Store
 	// --- settings --------------------------------------------------------------
 	fn set_int_setting(&mut self, key: &str, value: i64, time: Time)
 	{
+		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.int_settings.insert(key.to_string(), (time, value)) {
 			if old.0 == time {
 				// If it becomes annoying to be unable to set a value more than once then
@@ -147,6 +149,7 @@ impl WriteableStore for Store
 	
 	fn set_float_setting(&mut self, key: &str, value: f64, time: Time)
 	{
+		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.float_settings.insert(key.to_string(), (time, value)) {
 			if old.0 == time {
 				panic!("float key '{}' has already been set", key)
@@ -156,6 +159,7 @@ impl WriteableStore for Store
 	
 	fn set_string_setting(&mut self, key: &str, value: &str, time: Time)
 	{
+		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.string_settings.insert(key.to_string(), (time, value.to_string())) {
 			if old.0 == time {
 				panic!("string key '{}' has already been set", key)
@@ -166,6 +170,7 @@ impl WriteableStore for Store
 	// --- data ------------------------------------------------------------------
 	fn set_int_data(&mut self, key: &str, value: i64, time: Time)
 	{
+		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.int_data.insert(key.to_string(), (time, value)) {
 			if old.0 == time {
 				panic!("int key '{}' has already been set", key)
@@ -175,6 +180,7 @@ impl WriteableStore for Store
 	
 	fn set_float_data(&mut self, key: &str, value: f64, time: Time)
 	{
+		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.float_data.insert(key.to_string(), (time, value)) {
 			if old.0 == time {
 				panic!("float key '{}' has already been set", key)
@@ -184,6 +190,7 @@ impl WriteableStore for Store
 		
 	fn set_string_data(&mut self, key: &str, value: &str, time: Time)
 	{
+		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.string_data.insert(key.to_string(), (time, value.to_string())) {
 			if old.0 == time {
 				panic!("string key '{}' has already been set", key)

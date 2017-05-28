@@ -1,7 +1,6 @@
 use component::*;
 use components::*;
 use store::*;
-//use std;
 use std::any::Any;
 use std::sync::Arc;
 
@@ -23,11 +22,13 @@ impl Event
 {
 	pub fn new(name: &str) -> Event
 	{
+		assert!(!name.is_empty(), "name should not be empty");
 		Event{name: name.to_string(), payload: None}
 	}
 
 	pub fn new_with_payload<T: Any + Send>(name: &str, payload: T) -> Event
 	{
+		assert!(!name.is_empty(), "name should not be empty");
 		Event{name: name.to_string(), payload: Some(Box::new(payload))}
 	}
 }
