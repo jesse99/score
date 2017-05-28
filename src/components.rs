@@ -17,6 +17,7 @@ impl Components
 	/// dynamically added/removed.
 	pub fn get(&self, id: ComponentID) -> &Component
 	{
+		assert!(id != NO_COMPONENT);
 		let index = id.0;
 		self.components.get(index).unwrap()
 	}
@@ -24,8 +25,45 @@ impl Components
 	/// Use this if the component's lifetime may be dynamic.
 	pub fn find(&self, id: ComponentID) -> Option<&Component>
 	{
+		assert!(id != NO_COMPONENT);
 		let index = id.0;
 		self.components.get(index)
+	}
+	
+	/// Returns the id of the root component.
+	pub fn find_root_id(&self, id: ComponentID) -> ComponentID
+	{
+		assert!(id != NO_COMPONENT);
+
+		let mut id = id;
+		loop {
+			let c = self.get(id);
+			if c.parent == NO_COMPONENT {
+				return id;
+			}
+			id = c.parent;
+		}
+	}
+	
+	/// Returns the id for the topmost parent of the component,
+	/// i.e. one down from the root.
+	pub fn find_top_id(&self, id: ComponentID) -> ComponentID
+	{
+		assert!(id != NO_COMPONENT);
+
+		let mut id = id;
+		loop {
+			let c = self.get(id);
+			if c.parent == NO_COMPONENT {
+				panic!("Can't find the top component when starting at the root");
+			}
+
+			let d = self.get(c.parent);
+			if d.parent == NO_COMPONENT {
+				return id;
+			}
+			id = c.parent;
+		}
 	}
 	
 	/// Returns the path from the top component downwards.
@@ -43,9 +81,7 @@ impl Components
 		
 		path.join(".")
 	}
-	
-	// TODO: should be able to get the root and the top/first
-	
+		
 	pub fn is_empty(&self) -> bool
 	{
 		self.components.is_empty()
@@ -53,6 +89,9 @@ impl Components
 	
 	pub fn append(&mut self, id: ComponentID, component: Component, parent: ComponentID)
 	{
+		assert!(id != NO_COMPONENT);
+
+		// TODO: should check for cycles
 		if parent != NO_COMPONENT {
 			let mut p = self.components.get_mut(parent.0).unwrap();
 			p.children.push(id);

@@ -17,16 +17,16 @@ fn cowardly_thread(id: ComponentID, rx_event: mpsc::Receiver<DispatchedEvent>,
 	thread::spawn(move || {
 		for dispatched in rx_event {
 			let mut effector = Effector::new();
-			let ename = dispatched.event.name;
-			match &*ename
-			{
-				"init 0" => {
-					effector.log(LogLevel::Info, "initializing");
-				},
-				_ => {
-					let cname = &(*dispatched.components).get(id).name;
-					panic!("component {} can't handle event {}", cname, ename);
-				}
+			let ename = &dispatched.event.name;
+			if ename == "init 0" {
+				effector.log(LogLevel::Info, "initializing");
+				let top = dispatched.components.find_top_id(id);
+				let payload: (f64, f64) = (1.0, 2.0);
+				let event = Event::new_with_payload("set-location", payload);
+				effector.schedule_immediately(event, top);
+			} else {
+				let cname = &(*dispatched.components).get(id).name;
+				panic!("component {} can't handle event {}", cname, ename);
 			}
 			
 			let _ = tx_reply.send(effector);

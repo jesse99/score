@@ -16,20 +16,13 @@ pub fn locatable_thread(id: ComponentID, rx_event: mpsc::Receiver<DispatchedEven
 			let mut effector = Effector::new();
 
 			let cname = &(*dispatched.components).get(id).name;
-			let ename = dispatched.event.name;
-			if ename == "set-location" {	// TODO: can we add a method to get the payload in a nicer way?
-				if let Some(value) = dispatched.event.payload {
-					if let Some(&(x, y)) = value.downcast_ref::<(f64, f64)>() {
-						effector.log(LogLevel::Debug, &format!("setting location to {:.1}, {:.1}", x, y));
-					} else {
-						panic!("component {} set-location should have an (f64, f64) payload", cname);
-					}
-				} else {
-					panic!("component {} set-location should have an (f64, f64) payload", cname);
-				}
+			let ename = &dispatched.event.name;
+			if ename == "set-location" {
+				let loc = dispatched.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
+				effector.log(LogLevel::Debug, &format!("setting location to {:.1}, {:.1}", loc.0, loc.1));
 				
 			} else if ename.starts_with("init ") {
-				effector.log(LogLevel::Excessive, "is ignoring init");
+				effector.log(LogLevel::Excessive, "is ignoring init"); 
 			
 			} else {
 				panic!("component {} can't handle event {}", cname, ename);

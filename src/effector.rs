@@ -3,7 +3,7 @@ use event::*;
 use store::*;
 use time::*;
 use std::collections::HashMap;
-//use std;
+use std::f64::EPSILON;
 
 pub enum LogLevel	// TODO: move this somewhere else?
 {
@@ -45,11 +45,20 @@ impl Effector
 	pub fn schedule_after_secs(&mut self, event: Event, to: ComponentID, secs: f64)
 	{
 		// TODO: might want two versions: one that takes an absolute time and another that takes a relative time
-		// TODO: scheduling in 0s is a little delicate, might want to have a schedule_immediately that uses the smallest time delta
 		assert!(to != NO_COMPONENT);
 		assert!(secs > 0.0, "secs ({:.3}) is not positive", secs);	// negative secs are just bad, for zero secs use schedule_immediately
 
 		self.events.insert(to, (event, secs));
+	}
+	
+	/// Events should not be scheduled for zero time because the `Simulation` guarantees
+	/// that state is updated all at once at each time step. So if you want to schedule
+	/// an event for as soon as possible use this method.
+	pub fn schedule_immediately(&mut self, event: Event, to: ComponentID)
+	{
+		assert!(to != NO_COMPONENT);
+
+		self.events.insert(to, (event, EPSILON));
 	}
 	
 	/// Use these methods to write out new values for data associated with the component.

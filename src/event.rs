@@ -47,3 +47,19 @@ pub struct DispatchedEvent
 	/// finished processing.
 	pub store: Arc<Store>,
 }
+
+impl DispatchedEvent
+{
+	pub fn expect_payload<T: Any + Clone>(&self, message: &str) -> T
+	{
+		if let Some(ref value) = self.event.payload {
+			if let Some(x) = value.downcast_ref::<T>() {
+				x.clone()
+			} else {
+				panic!("event {} {} (downcast failed)", self.event.name, message);
+			}
+		} else {
+			panic!("event {} {} (missing payload)", self.event.name, message);
+		}
+	}
+}

@@ -8,6 +8,7 @@ use time::*;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
+use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::mpsc;
 
@@ -97,6 +98,12 @@ impl Simulation
 	pub fn run(&mut self)
 	{
 		self.init_components();
+
+		let mut i = 0;
+		while !self.scheduled.is_empty() && i < 100 {	// TODO: use a config time limit instead
+			self.current_time = self.dispatch_events();
+			i += 1;
+		}
 	}
 	
 	pub fn init_components(&mut self)
@@ -117,6 +124,7 @@ impl Simulation
 		// TODO: should cap the number of threads we use (probably via config)
 		while !self.scheduled.is_empty() && self.scheduled.peek().unwrap().time == time {	// while let can't have a guard so we use this somewhat ugly syntax
 			let e = self.scheduled.pop().unwrap();
+			self.log(&LogLevel::Excessive, "simulation", &format!("dispatching {} to id {}", &e.event.name, e.to.0));
 			ids.push(e.to);
 			
 			if let Some(ref tx) = self.event_senders[e.to.0] {
@@ -132,17 +140,17 @@ impl Simulation
 		let mut effects = HashMap::new();	// be sure to apply side effects after all events have finished processing
 		for id in ids {
 			if let Some(ref rx) = self.effector_receivers[id.0] {
-				let e = rx.recv().unwrap();	// TODO: use the timeout version and panic if it takes too long
+				let e = rx.recv().expect(&format!("rx failed for id {}", id.0));	// TODO: use the timeout version and panic if it takes too long
 				effects.insert(id, e);
 			} else {
 				assert!(false);
 			}
 		}
 		
-		for (id, e) in effects {
-			self.apply_logs(id, &e);
-			self.apply_events(&e);
-			self.apply_stores(&e);
+		for (id, e) in effects.iter_mut() {
+			self.apply_logs(*id, e);
+			self.apply_events(e);
+			self.apply_stores(e);
 		}
 		time
 	}
@@ -174,10 +182,12 @@ impl Simulation
 		}
 	}
 
-	fn apply_events(&mut self, effects: &Effector)
+	fn apply_events(&mut self, effects: &mut Effector)
 	{
-		// TODO: verify that the time is >= current time
-		assert!(effects.events.is_empty(), "event scheduling isn't implemented yet");
+		for (to, (event, secs)) in effects.events.drain().take(1) {
+			let time = self.add_secs(secs);
+			self.schedule(event, to, time);
+		}
 	}
 
 	fn apply_stores(&mut self, effects: &Effector)
@@ -206,11 +216,15 @@ impl Simulation
 		}
 	}
 	
-//	fn add_secs(&self, secs: f64) -> Time
-//	{
-//		let delta = secs*self.config.time_units;
-//		Time(self.time.0 + i64(delta))
-//	}
+	fn add_secs(&self, secs: f64) -> Time
+	{
+		if secs == EPSILON {
+			Time(self.current_time.0 + 1)
+		} else {
+			let delta = secs*self.config.time_units;
+			Time(self.current_time.0 + (delta as i64))
+		}
+	}
 }
 
 struct ScheduledEvent
