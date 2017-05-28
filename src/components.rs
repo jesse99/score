@@ -1,6 +1,4 @@
 use component::*;
-//use env::*;
-//use std;
 
 /// Contains all the `Component`s used within the `Simulation`.
 pub struct Components
@@ -28,6 +26,22 @@ impl Components
 	{
 		let index = id.0;
 		self.components.get(index)
+	}
+	
+	/// Returns the path from the top component downwards.
+	/// Note that this does not include the root component because it's a little silly
+	/// to include it everywhere when it never changes.
+	pub fn path(&self, id: ComponentID) -> String
+	{
+		let mut path = Vec::new();
+		
+		let mut c = self.get(id);
+		while c.parent != NO_COMPONENT {
+			path.insert(0, c.name.clone());
+			c = self.get(c.parent);
+		}
+		
+		path.join(".")
 	}
 	
 	// TODO: should be able to get the root and the top/first

@@ -24,32 +24,24 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
  \
 \
 * Update:\
-	- add a setting or config option for no color coding\
-	- use milli-second time resolution\
-	- get battle bots initialized\
 	- start supporting battle bot events and dispatching\
-	- save rx into sim scheduled\
-		` use a binary heap\
-		` store id, event, time\
-		` struct needs an Ord implementation, smaller time should be greater \
+	- config should support log level\
+		` probably should be able to overwrite this on a per-component basis\
+		` maybe via a setting\
+* Work on battle bots:\
+	- add a standard top-level component to encapsulate a position\
+	- add a standard event to change the position in that component\
 * Call checkDescriptions\
 * Add log macros\
 	- {\field{\*\fldinst{HYPERLINK "https://github.com/slog-rs/slog/blob/master/src/lib.rs"}}{\fldrslt https://github.com/slog-rs/slog/blob/master/src/lib.rs}}\
 	- {\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/book/macros.html"}}{\fldrslt https://doc.rust-lang.org/book/macros.html}}\
 * Persist the store\
 * Try channels:\
-	- add a way for components to update the store, maybe via an out channel\
-		event dispatch would probably have to rendezvous by reading\
-		so components would always need to write something\
-	- need a way for components to initialize the store\
 	- figure out what kind of channels to use\
 * Try 
 \fs36 \cf0 \expnd0\expndtw0\kerning0
 #[warn(unused_must_use)]
 \fs48 \cf2 \kerning1\expnd0\expndtw0 \
-* Work on battle bots:\
-	- add a standard top-level component to encapsulate a position\
-	- add a standard event to change the position in that component\
 * What do we do about reproducibility checks?\
 	- an option to examples? integration tests?\
 	- check logs as well as a hash?\

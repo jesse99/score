@@ -1,4 +1,3 @@
-use component::*;
 use components::*;
 use store::*;
 use std::any::Any;

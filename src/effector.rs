@@ -18,16 +18,21 @@ pub enum LogLevel	// TODO: move this somewhere else?
 /// The effector encapsulates the state changes the component wishes to make.
 pub struct Effector
 {
-	logs: Vec<LogRecord>,
-	events: HashMap<ComponentID, (Event, f64)>,
-	store: Box<WriteableStore + Send>,	// TODO: when saving these off need to turn the keys into paths
+	#[doc(hidden)]
+	pub logs: Vec<LogRecord>,
+	
+	#[doc(hidden)]
+	pub events: HashMap<ComponentID, (Event, f64)>,
+	
+	#[doc(hidden)]
+	pub store: Store,
 }
 
 impl Effector
 {
 	pub fn new() -> Effector
 	{
-		Effector{logs: Vec::new(), events: HashMap::new(), store: Box::new(Store::new())}
+		Effector{logs: Vec::new(), events: HashMap::new(), store: Store::new()}
 	}
 	
 	/// Normally you'll use one of the log macros, e.g. log_info!.
@@ -39,7 +44,6 @@ impl Effector
 	/// Dispatch an event to a component after secs time elapses.
 	pub fn schedule_after_secs(&mut self, event: Event, to: ComponentID, secs: f64)
 	{
-		// TODO: verify that the time is >= current time (could do this when the event is actually queued)
 		// TODO: might want two versions: one that takes an absolute time and another that takes a relative time
 		// TODO: scheduling in 0s is a little delicate, might want to have a schedule_immediately that uses the smallest time delta
 		assert!(to != NO_COMPONENT);
@@ -70,9 +74,13 @@ impl Effector
 	}
 }
 
-struct LogRecord
+#[doc(hidden)]
+pub struct LogRecord
 {
-	level: LogLevel,
-	message: String,
+	#[doc(hidden)]
+	pub level: LogLevel,
+
+	#[doc(hidden)]
+	pub message: String,
 }
 

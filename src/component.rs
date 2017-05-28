@@ -1,5 +1,3 @@
-//use context::*;
-//use env::*;
 use std;
 
 /// `Component`s are the building blocks of a `Simulation`. They are arranged into

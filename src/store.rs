@@ -26,16 +26,26 @@ use time::*;
 /// `Component`s recorded within an `Effector`.
 pub struct Store
 {
-	descriptions: HashMap<String, String>,
+	#[doc(hidden)]
+	pub descriptions: HashMap<String, String>,
 
-	int_settings: HashMap<String, (Time, i64)>,
-	int_data: HashMap<String, (Time, i64)>,
+	#[doc(hidden)]
+	pub int_settings: HashMap<String, (Time, i64)>,
+	
+	#[doc(hidden)]
+	pub int_data: HashMap<String, (Time, i64)>,
 
-	float_settings: HashMap<String, (Time, f64)>,
-	float_data: HashMap<String, (Time, f64)>,
+	#[doc(hidden)]
+	pub float_settings: HashMap<String, (Time, f64)>,
+	
+	#[doc(hidden)]
+	pub float_data: HashMap<String, (Time, f64)>,
 
-	string_settings: HashMap<String, (Time, String)>,
-	string_data: HashMap<String, (Time, String)>,
+	#[doc(hidden)]
+	pub string_settings: HashMap<String, (Time, String)>,
+	
+	#[doc(hidden)]
+	pub string_data: HashMap<String, (Time, String)>,
 }
 
 pub trait ReadableStore

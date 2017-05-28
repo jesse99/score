@@ -51,7 +51,7 @@ fn cowardly_thread(id: ComponentID, rx_event: mpsc::Receiver<DispatchedEvent>,
 // TODO: pick a random bot
 fn new_random_bot(index: i32) -> (String, ComponentThread)
 {
-	let name = format!("bot {}: cowardly", index);
+	let name = format!("bot {} (cowardly)", index);
 	(name, cowardly_thread)
 }
 
