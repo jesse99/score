@@ -4,6 +4,7 @@ use config::*;
 use effector::*;
 use event::*;
 use store::*;
+use thread_data::*;
 use time::*;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
@@ -70,7 +71,7 @@ impl Simulation
 	/// Adds a component with a thread that can be sent a `DispatchedEvent`
 	/// which processes the event and sends back an `Effector` .
 	pub fn add_active_component<T>(&mut self, name: &str, parent: ComponentID, thread: T) -> ComponentID
-		where T: FnOnce (ComponentID, mpsc::Receiver<DispatchedEvent>, mpsc::Sender<Effector>) -> ()
+		where T: FnOnce (ThreadData) -> ()
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
@@ -89,7 +90,7 @@ impl Simulation
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
-		thread(id, rxd, txe);
+		thread(ThreadData{id, rx: rxd, tx: txe});
 		id
 	}
 	

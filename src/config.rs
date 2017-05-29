@@ -16,6 +16,11 @@ pub struct Config
 	/// Defaults to 1.
 	pub num_init_stages: i32,
 	
+	/// Random number generator seed.
+	/// Defaults to 0 which means seed with entropy. Note that if you want
+	/// deterministic results you should use a fixed seed.
+	pub seed: u32,
+	
 	/// Use escape sequences to color code stdout.
 	/// Defaults to true.
 	pub colorize: bool,
@@ -51,6 +56,7 @@ impl Config
 			time_units: 1_000_000.0,
 			max_secs: INFINITY,
 			num_init_stages: 1,
+			seed: 0,
 			colorize: true,
 			error_escape_code: "\x1b[31;1m".to_string(),
 			warning_escape_code: "\x1b[31m".to_string(),

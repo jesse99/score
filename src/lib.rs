@@ -6,6 +6,7 @@ pub mod event;
 pub mod simulation;
 pub mod store;
 pub mod threads;
+pub mod thread_data;
 pub mod time;
 
 pub use component::*;
@@ -16,4 +17,5 @@ pub use event::*;
 pub use simulation::*;
 pub use store::*;
 pub use threads::*;
+pub use thread_data::*;
 pub use time::*;

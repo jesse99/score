@@ -13,19 +13,14 @@ use std::fmt::Display;
 use std::io::{Write, stderr};
 use std::process;
 use std::str::FromStr;
-use std::sync::mpsc;
 use std::thread;
 
-const NUM_BOTS: i32 = 4;	// TODO: make this a command line option
-const WIDTH: f64 = 100.0;	// TODO: make this a command line option
-const HEIGHT: f64 = 100.0;	// TODO: make this a command line option
-
+#[derive(Clone)]
 struct LocalConfig
 {
 	num_bots: i32,
 	width: f64,
 	height: f64,
-	seed: String,	// "random" or an integer
 }
 
 impl LocalConfig
@@ -37,38 +32,36 @@ impl LocalConfig
 			num_bots: 4,
 			width: 100.0,
 			height: 100.0,
-			seed: "random".to_string(),
 		}
 	}
 }
 
-type ComponentThread = fn (ComponentID, mpsc::Receiver<DispatchedEvent>, mpsc::Sender<Effector>) -> ();
+type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
-fn randomize_location(top: ComponentID, effector: &mut Effector)
+fn randomize_location(local: &LocalConfig, top: ComponentID, effector: &mut Effector)
 {
 	let mut rng = rand::thread_rng();	// TODO: make sure these are using the same seed
-	let payload = (rng.gen::<f64>()*WIDTH, rng.gen::<f64>()*HEIGHT);
+	let payload = (rng.gen::<f64>()*local.width, rng.gen::<f64>()*local.height);
 	let event = Event::new_with_payload("set-location", payload);
 	effector.schedule_immediately(event, top);
 }
 
-fn cowardly_thread(id: ComponentID, rx_event: mpsc::Receiver<DispatchedEvent>,
-	tx_reply: mpsc::Sender<Effector>)
+fn cowardly_thread(local: LocalConfig, data: ThreadData)
 {
 	thread::spawn(move || {
-		for dispatched in rx_event {
+		for dispatched in data.rx {
 			let mut effector = Effector::new();
 			let ename = &dispatched.event.name;
 			if ename == "init 0" {
 				effector.log(LogLevel::Info, "initializing");
-				let top = dispatched.components.find_top_id(id);
-				randomize_location(top, &mut effector);
+				let top = dispatched.components.find_top_id(data.id);
+				randomize_location(&local, top, &mut effector);
 			} else {
-				let cname = &(*dispatched.components).get(id).name;
+				let cname = &(*dispatched.components).get(data.id).name;
 				panic!("component {} can't handle event {}", cname, ename);
 			}
 			
-			let _ = tx_reply.send(effector);
+			let _ = data.tx.send(effector);
 		}
 	});
 }
@@ -103,28 +96,35 @@ fn parse_options() -> (LocalConfig, Config)
 	let mut local = LocalConfig::new();
 	let mut config = Config::new();
 	
+	// see https://docs.rs/clap/2.24.2/clap/struct.Arg.html#method.from_usage for syntax
+	let usage = format!(
+		"--height=[N] 'Max number of times bots can move up without wrapping [{default_height}]'
+		--max-secs=[TIME] 'Maximum time to run the simulation, use s, m, or h suffixes [no limit]'
+		--no-colors 'Don't color code console output'
+		--num-bots=[N] 'Number of bots to start out with [{default_bots}]'
+		--seed=[N] 'Random number generator seed [random]'
+		--width=[N] 'Max number of times bots can move right without wrapping [{default_width}]'",
+		default_height = local.height, default_width = local.width, default_bots = local.num_bots);
+	
 	let matches = App::new("battle-bots")
 		.version("1.0")
 		.author("Jesse Jones <jesse9jones@gmail.com>")
 		.about("Simulates bots that do battle with one another.")
-		.args_from_usage(	// see https://docs.rs/clap/2.24.2/clap/struct.Arg.html#method.from_usage for syntax
-		"--height=[N] 'Max numer of times bots can move up without wrapping [100]'
-		--max-secs=[TIME] 'Maximum time to run the simulation, use s, m, or h suffixes [no limit]'
-		--width=[N] 'Max numer of times bots can move right without wrapping [100]'")
+		.args_from_usage(&usage)
 	.get_matches();
-	
-	// TODO:
-	// can we do something about not duplicating defaults?
-	//    can use format!("blah [default_height]", default_height = local.height);
-	// add the other options
-	// wire up to Config and other state thingies
-	let width = value_t!(matches.value_of("width"), u32).unwrap_or(100) as f64;
-	
+		
 	if matches.is_present("height") {
 		local.height = match_num(&matches, "height", 10, 1_000) as f64;
 	}
 	if matches.is_present("width") {
 		local.width = match_num(&matches, "height", 10, 1_000) as f64;
+	}
+	if matches.is_present("num-bots") {
+		local.num_bots = match_num(&matches, "num-bots", 1, 100);
+	}
+	
+	if matches.is_present("seed") {
+		config.seed = match_num(&matches, "seed", 1, u32::max_value());
 	}
 	
 	let mut max_secs = matches.value_of("max-secs").unwrap_or("").to_string();
@@ -141,28 +141,22 @@ fn parse_options() -> (LocalConfig, Config)
 		};
 	}
 	
+	config.colorize = !matches.is_present("no-colors");
+	
 	(local, config)
 }
 
-// TODO: take a seed option on the command line, if missing use a random seed
 fn main()
 {
-	let (local, config) = parse_options();
-	println!("height = {:.0}", local.height);
-	println!("width = {:.0}", local.width);
-	println!("max_secs = {:.3}s", config.max_secs);
-
-
-	let mut config = Config::new();
+	let (local, mut config) = parse_options();
 	config.time_units = 1000.0;	// ms
-	config.colorize = false;	// TODO: use a command line option
-	let mut sim = Simulation::new(config);
 	
+	let mut sim = Simulation::new(config);
 	let world = sim.add_component("world", NO_COMPONENT);
-	for i in 0..NUM_BOTS {
+	for i in 0..local.num_bots {
 		let (name, thread) = new_random_bot(i);
 		let top = sim.add_active_component(&name, world, locatable_thread);
-		let _ = sim.add_active_component("AI", top, thread);
+		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data));
 	}
 	sim.run();
 }
