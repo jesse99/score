@@ -23,16 +23,13 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 {\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/patterns"}}{\fldrslt \cf2 https://github.com/rust-unofficial/patterns}}\
  \
  \
-11-3 max\
 \
 * Update:\
-	- start supporting battle bot events and dispatching\
-	- config should support log level\
-		` probably should be able to overwrite this on a per-component basis\
-		` maybe via a setting\
-* Work on battle bots:\
-	- add a standard top-level component to encapsulate a position\
-	- add a standard event to change the position in that component\
+	- support command line options parsing\
+	- add support for at least some of the config settings\
+	- add some sort of support for log levels\
+		\'97log-level=debug				default log level\
+		\'97log-debug=\'91*cowardly*\'92	glob, may appear more than once\
 * Call checkDescriptions\
 * Add log macros\
 	- {\field{\*\fldinst{HYPERLINK "https://github.com/slog-rs/slog/blob/master/src/lib.rs"}}{\fldrslt https://github.com/slog-rs/slog/blob/master/src/lib.rs}}\
