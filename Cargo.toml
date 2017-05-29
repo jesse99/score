@@ -7,4 +7,5 @@ authors = ["Jesse Jones <jesse9jones@gmail.com>"]
 	name = "battle_bots"
 
 [dependencies]
-rand="0.3.0"
+clap = "2.24.0"
+rand = "0.3.0"
