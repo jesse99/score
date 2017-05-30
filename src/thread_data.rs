@@ -2,6 +2,7 @@ use component::*;
 use effector::*;
 use event::*;
 use std::sync::mpsc;
+use rand::Rng;
 
 /// This is moved into each thread of an active `Component`.
 pub struct ThreadData
@@ -16,5 +17,7 @@ pub struct ThreadData
 	/// back a new `Effector` struct.
 	pub tx: mpsc::Sender<Effector>,
 	
-//	pub rng: xxx,
+	/// This should be the only source of randomness used within a `Component`s
+	/// thread.
+	pub rng: Box<Rng + Send>,	// TODO: document stuff to be careful of, eg HashMap iteration
 }

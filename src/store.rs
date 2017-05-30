@@ -1,5 +1,5 @@
+use sim_time::*;
 use std::collections::HashMap;
-use time::*;
 
 /// This is used to persist all of the significant state within a simulation.
 /// It is a write-once temporal store, i.e. new values can be written to the

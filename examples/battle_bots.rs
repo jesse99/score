@@ -40,15 +40,14 @@ impl LocalConfig
 
 type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
-fn randomize_location(local: &LocalConfig, top: ComponentID, effector: &mut Effector)
+fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, top: ComponentID, effector: &mut Effector)
 {
-	let mut rng = rand::thread_rng();	// TODO: make sure these are using the same seed
-	let payload = (rng.gen::<f64>()*local.width, rng.gen::<f64>()*local.height);
+	let payload = (rng.next_f64()*local.width, rng.next_f64()*local.height);
 	let event = Event::new_with_payload("set-location", payload);
 	effector.schedule_immediately(event, top);
 }
 
-fn cowardly_thread(local: LocalConfig, data: ThreadData)
+fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
 		for dispatched in data.rx {
@@ -57,7 +56,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData)
 			if ename == "init 0" {
 				log_info!(effector, "initializing {}", "foo");
 				let top = dispatched.components.find_top_id(data.id);
-				randomize_location(&local, top, &mut effector);
+				randomize_location(&local, &mut data.rng, top, &mut effector);
 			} else {
 				let cname = &(*dispatched.components).get(data.id).name;
 				panic!("component {} can't handle event {}", cname, ename);

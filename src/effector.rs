@@ -1,8 +1,8 @@
 use component::*;
 use event::*;
 use logging::*;
+use sim_time::*;
 use store::*;
-use time::*;
 use std::collections::HashMap;
 use std::f64::EPSILON;
 

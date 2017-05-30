@@ -10,3 +10,4 @@ authors = ["Jesse Jones <jesse9jones@gmail.com>"]
 clap = "2.24.0"
 glob = "0.2.0"
 rand = "0.3.0"
+time = "0.1.0"

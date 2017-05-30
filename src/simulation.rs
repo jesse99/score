@@ -4,15 +4,17 @@ use config::*;
 use effector::*;
 use event::*;
 use logging::*;
+use rand::{SeedableRng, XorShiftRng};
+use sim_time::*;
 use store::*;
 use thread_data::*;
-use time::*;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::mpsc;
+use time::get_time;
 
 /// This is the top-level data structure. Once an exe initializes
 /// it the simulation will run until either a time limit elapses
@@ -76,7 +78,7 @@ impl Simulation
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
-		// when we support children properly assert that parent is not in children (recursively?)
+		// TODO: when we support children properly assert that parent is not in children (recursively?)
 		
 		let (txd, rxd) = mpsc::channel::<DispatchedEvent>();
 		let (txe, rxe) = mpsc::channel::<Effector>();
@@ -91,7 +93,11 @@ impl Simulation
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
-		thread(ThreadData{id, rx: rxd, tx: txe});
+		// We care about speed much more than we care about a cryptographic RNG so
+		// XorShiftRng should be plenty good enough.
+		let seed = if self.config.seed != 0 {self.config.seed} else {get_time().nsec as u32};
+		let rng = XorShiftRng::from_seed([seed + id.0 as u32; 4]);	// add id so that each thread has its own random stream
+		thread(ThreadData{id, rx: rxd, tx: txe, rng: Box::new(rng)});
 		id
 	}
 	
@@ -145,7 +151,8 @@ impl Simulation
 				let e = rx.recv().expect(&format!("rx failed for id {}", id.0));	// TODO: use the timeout version and panic if it takes too long
 				effects.insert(id, e);
 			} else {
-				assert!(false);
+				let c = self.components.get(id);
+				panic!("Failed to receive an effector from component {}", c.name);
 			}
 		}
 		
