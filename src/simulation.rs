@@ -199,6 +199,10 @@ impl Simulation
 		assert!(effects.store.string_data.is_empty(), "event storing isn't implemented yet");
 	}
 
+	// TODO: We'll need a logger to write to a file or something
+	// (the store doesn't seem like a great place because we need
+	// to record stuff with a fair amount of structure and because
+	// logging should not require a mutable reference).
 	fn log(&mut self, level: &LogLevel, id: ComponentID, message: &str)
 	{
 		if self.should_log(level, id) {
@@ -207,15 +211,23 @@ impl Simulation
 			
 			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
 			if self.config.colorize {
-				match level {
-					&LogLevel::Error	=> log_to_console(&t, &path, message, &self.config.error_escape_code, end_escape()),
-					&LogLevel::Warning	=> log_to_console(&t, &path, message, &self.config.warning_escape_code, end_escape()),
-					&LogLevel::Info		=> log_to_console(&t, &path, message, &self.config.info_escape_code, end_escape()),
-					&LogLevel::Debug	=> log_to_console(&t, &path, message, &self.config.debug_escape_code, end_escape()),
-					&LogLevel::Excessive=> log_to_console(&t, &path, message, &self.config.excessive_escape_code, end_escape()),
-				}
+				let begin_escape = match level {
+					&LogLevel::Error	=> &self.config.error_escape_code,
+					&LogLevel::Warning	=> &self.config.warning_escape_code,
+					&LogLevel::Info		=> &self.config.info_escape_code,
+					&LogLevel::Debug	=> &self.config.debug_escape_code,
+					&LogLevel::Excessive=> &self.config.excessive_escape_code,
+				};
+				print!("{}{}   {}   {}{}\n", begin_escape, t, path, message, end_escape());
 			} else {
-				log_to_console(&t, &path, message, "", "")
+				let prefix = match level {
+					&LogLevel::Error	=> "Error",
+					&LogLevel::Warning	=> "Warn ",
+					&LogLevel::Info		=> "Info ",
+					&LogLevel::Debug	=> "Debug",
+					&LogLevel::Excessive=> "Exces",
+				};
+				print!("{}  {} {}  {}\n", t, prefix, path, message);
 			}
 		}
 	}
@@ -277,15 +289,6 @@ impl Ord for ScheduledEvent
 	{
 		other.time.0.cmp(&self.time.0)	// reversed because BinaryHeap returns the largest values first
 	}
-}
-
-// TODO: We'll need a logger to write to a file or something
-// (the store doesn't seem like a great place because we need
-// to record stuff with a fair amount of structure and because
-// logging should not require a mutable reference).
-fn log_to_console(time: &str, path: &str, message: &str, begin: &str, end: &str)
-{
-	print!("{}{}   {}   {}{}\n", begin, time, path, message, end);
 }
 
 fn end_escape() -> &'static str
