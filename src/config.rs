@@ -1,17 +1,8 @@
 use glob::Pattern;
+use logging::*;
 use std::collections::HashMap;
 use std::f64::INFINITY;
 use std::str::FromStr;
-
-#[derive(Debug, PartialEq, PartialOrd)]
-pub enum LogLevel
-{
-	Error,	// update log_levels if this changes
-	Warning,
-	Info,
-	Debug,
-	Excessive
-}
 
 /// Used to configure the `Simulation`.
 pub struct Config
@@ -140,12 +131,6 @@ impl Config
 		}
 		None
 	}
-}
-
-/// For use in --help messages.
-pub fn log_levels() -> &'static str
-{
-	"error, warning, info, debug, or excessive"
 }
 
 /// For use in --help messages.

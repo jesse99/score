@@ -1,6 +1,6 @@
 //! Some component threads that are generally useful.
-use config::*;
 use effector::*;
+use logging::*;
 use std::thread;
 use thread_data::*;
 
@@ -17,10 +17,10 @@ pub fn locatable_thread(data: ThreadData)
 			let ename = &dispatched.event.name;
 			if ename == "set-location" {
 				let loc = dispatched.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
-				effector.log(LogLevel::Debug, &format!("setting location to {:.1}, {:.1}", loc.0, loc.1));
+				log_debug!(effector, "setting location to {:.1}, {:.1}", loc.0, loc.1);
 				
 			} else if ename.starts_with("init ") {
-				effector.log(LogLevel::Excessive, "is ignoring init"); 
+				log_excessive!(effector, "is ignoring init");
 			
 			} else {
 				panic!("component {} can't handle event {}", cname, ename);

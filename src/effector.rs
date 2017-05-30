@@ -1,6 +1,6 @@
 use component::*;
-use config::*;
 use event::*;
+use logging::*;
 use store::*;
 use time::*;
 use std::collections::HashMap;

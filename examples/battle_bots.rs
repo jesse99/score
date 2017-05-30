@@ -5,6 +5,7 @@
 extern crate clap;
 extern crate glob;
 extern crate rand;
+#[macro_use]
 extern crate rsimbase;
 
 use clap::{App, ArgMatches};
@@ -54,7 +55,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData)
 			let mut effector = Effector::new();
 			let ename = &dispatched.event.name;
 			if ename == "init 0" {
-				effector.log(LogLevel::Info, "initializing");
+				log_info!(effector, "initializing {}", "foo");
 				let top = dispatched.components.find_top_id(data.id);
 				randomize_location(&local, top, &mut effector);
 			} else {
@@ -159,11 +160,8 @@ fn parse_options() -> (LocalConfig, Config)
 	(local, config)
 }
 
-fn main()
+fn create_sim(local: LocalConfig, config: Config) -> Simulation
 {
-	let (local, mut config) = parse_options();
-	config.time_units = 1000.0;	// ms
-	
 	let mut sim = Simulation::new(config);
 	let world = sim.add_component("world", NO_COMPONENT);
 	for i in 0..local.num_bots {
@@ -171,5 +169,14 @@ fn main()
 		let top = sim.add_active_component(&name, world, locatable_thread);
 		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data));
 	}
+	sim
+}
+
+fn main()
+{
+	let (local, mut config) = parse_options();
+	config.time_units = 1000.0;	// ms
+	
+	let mut sim = create_sim(local, config);
 	sim.run();
 }
