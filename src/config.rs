@@ -76,7 +76,7 @@ impl Config
 
 	/// Helper for parsing command line options. Returns an error if the
 	/// string was not able to be parsed.
-	pub fn parse_max_secs(&mut self, text: &str) -> Option<String>
+	pub fn parse_max_secs(&mut self, text: &str) -> Option<&'static str>
 	{
 		let mut text = text.to_string();
 		let units = text.pop().unwrap();
@@ -87,16 +87,16 @@ impl Config
 				'h' => {self.max_secs = 60.0*60.0*base; None},
 				'd' => {self.max_secs = 24.0*60.0*60.0*base; None},
 				'w' => {self.max_secs = 7.0*24.0*60.0*60.0*base; None},
-				_  => Some("--max-secs should have an s, m, h, d, or w suffix".to_string())
+				_  => Some("--max-secs should have an s, m, h, d, or w suffix")
 			}
 		} else {
-			Some("--max-secs should have an f64 value followed by a suffix".to_string())
+			Some("--max-secs should have an f64 value followed by a suffix")
 		}
 	}
 
 	/// Helper for parsing command line options. Returns an error if the
 	/// string was not able to be parsed.
-	pub fn parse_log_level(&mut self, level: &str) -> Option<String>
+	pub fn parse_log_level(&mut self, level: &str) -> Option<&'static str>
 	{
 		match do_parse_log_level(level) {
 			Ok(value) => {
@@ -123,7 +123,7 @@ impl Config
 							return Some(format!("--log={} has a malformed glob", entry));
 						}
 					},
-					Err(message) => {return Some(message);}
+					Err(message) => {return Some(message.to_string());}
 				}
 			} else {
 				return Some(format!("--log={} should be formatted as LEVEL:GLOB", entry));
@@ -139,7 +139,7 @@ pub fn time_suffixes() -> &'static str
 	"s, m, h, d, or w"
 }
 
-fn do_parse_log_level(level: &str) -> Result<LogLevel, String>
+fn do_parse_log_level(level: &str) -> Result<LogLevel, &'static str>
 {
 	match level {
 		"error" => Ok(LogLevel::Error),
@@ -147,6 +147,6 @@ fn do_parse_log_level(level: &str) -> Result<LogLevel, String>
 		"info" => Ok(LogLevel::Info),
 		"debug" => Ok(LogLevel::Debug),
 		"excessive" => Ok(LogLevel::Excessive),
-		_ => Err("--log-level should be error, warning, info, debug, or excessive".to_string()),
+		_ => Err("--log-level should be error, warning, info, debug, or excessive"),
 	}
 }

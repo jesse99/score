@@ -50,11 +50,11 @@ pub struct DispatchedEvent
 
 impl DispatchedEvent
 {
-	pub fn expect_payload<T: Any + Clone>(&self, message: &str) -> T
+	pub fn expect_payload<T: Any>(&self, message: &str) -> &T
 	{
 		if let Some(ref value) = self.event.payload {
 			if let Some(x) = value.downcast_ref::<T>() {
-				x.clone()
+				x
 			} else {
 				panic!("event {} {} (downcast failed)", self.event.name, message);
 			}

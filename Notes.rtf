@@ -29,14 +29,9 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \outl0\strokewidth0 \strokec3 \
 
 \fs24 \
-
-\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 * Add log macros\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf2 	- {\field{\*\fldinst{HYPERLINK "https://github.com/slog-rs/slog/blob/master/src/lib.rs"}}{\fldrslt https://github.com/slog-rs/slog/blob/master/src/lib.rs}}\
-	- {\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/book/macros.html"}}{\fldrslt https://doc.rust-lang.org/book/macros.html}}\
-* Can use try! with Result\
-	- {\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/book/macros.html"}}{\fldrslt https://doc.rust-lang.org/book/macros.html}}\
-* If no-colors then include log level in stdout\
+
+\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 * If no-colors then include log level in stdout\
 * Might want to use XorShiftRng\
 	- can use new_unseeded\
 	- or from_seed (seed can\'92t be zero)\
@@ -44,24 +39,8 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 * Threads should be given a rng?\
 	- if seed is random then need to use a different seed for eacxh thread\
 	- if seed is fixed add component id to seed\
-* Call checkDescriptions\
-* Persist the store\
-* Try channels:\
-	- figure out what kind of channels to use\
-* Try 
-\fs36 \cf0 \expnd0\expndtw0\kerning0
-#[warn(unused_must_use)]
-\fs48 \cf2 \kerning1\expnd0\expndtw0 \
-* What do we do about reproducibility checks?\
-	- an option to examples? integration tests?\
-	- check logs as well as a hash?\
-* Try separate executioners\
-* Use panic! instead of assert!(false)\
-* I think assert! takes an optional message\
-* Try making panic abort\
-	- make sure that we still get a stack trace\
-* Document no option for parent.\
-* Implement _check_descriptions\
+* locatable_thread needs to update the store\
+* Implement check_descriptions\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
 \f2\i\b\fs40 \cf5 /// _Setters_ set a value for the current time. Note that it is a programmer error to
@@ -71,16 +50,28 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \f1\i0\b0 \cf0 \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 * goals: deterministic, extensible, parallel, off-line analysis, portable, fast\
+\f0\fs48 \cf2 * Use panic! instead of assert!(false)\
+* I think assert! takes an optional message\
+* Try making panic abort\
+	- make sure that we still get a stack trace\
+* Try channels:\
+	- figure out what kind of channels to use\
+* Persist the store\
+* Try 
+\fs36 \cf0 \expnd0\expndtw0\kerning0
+#[warn(unused_must_use)]
+\fs48 \cf2 \kerning1\expnd0\expndtw0 \
+* What do we do about reproducibility checks?\
+	- an option to examples? integration tests?\
+	- check logs as well as a hash?\
+* Try separate executioners\
+* goals: deterministic, extensible, parallel, off-line analysis, portable, fast\
 * use a write-once temporal store\
 		- string keys, typed values\
 			` for log lines auto-append onto the last value\
 		- when running just use last recorded value\
 		- for re-running just track keys that were registered by the client\
 		- instead of a global lock, might want to have a concept of root nodes and put locks on those\
-* call check_descriptions when the simulation exits\
-* Deliver events scheduled at the same time concurrently\
-	- mention that parallelism will increase with lower time resolutions\
 * Could have optimistic parallelism:\
 	- default to scheduling num cores components\
 	- commit those that didn\'92t do a read from a key that a later time slice wrote to\

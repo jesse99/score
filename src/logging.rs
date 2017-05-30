@@ -21,6 +21,8 @@ pub fn log_levels() -> &'static str
 #[macro_export]
 macro_rules! log_at
 {
+	// Typically it is nice to skip formatting if the log message wouldn't appear.
+	// But in our case log messages are normally always persisted.
 	($effector:expr, $l:expr) => ($effector.log(level, ""));
 	($effector:expr, $l:expr, $msg:expr) => ($effector.log(level, $msg));
 	($effector:expr, $l:expr, $fmt:expr, $($arg:tt)*) => ($effector.log(level, &format!($fmt, $($arg)*)));

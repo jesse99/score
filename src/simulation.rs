@@ -199,7 +199,6 @@ impl Simulation
 		assert!(effects.store.string_data.is_empty(), "event storing isn't implemented yet");
 	}
 
-	// TODO: ideally formatting won't be done if the message wouldn't be logged
 	fn log(&mut self, level: &LogLevel, id: ComponentID, message: &str)
 	{
 		if self.should_log(level, id) {
