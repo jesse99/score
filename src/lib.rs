@@ -1,3 +1,5 @@
+extern crate glob;
+
 pub mod component;
 pub mod components;
 pub mod config;

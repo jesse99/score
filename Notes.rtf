@@ -22,12 +22,11 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/patterns"}}{\fldrslt \cf2 https://github.com/rust-unofficial/patterns}}\
  \
- \
-* Update:\
-	- add some sort of support for log levels\
-		\'97log-level=debug				default log level\
-		\'97log-debug=\'91*cowardly*\'92	glob, may appear more than once\
-		or maybe \'97log-debug=name1, name2\
+\
+* Add log macros\
+	- {\field{\*\fldinst{HYPERLINK "https://github.com/slog-rs/slog/blob/master/src/lib.rs"}}{\fldrslt https://github.com/slog-rs/slog/blob/master/src/lib.rs}}\
+	- {\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/book/macros.html"}}{\fldrslt https://doc.rust-lang.org/book/macros.html}}\
+* If no-colors then include log level in stdout\
 * Might want to use XorShiftRng\
 	- can use new_unseeded\
 	- or from_seed (seed can\'92t be zero)\
@@ -36,9 +35,6 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 	- if seed is random then need to use a different seed for eacxh thread\
 	- if seed is fixed add component id to seed\
 * Call checkDescriptions\
-* Add log macros\
-	- {\field{\*\fldinst{HYPERLINK "https://github.com/slog-rs/slog/blob/master/src/lib.rs"}}{\fldrslt https://github.com/slog-rs/slog/blob/master/src/lib.rs}}\
-	- {\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/book/macros.html"}}{\fldrslt https://doc.rust-lang.org/book/macros.html}}\
 * Persist the store\
 * Try channels:\
 	- figure out what kind of channels to use\

@@ -1,8 +1,6 @@
 //! Some component threads that are generally useful.
-//use component::*;
+use config::*;
 use effector::*;
-//use event::*;
-//use std::sync::mpsc;
 use std::thread;
 use thread_data::*;
 

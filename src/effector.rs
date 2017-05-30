@@ -1,18 +1,10 @@
 use component::*;
+use config::*;
 use event::*;
 use store::*;
 use time::*;
 use std::collections::HashMap;
 use std::f64::EPSILON;
-
-pub enum LogLevel	// TODO: move this somewhere else?
-{
-	Error,
-	Warning,
-	Info,
-	Debug,
-	Excessive
-}
 
 /// Effectors are returned by `Component`s after they process a `DispatchedEvent`.
 /// The effector encapsulates the state changes the component wishes to make.

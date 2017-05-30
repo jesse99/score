@@ -125,7 +125,7 @@ impl Simulation
 		// TODO: should cap the number of threads we use (probably via config)
 		while !self.scheduled.is_empty() && self.scheduled.peek().unwrap().time == time {	// while let can't have a guard so we use this somewhat ugly syntax
 			let e = self.scheduled.pop().unwrap();
-			self.log(&LogLevel::Excessive, "simulation", &format!("dispatching {} to id {}", &e.event.name, e.to.0));
+			self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching {} to id {}", &e.event.name, e.to.0));
 			ids.push(e.to);
 			
 			if let Some(ref tx) = self.event_senders[e.to.0] {
@@ -158,7 +158,7 @@ impl Simulation
 	
 	fn schedule_init_stage(&mut self, stage: i32)
 	{
-		self.log(&LogLevel::Info, "simulation", &format!("initializing components at stage {}", stage));
+		self.log(&LogLevel::Info, NO_COMPONENT, &format!("initializing components at stage {}", stage));
 		let name = format!("init {}", stage);
 		for i in 0..self.event_senders.len() {
 			if let Some(_) = self.event_senders[i] {
@@ -177,9 +177,8 @@ impl Simulation
 	fn apply_logs(&mut self, id: ComponentID, effects: &Effector)
 	{
 		// TODO: also need to persist these
-		let path = self.components.path(id);
 		for record in effects.logs.iter() {
-			self.log(&record.level, &path, &record.message);
+			self.log(&record.level, id, &record.message);
 		}
 	}
 
@@ -199,22 +198,41 @@ impl Simulation
 		assert!(effects.store.string_data.is_empty(), "event storing isn't implemented yet");
 	}
 
-	fn log(&mut self, level: &LogLevel, path: &str, message: &str)
+	// TODO: ideally formatting won't be done if the message wouldn't be logged
+	fn log(&mut self, level: &LogLevel, id: ComponentID, message: &str)
 	{
-		let t = (self.current_time.0 as f64)/self.config.time_units;
-		let t = format!("{:.*}", self.precision, t);
-		
-		if self.config.colorize {
-			match level {
-				&LogLevel::Error		=> log_to_console(&t, path, message, &self.config.error_escape_code, end_escape()),
-				&LogLevel::Warning	=> log_to_console(&t, path, message, &self.config.warning_escape_code, end_escape()),
-				&LogLevel::Info		=> log_to_console(&t, path, message, &self.config.info_escape_code, end_escape()),
-				&LogLevel::Debug		=> log_to_console(&t, path, message, &self.config.debug_escape_code, end_escape()),
-				&LogLevel::Excessive	=> log_to_console(&t, path, message, &self.config.excessive_escape_code, end_escape()),
+		if self.should_log(level, id) {
+			let t = (self.current_time.0 as f64)/self.config.time_units;
+			let t = format!("{:.*}", self.precision, t);
+			
+			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
+			if self.config.colorize {
+				match level {
+					&LogLevel::Error	=> log_to_console(&t, &path, message, &self.config.error_escape_code, end_escape()),
+					&LogLevel::Warning	=> log_to_console(&t, &path, message, &self.config.warning_escape_code, end_escape()),
+					&LogLevel::Info		=> log_to_console(&t, &path, message, &self.config.info_escape_code, end_escape()),
+					&LogLevel::Debug	=> log_to_console(&t, &path, message, &self.config.debug_escape_code, end_escape()),
+					&LogLevel::Excessive=> log_to_console(&t, &path, message, &self.config.excessive_escape_code, end_escape()),
+				}
+			} else {
+				log_to_console(&t, &path, message, "", "")
 			}
-		} else {
-			log_to_console(&t, path, message, "", "")
 		}
+	}
+	
+	fn should_log(&self, level: &LogLevel, id: ComponentID) -> bool
+	{
+		if !self.config.log_levels.is_empty() {	// short circuit some work if we have no overrides
+			let name = if id == NO_COMPONENT {"simulation"} else {&self.components.get(id).name};
+			
+			for (pattern, clevel) in self.config.log_levels.iter() {
+				if pattern.matches(name) {
+					return *level <= *clevel
+				}
+			}
+		}
+
+		*level <= self.config.log_level
 	}
 	
 	fn add_secs(&self, secs: f64) -> Time

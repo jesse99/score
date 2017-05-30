@@ -3,6 +3,7 @@
 //! other bots.
 #[macro_use]
 extern crate clap;
+extern crate glob;
 extern crate rand;
 extern crate rsimbase;
 
@@ -99,12 +100,19 @@ fn parse_options() -> (LocalConfig, Config)
 	// see https://docs.rs/clap/2.24.2/clap/struct.Arg.html#method.from_usage for syntax
 	let usage = format!(
 		"--height=[N] 'Max number of times bots can move up without wrapping [{default_height}]'
-		--max-secs=[TIME] 'Maximum time to run the simulation, use s, m, or h suffixes [no limit]'
+		--log=[LEVEL:GLOB]... 'Overrides --log-level, glob is used to match component names'
+		--log-level=[LEVEL] 'Default log level: {log_levels} [{default_level}]'
+		--max-secs=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
 		--no-colors 'Don't color code console output'
 		--num-bots=[N] 'Number of bots to start out with [{default_bots}]'
 		--seed=[N] 'Random number generator seed [random]'
 		--width=[N] 'Max number of times bots can move right without wrapping [{default_width}]'",
-		default_height = local.height, default_width = local.width, default_bots = local.num_bots);
+		default_height = local.height,
+		default_width = local.width,
+		default_bots = local.num_bots,
+		default_level = format!("{:?}", config.log_level).to_lowercase(),
+		log_levels = log_levels(),
+		time_suffixes = time_suffixes());
 	
 	let matches = App::new("battle-bots")
 		.version("1.0")
@@ -127,18 +135,23 @@ fn parse_options() -> (LocalConfig, Config)
 		config.seed = match_num(&matches, "seed", 1, u32::max_value());
 	}
 	
-	let mut max_secs = matches.value_of("max-secs").unwrap_or("").to_string();
+	if matches.is_present("log-level") {
+		if let Some(e) = config.parse_log_level(matches.value_of("log-level").unwrap()) {
+			fatal_err(&e);
+		}
+	}
+
+	if matches.is_present("log") {
+		if let Some(e) = config.parse_log_levels(matches.values_of("log").unwrap().collect()) {
+			fatal_err(&e);
+		}
+	}
+	
+	let max_secs = matches.value_of("max-secs").unwrap_or("");
 	if !max_secs.is_empty() {
-		let units = max_secs.pop().unwrap();
-		let base = f64::from_str(&max_secs).unwrap_or_else(|_| fatal_err("--max-secs should have an f64 value followed by a suffix"));
-		config.max_secs = match units {
-			's' => base,
-			'm' => 60.0*base,
-			'h' => 60.0*60.0*base,
-			'd' => 24.0*60.0*60.0*base,
-			'w' => 7.0*24.0*60.0*60.0*base,
-			_  => fatal_err("--max-secs should have an s, m, h, d, or w suffix")
-		};
+		if let Some(e) = config.parse_max_secs(max_secs) {
+			fatal_err(&e);
+		}
 	}
 	
 	config.colorize = !matches.is_present("no-colors");
