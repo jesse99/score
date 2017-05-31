@@ -67,11 +67,33 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 	});
 }
 
-// TODO: pick a random bot
-fn new_random_bot(index: i32) -> (String, ComponentThread)
+fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 {
-	let name = format!("cowardly-{}", index);
-	(name, cowardly_thread)
+	thread::spawn(move || {
+		for dispatched in data.rx {
+			let mut effector = Effector::new();
+			let ename = &dispatched.event.name;
+			if ename == "init 0" {
+				log_info!(effector, "initializing {}", "foo");
+				let top = dispatched.components.find_top_id(data.id);
+				randomize_location(&local, &mut data.rng, top, &mut effector);
+			} else {
+				let cname = &(*dispatched.components).get(data.id).name;
+				panic!("component {} can't handle event {}", cname, ename);
+			}
+			
+			let _ = data.tx.send(effector);
+		}
+	});
+}
+
+fn new_random_bot(rng: &mut Rng, index: i32) -> (String, ComponentThread)
+{
+	if rng.next_u32() < u32::max_value()/2 {
+		(format!("cowardly-{}", index), cowardly_thread)
+	} else {
+		(format!("aggresive-{}", index), aggresive_thread)
+	}
 }
 
 fn fatal_err(message: &str) -> !
@@ -164,7 +186,7 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let mut sim = Simulation::new(config);
 	let world = sim.add_component("world", NO_COMPONENT);
 	for i in 0..local.num_bots {
-		let (name, thread) = new_random_bot(i);
+		let (name, thread) = new_random_bot(sim.rng(), i);
 		let top = sim.add_active_component(&name, world, locatable_thread);
 		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data));
 	}

@@ -4,7 +4,7 @@ use config::*;
 use effector::*;
 use event::*;
 use logging::*;
-use rand::{SeedableRng, XorShiftRng};
+use rand::{Rng, SeedableRng, XorShiftRng};
 use sim_time::*;
 use store::*;
 use thread_data::*;
@@ -29,6 +29,7 @@ pub struct Simulation
 	precision: usize,	// number of decimal places to include when logging, derived from config.time_units
 	current_time: Time,
 	scheduled: BinaryHeap<ScheduledEvent>,
+	rng: XorShiftRng,
 }
 	
 impl Simulation
@@ -39,6 +40,7 @@ impl Simulation
 		assert!(config.num_init_stages > 0, "num_init_stages ({}) is not positive", config.num_init_stages);	// need an init step to schedule at least one event to process
 		
 		let precision = config.time_units.log10().max(0.0) as usize;
+		let seed = config.seed;
 		Simulation {
 			store: Arc::new(Store::new()),
 			components: Arc::new(Components::new()),
@@ -48,6 +50,7 @@ impl Simulation
 			precision,
 			current_time: Time(0),
 			scheduled: BinaryHeap::new(),
+			rng: new_rng(seed, 10_000),
 		}
 	}
 	
@@ -93,12 +96,15 @@ impl Simulation
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
-		// We care about speed much more than we care about a cryptographic RNG so
-		// XorShiftRng should be plenty good enough.
-		let seed = if self.config.seed != 0 {self.config.seed} else {get_time().nsec as u32};
-		let rng = XorShiftRng::from_seed([seed + id.0 as u32; 4]);	// add id so that each thread has its own random stream
+		let rng = new_rng(self.config.seed, id.0 as u32);
 		thread(ThreadData{id, rx: rxd, tx: txe, rng: Box::new(rng)});
 		id
+	}
+	
+	/// Use this if you want to do something random when initializing components.
+	pub fn rng(&mut self) -> &mut Rng
+	{
+		&mut self.rng
 	}
 	
 	/// Dispatches events until there are no more events left to dispatch
@@ -301,4 +307,12 @@ impl Ord for ScheduledEvent
 fn end_escape() -> &'static str
 {
 	"\x1b[0m"
+}
+
+// We care about speed much more than we care about a cryptographic RNG so
+// XorShiftRng should be plenty good enough.
+fn new_rng(seed: u32, offset: u32) -> XorShiftRng
+{
+	let seed = if seed != 0 {seed} else {get_time().nsec as u32};
+	XorShiftRng::from_seed([seed + offset; 4])	// offset is used to give each thread its own random stream
 }

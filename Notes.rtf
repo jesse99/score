@@ -22,12 +22,19 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/patterns"}}{\fldrslt \cf2 https://github.com/rust-unofficial/patterns}}\
  \
- \
- * Pick a random bot AI:\
-	- sim should provide a rng\
+\
+* Do a commit\
+* Tweak stdout logging\
+	- keep track of the max path length\
+	- when logging if path length is less than N then pad it out to N\
+	- if path is larger then truncate from the front, use a proper ellipsis\
 * After doing a send might want to process the results sorted by id\
 	- would help a lot with doing stuff like diffs\
 * locatable_thread needs to update the store\
+* Check parallelism:\
+	- maintain a list of buckets where the bucket number is how many threads executed\
+	- log that at debug\
+	- counting should only be done if should_log\
 * Implement check_descriptions\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
@@ -38,10 +45,12 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \f2\i0\b0 \cf0 \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 * Try making panic abort\
+\f0\fs48 \cf2 * Rename it score?\
+	- {\field{\*\fldinst{HYPERLINK "https://help.github.com/articles/renaming-a-repository/"}}{\fldrslt https://help.github.com/articles/renaming-a-repository/}}\
+	- add some lame readme\
+* Try making panic abort\
 	- make sure that we still get a stack trace\
-* Try channels:\
-	- figure out what kind of channels to use\
+* Figure out what kind of channels to use\
 * Persist the store\
 * Try 
 \fs36 \cf0 \expnd0\expndtw0\kerning0
