@@ -26,7 +26,7 @@ pub struct Component
 
 /// To make lifetime management easier components are referenced using a small
 /// integer instead of a rust reference.
-#[derive(Eq, PartialEq, Copy, Clone, Debug, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ComponentID(pub usize);
 
 /// The id of the root component.

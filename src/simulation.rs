@@ -10,7 +10,7 @@ use store::*;
 use thread_data::*;
 use std::cmp::{max, Ordering};
 use std::collections::BinaryHeap;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::mpsc;
@@ -159,7 +159,11 @@ impl Simulation
 			}
 		}
 		
-		let mut effects = HashMap::new();	// be sure to apply side effects after all events have finished processing
+		// Note that it is important that we collect all of the side effects for a time t
+		// before we apply them. That way components executing at t do not affect each other.
+		// It's less important to sort the side effects by component id but it does make stdout
+		// logging look a lot nicer.
+		let mut effects = BTreeMap::new();
 		for id in ids {
 			if let Some(ref rx) = self.effector_receivers[id.0] {
 				let e = rx.recv().expect(&format!("rx failed for id {}", id.0));	// TODO: use the timeout version and panic if it takes too long
