@@ -8,7 +8,7 @@ use rand::{Rng, SeedableRng, XorShiftRng};
 use sim_time::*;
 use store::*;
 use thread_data::*;
-use std::cmp::Ordering;
+use std::cmp::{max, Ordering};
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::f64::EPSILON;
@@ -30,6 +30,7 @@ pub struct Simulation
 	current_time: Time,
 	scheduled: BinaryHeap<ScheduledEvent>,
 	rng: XorShiftRng,
+	max_path_len: usize,
 }
 	
 impl Simulation
@@ -51,6 +52,7 @@ impl Simulation
 			current_time: Time(0),
 			scheduled: BinaryHeap::new(),
 			rng: new_rng(seed, 10_000),
+			max_path_len: 0,
 		}
 	}
 	
@@ -63,12 +65,15 @@ impl Simulation
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
 		
 		let id = ComponentID(self.event_senders.len());
+		{
 		let component = Component{
 			name: name.to_string(),
 			parent: parent,
 			children: Vec::new()};
 		let components = Arc::get_mut(&mut self.components).unwrap();
 		components.append(id, component, parent);
+		}
+		self.max_path_len = max(self.components.path(id).len(), self.max_path_len);
 		self.event_senders.push(None);
 		self.effector_receivers.push(None);
 		id
@@ -87,12 +92,15 @@ impl Simulation
 		let (txe, rxe) = mpsc::channel::<Effector>();
 
 		let id = ComponentID(self.event_senders.len());
+		{
 		let component = Component{
 			name: name.to_string(),
 			parent: parent,
 			children: Vec::new()};
 		let components = Arc::get_mut(&mut self.components).unwrap();
 		components.append(id, component, parent);
+		}
+		self.max_path_len = max(self.components.path(id).len(), self.max_path_len);
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
@@ -212,17 +220,14 @@ impl Simulation
 		assert!(effects.store.string_data.is_empty(), "event storing isn't implemented yet");
 	}
 
-	// TODO: We'll need a logger to write to a file or something
-	// (the store doesn't seem like a great place because we need
-	// to record stuff with a fair amount of structure and because
-	// logging should not require a mutable reference).
+	// TODO: We'll need a logger to write to a file or something (the store doesn't seem
+	// like a great place because we need to record stuff with a fair amount of structure).
 	fn log(&mut self, level: &LogLevel, id: ComponentID, message: &str)
 	{
 		if self.should_log(level, id) {
 			let t = (self.current_time.0 as f64)/self.config.time_units;
-			let t = format!("{:.*}", self.precision, t);
 			
-			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
+			let path = self.logged_path(id);
 			if self.config.colorize {
 				let begin_escape = match level {
 					&LogLevel::Error	=> &self.config.error_escape_code,
@@ -231,7 +236,7 @@ impl Simulation
 					&LogLevel::Debug	=> &self.config.debug_escape_code,
 					&LogLevel::Excessive=> &self.config.excessive_escape_code,
 				};
-				print!("{}{}   {}   {}{}\n", begin_escape, t, path, message, end_escape());
+				print!("{0}{1:.2$}   {3} {4}{5}\n", begin_escape, t, self.precision, path, message, end_escape());
 			} else {
 				let prefix = match level {
 					&LogLevel::Error	=> "Error",
@@ -240,8 +245,23 @@ impl Simulation
 					&LogLevel::Debug	=> "Debug",
 					&LogLevel::Excessive=> "Exces",
 				};
-				print!("{}  {} {}  {}\n", t, prefix, path, message);
+				print!("{0:.1$}  {2} {3}  {4}\n", t, self.precision, prefix, path, message);
 			}
+		}
+	}
+
+	fn logged_path(&self, id: ComponentID) -> String
+	{
+		let mut path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
+		if self.config.max_log_path > 0 && self.max_path_len > self.config.max_log_path {
+			let len = path.len();
+			if len > self.config.max_log_path {
+				format!("…{}", path.split_off(len - self.config.max_log_path))
+			} else {
+				format!("{0:<1$}", path, self.config.max_log_path)
+			}
+		} else {
+			format!("{0:<1$}", path, self.max_path_len)
 		}
 	}
 	

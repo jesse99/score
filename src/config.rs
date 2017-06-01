@@ -32,6 +32,12 @@ pub struct Config
 	/// is used.
 	pub log_levels: HashMap<Pattern, LogLevel>,
 	
+	/// Maximum number of characters to use when logging component paths to
+	/// stdout. If a path exceeds this then it is truncated from the left and
+	/// prepended with an ellipsis. Zero means always use full paths. Defaults
+	/// to 20.
+	pub max_log_path: usize,
+	
 	/// Use escape sequences to color code stdout. Defaults to true.
 	pub colorize: bool,
 
@@ -65,6 +71,7 @@ impl Config
 			seed: 0,
 			log_level: LogLevel::Info,
 			log_levels: HashMap::new(),
+			max_log_path: 20,
 			colorize: true,
 			error_escape_code: "\x1b[31;1m".to_string(),
 			warning_escape_code: "\x1b[31m".to_string(),
