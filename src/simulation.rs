@@ -177,7 +177,7 @@ impl Simulation
 		for (id, e) in effects.iter_mut() {
 			self.apply_logs(*id, e);
 			self.apply_events(e);
-			self.apply_stores(e);
+			self.apply_stores(e, *id, time);
 		}
 		time
 	}
@@ -216,12 +216,28 @@ impl Simulation
 		}
 	}
 
-	fn apply_stores(&mut self, effects: &Effector)
+	fn apply_stores(&mut self, effects: &Effector, id: ComponentID, time: Time)
 	{
-		// TODO: when saving these off need to turn the keys into paths
-		assert!(effects.store.int_data.is_empty(), "event storing isn't implemented yet");
-		assert!(effects.store.float_data.is_empty(), "event storing isn't implemented yet");
-		assert!(effects.store.string_data.is_empty(), "event storing isn't implemented yet");
+		let path = self.components.path(id);
+		let store = Arc::get_mut(&mut self.store).unwrap();
+
+		store.int_data.reserve(effects.store.int_data.len());
+		for (key, value) in effects.store.int_data.iter() {
+			let key = format!("{}.{}", path, key);
+			store.set_int_data(&key, value.1, time);
+		}
+		
+		store.float_data.reserve(effects.store.float_data.len());
+		for (key, value) in effects.store.float_data.iter() {
+			let key = format!("{}.{}", path, key);
+			store.set_float_data(&key, value.1, time);
+		}
+		
+		store.string_data.reserve(effects.store.string_data.len());
+		for (key, value) in effects.store.string_data.iter() {
+			let key = format!("{}.{}", path, key);
+			store.set_string_data(&key, &value.1, time);
+		}
 	}
 
 	// TODO: We'll need a logger to write to a file or something (the store doesn't seem

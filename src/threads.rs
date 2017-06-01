@@ -18,6 +18,8 @@ pub fn locatable_thread(data: ThreadData)
 			if ename == "set-location" {
 				let loc = dispatched.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
 				log_debug!(effector, "setting location to {:.1}, {:.1}", loc.0, loc.1);
+				effector.set_float_data("location-x", loc.0);
+				effector.set_float_data("location-y", loc.1);
 				
 			} else if ename.starts_with("init ") {
 				log_excessive!(effector, "is ignoring init");
