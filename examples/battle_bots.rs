@@ -40,16 +40,23 @@ impl LocalConfig
 
 type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
+fn move_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+{
+	let event = Event::new_with_payload("set-location", (x, y));
+	effector.schedule_immediately(event, top);
+}
+
 fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, top: ComponentID, effector: &mut Effector)
 {
-	let payload = (rng.next_f64()*local.width, rng.next_f64()*local.height);
-	let event = Event::new_with_payload("set-location", payload);
-	effector.schedule_immediately(event, top);
+	let x = rng.gen_range(0.0, local.width);
+	let y = rng.gen_range(0.0, local.height);
+	move_bot(top, effector, x, y);
 }
 
 fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
+//		let mut energy = 100;
 		for dispatched in data.rx {
 			let mut effector = Effector::new();
 			let ename = &dispatched.event.name;
@@ -57,6 +64,18 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 				log_info!(effector, "initializing {}", "foo");
 				let top = dispatched.components.find_top_id(data.id);
 				randomize_location(&local, &mut data.rng, top, &mut effector);
+
+			} else if ename == "timer" {
+//				if energy > 0 {
+				// find the nearby location with the smallest distance to bots within 5 units
+				// if the location is our current location then
+				//    schedule timer for 0.5s
+				// else
+				//    schedule a move
+				//    schedule a timer for 1s
+				//    decrement energy
+//				}
+			
 			} else {
 				let cname = &(*dispatched.components).get(data.id).name;
 				panic!("component {} can't handle event {}", cname, ename);
@@ -70,6 +89,7 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
+//		let mut energy = 100;
 		for dispatched in data.rx {
 			let mut effector = Effector::new();
 			let ename = &dispatched.event.name;
