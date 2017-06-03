@@ -29,7 +29,7 @@ pub struct Simulation
 	precision: usize,	// number of decimal places to include when logging, derived from config.time_units
 	current_time: Time,
 	scheduled: BinaryHeap<ScheduledEvent>,
-	rng: XorShiftRng,
+	rng: Box<Rng + Send>,
 	max_path_len: usize,
 }
 	
@@ -51,7 +51,7 @@ impl Simulation
 			precision,
 			current_time: Time(0),
 			scheduled: BinaryHeap::new(),
-			rng: new_rng(seed, 10_000),
+			rng: Box::new(new_rng(seed, 10_000)),
 			max_path_len: 0,
 		}
 	}
@@ -110,8 +110,12 @@ impl Simulation
 	}
 	
 	/// Use this if you want to do something random when initializing components.
-	pub fn rng(&mut self) -> &mut Rng
+	pub fn rng(&mut self) -> &mut Box<Rng + Send>
 	{
+		// Using a Box was the only way I could figure out to use the Rng trait
+		// while constraining Rng to be Sized as well so clients get the full
+		// set of Rng methods. (We can't actually constrain a type to Sized but
+		// we can to Send which is evidently enough).
 		&mut self.rng
 	}
 	

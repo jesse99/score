@@ -39,16 +39,16 @@ impl LocalConfig
 	}
 }
 
-type AI = fn (&mut Effector, &DispatchedEvent, &ThreadData, i32) -> i32;
+type AI = fn (&LocalConfig, &mut Effector, &DispatchedEvent, &ThreadData, i32) -> i32;
 type ComponentThread = fn (LocalConfig, ThreadData, AI) -> ();
 
-fn move_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn move_bot(local: &LocalConfig, top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::new_with_payload("set-location", (x, y));
 	effector.schedule_immediately(event, top);
 }
 
-fn offset_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn offset_bot(local: &LocalConfig, top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::new_with_payload("offset-location", (x, y));
 	effector.schedule_immediately(event, top);
@@ -58,7 +58,7 @@ fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, top: Compo
 {
 	let x = rng.gen_range(0.0, local.width);
 	let y = rng.gen_range(0.0, local.height);
-	move_bot(top, effector, x, y);
+	move_bot(local, top, effector, x, y);
 }
 
 fn bot_dist_squared(dispatched: &DispatchedEvent, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
@@ -125,7 +125,7 @@ fn find_closest_bot(dispatched: &DispatchedEvent, data: &ThreadData) -> (Compone
 	return (closest, dx, dy)
 }
 
-fn cowardly_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+fn cowardly_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
 {
 	if energy > 0 {
 		let mut best_delta = (0.0, 0.0);
@@ -143,7 +143,7 @@ fn cowardly_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &Thr
 		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
 			log_excessive!(effector, "moving by {:?}", best_delta);
 			let top = dispatched.components.find_top_id(data.id);
-			offset_bot(top, effector, best_delta.0, best_delta.1);
+			offset_bot(local, top, effector, best_delta.0, best_delta.1);
 			energy -= 1;
 			1.0
 		} else {
@@ -159,7 +159,7 @@ fn cowardly_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &Thr
 	energy
 }
 
-fn aggresive_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+fn aggresive_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
 {
 	// If we are very low health then just wait for someone to attack us and hope we still win.
 	if energy > 10 {
@@ -183,7 +183,7 @@ fn aggresive_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &Th
 					}
 				};
 				let top = dispatched.components.find_top_id(data.id);
-				offset_bot(top, effector, delta.0, delta.1);
+				offset_bot(local, top, effector, delta.0, delta.1);
 				energy -= 1;
 
 				let event = Event::new("timer");
@@ -216,7 +216,7 @@ fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
 					effector.schedule_after_secs(event, data.id, delay);
 					
 				} else if ename == "timer" {
-					energy = ai(&mut effector, &dispatched, &data, energy);
+					energy = ai(&local, &mut effector, &dispatched, &data, energy);
 				
 				} else {
 					let cname = &(*dispatched.components).get(data.id).name;
@@ -230,11 +230,11 @@ fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
 	});
 }
 
-fn new_random_bot(rng: &mut Rng, index: i32) -> (String, ComponentThread, AI)
+fn new_random_bot(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread, AI)
 {
 	// The sim is really boring if all the bots are cowardly so we'll ensure
 	// that we have at least one aggressive bot.
-	if index == 0 || rng.next_u32() < u32::max_value()/2 {
+	if index == 0 || rng.gen_weighted_bool(2) {
 		(format!("aggresive-{}", index), bot_thread, aggresive_ai)
 	} else {
 		(format!("cowardly-{}", index), bot_thread, cowardly_ai)

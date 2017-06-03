@@ -1,10 +1,10 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf820
-{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-BoldItalic;\f2\fnil\fcharset0 Menlo-Regular;
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-BoldItalic;
 \f3\fswiss\fcharset0 ArialMT;\f4\fnil\fcharset0 Monaco;}
-{\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red240\green0\blue31;
-\red0\green0\blue0;\red34\green34\blue34;}
-{\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgenericrgb\c94118\c0\c12157;
-\cssrgb\c0\c0\c0;\cssrgb\c17647\c17647\c17647;}
+{\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red38\green38\blue38;
+\red240\green0\blue31;\red0\green0\blue0;\red34\green34\blue34;}
+{\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\cssrgb\c20000\c20000\c20000;
+\csgenericrgb\c94118\c0\c12157;\cssrgb\c0\c0\c0;\cssrgb\c17647\c17647\c17647;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt 
 \f0\fs48 \cf2 https://github.com/brson/rust-api-guidelines}}
@@ -30,12 +30,15 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \cf0 \
 {\field{\*\fldinst{HYPERLINK "https://thesquareplanet.com/blog/rust-tips-and-tricks/"}}{\fldrslt https://thesquareplanet.com/blog/rust-tips-and-tricks/}}\
 \
-   \
+   
+\f1\fs32 \cf4 \outl0\strokewidth0 \strokec4 #![feature(...)]
+\f0\fs36 \cf0 \outl0\strokewidth0 \
 \pard\pardeftab720\partightenfactor0
 
 \fs48 \cf2 \kerning1\expnd0\expndtw0 * Cowardly bot should move\
 	- wrap around when moving\
 	- distance calcs should also handle wrap around\
+* \'97max-secs is lame\
 * Aggressive bot should move\
 * Review movement code\
 * Aggressive bot should attack\
@@ -59,11 +62,11 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 * Implement check_descriptions\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f1\i\b\fs40 \cf4 /// _Setters_ set a value for the current time. Note that it is a programmer error to
-\f2\i0\b0 \cf0 \
+\f2\i\b\fs40 \cf5 /// _Setters_ set a value for the current time. Note that it is a programmer error to
+\f1\i0\b0 \cf0 \
 
-\f1\i\b \cf4 /// set a value more than once for the current time.
-\f2\i0\b0 \cf0 \
+\f2\i\b \cf5 /// set a value more than once for the current time.
+\f1\i0\b0 \cf0 \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
 \f0\fs48 \cf2 * Rename it score?\
@@ -82,7 +85,7 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 	- check logs as well as a hash?\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f3\fs50\fsmilli25333 \cf5 \expnd0\expndtw0\kerning0
+\f3\fs50\fsmilli25333 \cf6 \expnd0\expndtw0\kerning0
 	- hash could be sum of: event time/component id/1st eight bytes of event name\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
@@ -117,7 +120,7 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \
 \pard\pardeftab720\sl320\partightenfactor0
 
-\f4\fs44 \cf6 \expnd0\expndtw0\kerning0
+\f4\fs44 \cf7 \expnd0\expndtw0\kerning0
 1733.333 1733.333 1733.333 1733.333 1166.55 544.39 233.31 116.655\
 -45      -52      -59       -66\
 }
