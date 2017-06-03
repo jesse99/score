@@ -66,6 +66,21 @@ impl Components
 		}
 	}
 	
+	pub fn get_child_id(&self, id: ComponentID, name: &str) -> ComponentID
+	{
+		// TODO: should this include grand-kids?
+		let c = self.get(id);
+		for candidate in c.children.iter() {
+			let d = self.get(*candidate);
+			if d.name == name {
+				return *candidate;
+			}
+		}
+		
+		panic!("Didn't find child {} within {}", name, c.name)
+	}
+	
+	/// Iterates over all the components.
 	pub fn iter<'a>(&'a self) -> Box<Iterator<Item=&'a Component> + 'a>
 	{
 		Box::new(self.components.iter())

@@ -132,7 +132,7 @@ impl Simulation
 				break;
 			}
 			
-			if self.current_time.0 <= max_time {
+			if self.current_time.0 >= max_time {
 				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (reached config.max_secs)");
 				break;
 			}

@@ -39,8 +39,7 @@ impl LocalConfig
 	}
 }
 
-type AI = fn (&LocalConfig, &mut Effector, &DispatchedEvent, &ThreadData, i32) -> i32;
-type ComponentThread = fn (LocalConfig, ThreadData, AI) -> ();
+type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
 fn move_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
@@ -128,7 +127,7 @@ fn find_closest_bot(local: &LocalConfig, dispatched: &DispatchedEvent, data: &Th
 	return (closest, dx, dy)
 }
 
-fn cowardly_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
 {
 	if energy > 0 {
 		let mut best_delta = (0.0, 0.0);
@@ -162,7 +161,7 @@ fn cowardly_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &Dispat
 	energy
 }
 
-fn aggresive_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
 {
 	// If we are very low health then just wait for someone to attack us and hope we still win.
 	if energy > 10 {
@@ -170,7 +169,11 @@ fn aggresive_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &Dispa
 		if closest != NO_COMPONENT {
 			if dx*dx + dy*dy <= 1.0 {
 				let path = dispatched.components.path(closest);
-				log_info!(effector, "attack {}!", path);
+				log_info!(effector, "attacking {}", path);
+				
+				let event = Event::new_with_payload("was-attacked", (energy, data.id));
+				let target = dispatched.components.get_child_id(closest, "AI");
+				effector.schedule_immediately(event, target);
 			} else {
 				let delta = if dx.abs() > dy.abs() {
 					if dx > 0.0 {
@@ -201,7 +204,28 @@ fn aggresive_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &Dispa
 	energy
 }
 
-fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
+fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, energy: i32) -> i32
+{
+	let &(attacker_energy, attacker_id) = dispatched.expect_payload::<(i32, ComponentID)>("was-attacked should have an (i32, ComponentID) payload");
+	let attacker_path = dispatched.components.path(attacker_id);
+	
+	if energy == 0 {
+		log_info!(effector, "{} attacked a dead bot", attacker_path);	// TODO: handle this better
+		0
+	} else if attacker_energy > energy {
+		log_info!(effector, "{} won ({} > {})", attacker_path, attacker_energy, energy);
+		let event = Event::new_with_payload("won-attack", energy/2);
+		effector.schedule_after_secs(event, attacker_id, 0.5);
+		0
+	} else {
+		log_info!(effector, "{} lost ({} <= {})", attacker_path, attacker_energy, energy);
+		let event = Event::new("lost-attack");
+		effector.schedule_after_secs(event, attacker_id, 0.5);
+		energy + attacker_energy/2
+	}
+}
+
+fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
 		let mut energy = 100;
@@ -219,7 +243,17 @@ fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
 					effector.schedule_after_secs(event, data.id, delay);
 					
 				} else if ename == "timer" {
-					energy = ai(&local, &mut effector, &dispatched, &data, energy);
+					energy = handle_cowardly_timer(&local, &mut effector, &dispatched, &data, energy);
+				
+				} else if ename == "was-attacked" {
+					energy = handle_begin_attack(&mut effector, &dispatched, energy);
+				
+				} else if ename == "won-attack" {
+					let bonus = dispatched.expect_payload::<i32>("won-attack should have an i32 payload");
+					energy += *bonus;
+
+				} else if ename == "lost-attack" {
+					energy = 0;
 				
 				} else {
 					let cname = &(*dispatched.components).get(data.id).name;
@@ -233,14 +267,56 @@ fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
 	});
 }
 
-fn new_random_bot(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread, AI)
+fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
+{
+	thread::spawn(move || {
+		let mut energy = 100;
+		for dispatched in data.rx.iter() {
+			let mut effector = Effector::new();
+			{
+				let ename = &dispatched.event.name;
+				if ename == "init 0" {
+					log_info!(effector, "initializing");	// TODO: fn for this
+					let top = dispatched.components.find_top_id(data.id);
+					randomize_location(&local, &mut data.rng, top, &mut effector);
+	
+					let event = Event::new("timer");
+					let delay = 0.1 + data.rng.next_f64();
+					effector.schedule_after_secs(event, data.id, delay);
+					
+				} else if ename == "timer" {
+					energy = handle_aggresive_timer(&local, &mut effector, &dispatched, &data, energy);
+				
+				} else if ename == "was-attacked" {
+					energy = handle_begin_attack(&mut effector, &dispatched, energy);
+				
+				} else if ename == "won-attack" {
+					let bonus = dispatched.expect_payload::<i32>("won-attack should have an i32 payload");
+					energy += *bonus;
+
+				} else if ename == "lost-attack" {
+					energy = 0;
+				
+				} else {
+					let cname = &(*dispatched.components).get(data.id).name;
+					panic!("component {} can't handle event {}", cname, ename);
+				}
+			}
+			
+			drop(dispatched);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
+			let _ = data.tx.send(effector);
+		}
+	});
+}
+
+fn new_random_bot(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread)
 {
 	// The sim is really boring if all the bots are cowardly so we'll ensure
 	// that we have at least one aggressive bot.
 	if index == 0 || rng.gen_weighted_bool(2) {
-		(format!("aggresive-{}", index), bot_thread, aggresive_ai)
+		(format!("aggresive-{}", index), aggresive_thread)
 	} else {
-		(format!("cowardly-{}", index), bot_thread, cowardly_ai)
+		(format!("cowardly-{}", index), cowardly_thread)
 	}
 }
 
@@ -334,9 +410,9 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let mut sim = Simulation::new(config);
 	let world = sim.add_component("world", NO_COMPONENT);
 	for i in 0..local.num_bots {
-		let (name, thread, ai) = new_random_bot(sim.rng(), i);
+		let (name, thread) = new_random_bot(sim.rng(), i);
 		let top = sim.add_active_component(&name, world, locatable_thread);
-		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data, ai));
+		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data));
 	}
 	sim
 }

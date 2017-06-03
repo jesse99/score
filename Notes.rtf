@@ -33,15 +33,10 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \
 \pard\pardeftab720\partightenfactor0
 
-\fs48 \cf2 \kerning1\expnd0\expndtw0 * Log a message when exiting the sim, maybe debug\
-* Aggressive bot should attack\
-	- sends a payload with its energy level and name\
-	- reply with energy level\
-	- if attackee has less energy then attackeee is killed\
-	- if reply has more energy then attacker is killed, otherwise agressor gets half that energy\
-* Add a watchdog thread\
+\fs48 \cf2 \kerning1\expnd0\expndtw0 * Add a watchdog thread\
 	- has a timer that fires every 2s\
 	- if no one has moved since last timer then exit sim\
+* Instead of new_with_foo use with_foo\
 * Would be nice to log some sort of report when the sim exits\
 * Print wall clock time on exit\
 	- maybe events/sec too\
