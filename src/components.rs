@@ -3,7 +3,7 @@ use component::*;
 /// Contains all the `Component`s used within the `Simulation`.
 pub struct Components
 {
-	pub components: Vec<Component>	// TODO: might want to either store an Option<Component> or have some sort of dead flag
+	components: Vec<Component>	// TODO: might want to either store an Option<Component> or have some sort of dead flag
 }
 
 impl Components
@@ -66,12 +66,10 @@ impl Components
 		}
 	}
 	
-	// TODO: is there a sane way to do this? If so maybe we should
-	// make the components field private again.
-//	pub fn iter<'a>(&'a self) -> Box<Iterator<Item=&'a Component>>
-//	{
-//		Box::new(self.components.iter())
-//	}
+	pub fn iter<'a>(&'a self) -> Box<Iterator<Item=&'a Component> + 'a>
+	{
+		Box::new(self.components.iter())
+	}
 	
 	/// Returns the path from the top component downwards.
 	/// Note that this does not include the root component because it's a little silly
