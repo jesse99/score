@@ -114,7 +114,7 @@ fn find_closest_bot(dispatched: &DispatchedEvent, data: &ThreadData) -> (Compone
 		if *id != top {
 			let (dist2, dx2, dy2) = bot_dist_squared(dispatched, *id, top, &delta);
 			if dist2 < dist {
-				closest = top;
+				closest = *id;
 				dx = dx2;
 				dy = dy2;
 				dist = dist2;
@@ -141,13 +141,13 @@ fn cowardly_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &Thr
 		}
 		
 		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
-			log_info!(effector, "moving by {:?}", best_delta);
+			log_excessive!(effector, "moving by {:?}", best_delta);
 			let top = dispatched.components.find_top_id(data.id);
 			offset_bot(top, effector, best_delta.0, best_delta.1);
 			energy -= 1;
 			1.0
 		} else {
-			log_debug!(effector, "no others bots are nearby");
+			log_excessive!(effector, "no others bots are nearby");
 			0.5
 		};
 
@@ -166,7 +166,8 @@ fn aggresive_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &Th
 		let (closest, dx, dy) = find_closest_bot(&dispatched, data);
 		if closest != NO_COMPONENT {
 			if dx*dx + dy*dy <= 1.0 {
-				log_info!(effector, "attack {:?}!", closest);
+				let path = dispatched.components.path(closest);
+				log_info!(effector, "attack {}!", path);
 			} else {
 				let delta = if dx.abs() > dy.abs() {
 					if dx > 0.0 {
@@ -204,26 +205,26 @@ fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
 		for dispatched in data.rx.iter() {
 			let mut effector = Effector::new();
 			{
-			let ename = &dispatched.event.name;
-			if ename == "init 0" {
-				log_info!(effector, "initializing");
-				let top = dispatched.components.find_top_id(data.id);
-				randomize_location(&local, &mut data.rng, top, &mut effector);
-
-				let event = Event::new("timer");
-				let delay = 0.1 + data.rng.next_f64();
-				effector.schedule_after_secs(event, data.id, delay);
+				let ename = &dispatched.event.name;
+				if ename == "init 0" {
+					log_info!(effector, "initializing");
+					let top = dispatched.components.find_top_id(data.id);
+					randomize_location(&local, &mut data.rng, top, &mut effector);
+	
+					let event = Event::new("timer");
+					let delay = 0.1 + data.rng.next_f64();
+					effector.schedule_after_secs(event, data.id, delay);
+					
+				} else if ename == "timer" {
+					energy = ai(&mut effector, &dispatched, &data, energy);
 				
-			} else if ename == "timer" {
-				energy = ai(&mut effector, &dispatched, &data, energy);
-			
-			} else {
-				let cname = &(*dispatched.components).get(data.id).name;
-				panic!("component {} can't handle event {}", cname, ename);
-			}
+				} else {
+					let cname = &(*dispatched.components).get(data.id).name;
+					panic!("component {} can't handle event {}", cname, ename);
+				}
 			}
 			
-			drop(dispatched);
+			drop(dispatched);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
 			let _ = data.tx.send(effector);
 		}
 	});
@@ -231,10 +232,12 @@ fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
 
 fn new_random_bot(rng: &mut Rng, index: i32) -> (String, ComponentThread, AI)
 {
-	if rng.next_u32() < u32::max_value()/2 {
-		(format!("cowardly-{}", index), bot_thread, cowardly_ai)
-	} else {
+	// The sim is really boring if all the bots are cowardly so we'll ensure
+	// that we have at least one aggressive bot.
+	if index == 0 || rng.next_u32() < u32::max_value()/2 {
 		(format!("aggresive-{}", index), bot_thread, aggresive_ai)
+	} else {
+		(format!("cowardly-{}", index), bot_thread, cowardly_ai)
 	}
 }
 

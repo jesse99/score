@@ -105,7 +105,7 @@ impl Simulation
 		self.effector_receivers.push(Some(rxe));
 		
 		let rng = new_rng(self.config.seed, id.0 as u32);
-		thread(ThreadData{id, rx: rxd, tx: txe, rng: Box::new(rng)});
+		thread(ThreadData::new(id, rxd, txe, rng));
 		id
 	}
 	

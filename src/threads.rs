@@ -14,6 +14,7 @@ pub fn locatable_thread(data: ThreadData)
 		for dispatched in data.rx {
 			let mut effector = Effector::new();
 
+			{
 			let cname = &(*dispatched.components).get(data.id).name;
 			let ename = &dispatched.event.name;
 			if ename == "set-location" {
@@ -38,7 +39,9 @@ pub fn locatable_thread(data: ThreadData)
 			} else {
 				panic!("component {} can't handle event {}", cname, ename);
 			}
-
+			}
+			
+			drop(dispatched);
 			let _ = data.tx.send(effector);
 		}
 	});
