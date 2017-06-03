@@ -30,11 +30,11 @@ impl LocalConfig
 {
 	fn new() -> LocalConfig
 	{
-		// These are the defaults: all of these can be overriden using command line options.
+		// These are the defaults: all of them can be overriden using command line options.
 		LocalConfig {
 			num_bots: 4,
-			width: 100.0,
-			height: 100.0,
+			width: 50.0,
+			height: 50.0,
 		}
 	}
 }
@@ -42,13 +42,13 @@ impl LocalConfig
 type AI = fn (&LocalConfig, &mut Effector, &DispatchedEvent, &ThreadData, i32) -> i32;
 type ComponentThread = fn (LocalConfig, ThreadData, AI) -> ();
 
-fn move_bot(local: &LocalConfig, top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn move_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::new_with_payload("set-location", (x, y));
 	effector.schedule_immediately(event, top);
 }
 
-fn offset_bot(local: &LocalConfig, top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn offset_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::new_with_payload("offset-location", (x, y));
 	effector.schedule_immediately(event, top);
@@ -58,10 +58,10 @@ fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, top: Compo
 {
 	let x = rng.gen_range(0.0, local.width);
 	let y = rng.gen_range(0.0, local.height);
-	move_bot(local, top, effector, x, y);
+	move_bot(top, effector, x, y);
 }
 
-fn bot_dist_squared(dispatched: &DispatchedEvent, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
+fn bot_dist_squared(local: &LocalConfig, dispatched: &DispatchedEvent, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
 {
 	let p1 = dispatched.components.path(id1);
 	let x1 = dispatched.store.get_float_data(&(p1.clone() + ".location-x"));
@@ -71,12 +71,15 @@ fn bot_dist_squared(dispatched: &DispatchedEvent, id1: ComponentID, id2: Compone
 	let x2 = dispatched.store.get_float_data(&(p2.clone() + ".location-x")) + delta.0;
 	let y2 = dispatched.store.get_float_data(&(p2 + ".location-y")) + delta.1;
 	
+	let x2 = x2.max(0.0).min(local.width);
+	let y2 = y2.max(0.0).min(local.height);
+	
 	let dx = x1 - x2;
 	let dy = y1 - y2;
 	(dx*dx + dy*dy, dx, dy)
 }
 
-fn get_distance_to_nearby_bots(dispatched: &DispatchedEvent, data: &ThreadData, delta: &(f64, f64)) -> f64
+fn get_distance_to_nearby_bots(local: &LocalConfig, dispatched: &DispatchedEvent, data: &ThreadData, delta: &(f64, f64)) -> f64
 {
 	let mut dist = 0.0;
 	
@@ -86,7 +89,7 @@ fn get_distance_to_nearby_bots(dispatched: &DispatchedEvent, data: &ThreadData, 
 
 	for id in root.children.iter() {
 		if *id != top {
-			let (candidate, _, _) = bot_dist_squared(dispatched, *id, top, delta);
+			let (candidate, _, _) = bot_dist_squared(local, dispatched, *id, top, delta);
 
 			// Ignore bots that are far away.
 			if candidate <= 5.0 {
@@ -98,7 +101,7 @@ fn get_distance_to_nearby_bots(dispatched: &DispatchedEvent, data: &ThreadData, 
 	return dist
 }
 
-fn find_closest_bot(dispatched: &DispatchedEvent, data: &ThreadData) -> (ComponentID, f64, f64)
+fn find_closest_bot(local: &LocalConfig, dispatched: &DispatchedEvent, data: &ThreadData) -> (ComponentID, f64, f64)
 {
 	let mut closest = NO_COMPONENT;
 	let mut dx = INFINITY;
@@ -112,7 +115,7 @@ fn find_closest_bot(dispatched: &DispatchedEvent, data: &ThreadData) -> (Compone
 	let delta = (0.0, 0.0);
 	for id in root.children.iter() {
 		if *id != top {
-			let (dist2, dx2, dy2) = bot_dist_squared(dispatched, *id, top, &delta);
+			let (dist2, dx2, dy2) = bot_dist_squared(local, dispatched, *id, top, &delta);
 			if dist2 < dist {
 				closest = *id;
 				dx = dx2;
@@ -132,7 +135,7 @@ fn cowardly_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &Dispat
 		let mut best_dist = INFINITY;
 		let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
 		for delta in deltas.iter() {	// TODO: can we be slicker about this?
-			let dist = get_distance_to_nearby_bots(&dispatched, data, &delta);
+			let dist = get_distance_to_nearby_bots(local, &dispatched, data, &delta);
 			//log_info!(effector, "dist for {:?} = {:.1}", delta, dist);
 			if dist < best_dist {
 				best_delta = *delta;
@@ -143,7 +146,7 @@ fn cowardly_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &Dispat
 		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
 			log_excessive!(effector, "moving by {:?}", best_delta);
 			let top = dispatched.components.find_top_id(data.id);
-			offset_bot(local, top, effector, best_delta.0, best_delta.1);
+			offset_bot(top, effector, best_delta.0, best_delta.1);
 			energy -= 1;
 			1.0
 		} else {
@@ -163,7 +166,7 @@ fn aggresive_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &Dispa
 {
 	// If we are very low health then just wait for someone to attack us and hope we still win.
 	if energy > 10 {
-		let (closest, dx, dy) = find_closest_bot(&dispatched, data);
+		let (closest, dx, dy) = find_closest_bot(local, &dispatched, data);
 		if closest != NO_COMPONENT {
 			if dx*dx + dy*dy <= 1.0 {
 				let path = dispatched.components.path(closest);
@@ -183,7 +186,7 @@ fn aggresive_ai(local: &LocalConfig, effector: &mut Effector, dispatched: &Dispa
 					}
 				};
 				let top = dispatched.components.find_top_id(data.id);
-				offset_bot(local, top, effector, delta.0, delta.1);
+				offset_bot(top, effector, delta.0, delta.1);
 				energy -= 1;
 
 				let event = Event::new("timer");
@@ -266,7 +269,7 @@ fn parse_options() -> (LocalConfig, Config)
 	
 	// see https://docs.rs/clap/2.24.2/clap/struct.Arg.html#method.from_usage for syntax
 	let usage = format!(
-		"--height=[N] 'Max number of times bots can move up without wrapping [{default_height}]'
+		"--height=[N] 'Max number of times bots can move up without running into a wall [{default_height}]'
 		--log=[LEVEL:GLOB]... 'Overrides --log-level, glob is used to match component names'
 		--log-level=[LEVEL] 'Default log level: {log_levels} [{default_level}]'
 		--max-secs=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
