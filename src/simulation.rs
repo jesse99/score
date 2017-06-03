@@ -126,7 +126,17 @@ impl Simulation
 		self.init_components();
 				
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
-		while !self.scheduled.is_empty() && self.current_time.0 <= max_time {
+		loop {
+			if self.scheduled.is_empty() {
+				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (no events)");
+				break;
+			}
+			
+			if self.current_time.0 <= max_time {
+				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (reached config.max_secs)");
+				break;
+			}
+			
 			self.current_time = self.dispatch_events();
 		}
 	}
