@@ -272,7 +272,7 @@ fn parse_options() -> (LocalConfig, Config)
 		"--height=[N] 'Max number of times bots can move up without running into a wall [{default_height}]'
 		--log=[LEVEL:GLOB]... 'Overrides --log-level, glob is used to match component names'
 		--log-level=[LEVEL] 'Default log level: {log_levels} [{default_level}]'
-		--max-secs=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
+		--max-time=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
 		--no-colors 'Don't color code console output'
 		--num-bots=[N] 'Number of bots to start out with [{default_bots}]'
 		--seed=[N] 'Random number generator seed [random]'
@@ -317,7 +317,7 @@ fn parse_options() -> (LocalConfig, Config)
 		}
 	}
 	
-	let max_secs = matches.value_of("max-secs").unwrap_or("");
+	let max_secs = matches.value_of("max-time").unwrap_or("");
 	if !max_secs.is_empty() {
 		if let Some(e) = config.parse_max_secs(max_secs) {
 			fatal_err(&e);
