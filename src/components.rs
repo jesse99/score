@@ -3,7 +3,7 @@ use component::*;
 /// Contains all the `Component`s used within the `Simulation`.
 pub struct Components
 {
-	components: Vec<Component>	// TODO: might want to either store an Option<Component> or have some sort of dead flag
+	pub components: Vec<Component>	// TODO: might want to either store an Option<Component> or have some sort of dead flag
 }
 
 impl Components
@@ -23,7 +23,7 @@ impl Components
 	}
 	
 	/// Use this if the component's lifetime may be dynamic.
-	pub fn find(&self, id: ComponentID) -> Option<&Component>
+	pub fn find(&self, id: ComponentID) -> Option<&Component>	// TODO: are we really going to need this?
 	{
 		assert!(id != NO_COMPONENT);
 		let index = id.0;
@@ -65,6 +65,13 @@ impl Components
 			id = c.parent;
 		}
 	}
+	
+	// TODO: is there a sane way to do this? If so maybe we should
+	// make the components field private again.
+//	pub fn iter<'a>(&'a self) -> Box<Iterator<Item=&'a Component>>
+//	{
+//		Box::new(self.components.iter())
+//	}
 	
 	/// Returns the path from the top component downwards.
 	/// Note that this does not include the root component because it's a little silly

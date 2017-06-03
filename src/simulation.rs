@@ -120,11 +120,10 @@ impl Simulation
 	pub fn run(&mut self)
 	{
 		self.init_components();
-
-		let mut i = 0;
-		while !self.scheduled.is_empty() && i < 100 {	// TODO: use a config time limit instead
+				
+		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
+		while !self.scheduled.is_empty() && self.current_time.0 <= max_time {
 			self.current_time = self.dispatch_events();
-			i += 1;
 		}
 	}
 	
@@ -146,7 +145,11 @@ impl Simulation
 		// TODO: should cap the number of threads we use (probably via config)
 		while !self.scheduled.is_empty() && self.scheduled.peek().unwrap().time == time {	// while let can't have a guard so we use this somewhat ugly syntax
 			let e = self.scheduled.pop().unwrap();
-			self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching {} to id {}", &e.event.name, e.to.0));
+			
+			if self.should_log(&LogLevel::Excessive, NO_COMPONENT) {
+				let path = self.components.path(e.to);
+				self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching {} to id {}", e.event.name, path));
+			}
 			ids.push(e.to);
 			
 			if let Some(ref tx) = self.event_senders[e.to.0] {
@@ -210,7 +213,7 @@ impl Simulation
 
 	fn apply_events(&mut self, effects: &mut Effector)
 	{
-		for (to, (event, secs)) in effects.events.drain().take(1) {
+		for (to, (event, secs)) in effects.events.drain() {
 			let time = self.add_secs(secs);
 			self.schedule(event, to, time);
 		}
@@ -219,7 +222,7 @@ impl Simulation
 	fn apply_stores(&mut self, effects: &Effector, id: ComponentID, time: Time)
 	{
 		let path = self.components.path(id);
-		let store = Arc::get_mut(&mut self.store).unwrap();
+		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 
 		store.int_data.reserve(effects.store.int_data.len());
 		for (key, value) in effects.store.int_data.iter() {

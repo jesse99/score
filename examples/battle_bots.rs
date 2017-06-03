@@ -11,6 +11,7 @@ extern crate rsimbase;
 use clap::{App, ArgMatches};
 use rand::Rng;
 use rsimbase::*;
+use std::f64::INFINITY;
 use std::fmt::Display;
 use std::io::{Write, stderr};
 use std::process;
@@ -38,11 +39,18 @@ impl LocalConfig
 	}
 }
 
-type ComponentThread = fn (LocalConfig, ThreadData) -> ();
+type AI = fn (&mut Effector, &DispatchedEvent, &ThreadData, i32) -> i32;
+type ComponentThread = fn (LocalConfig, ThreadData, AI) -> ();
 
 fn move_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::new_with_payload("set-location", (x, y));
+	effector.schedule_immediately(event, top);
+}
+
+fn offset_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+{
+	let event = Event::new_with_payload("offset-location", (x, y));
 	effector.schedule_immediately(event, top);
 }
 
@@ -53,66 +61,180 @@ fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, top: Compo
 	move_bot(top, effector, x, y);
 }
 
-fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
+fn bot_dist_squared(dispatched: &DispatchedEvent, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
+{
+	let p1 = dispatched.components.path(id1);
+	let x1 = dispatched.store.get_float_data(&(p1.clone() + ".location-x"));
+	let y1 = dispatched.store.get_float_data(&(p1 + ".location-y"));
+	
+	let p2 = dispatched.components.path(id2);
+	let x2 = dispatched.store.get_float_data(&(p2.clone() + ".location-x")) + delta.0;
+	let y2 = dispatched.store.get_float_data(&(p2 + ".location-y")) + delta.1;
+	
+	let dx = x1 - x2;
+	let dy = y1 - y2;
+	(dx*dx + dy*dy, dx, dy)
+}
+
+fn get_distance_to_nearby_bots(dispatched: &DispatchedEvent, data: &ThreadData, delta: &(f64, f64)) -> f64
+{
+	let mut dist = 0.0;
+	
+	let root = dispatched.components.find_root_id(data.id);
+	let root = dispatched.components.get(root);
+	let top = dispatched.components.find_top_id(data.id);
+
+	for id in root.children.iter() {
+		if *id != top {
+			let (candidate, _, _) = bot_dist_squared(dispatched, *id, top, delta);
+
+			// Ignore bots that are far away.
+			if candidate <= 5.0 {
+				dist += candidate;
+			}
+		}
+	}
+	
+	return dist
+}
+
+fn find_closest_bot(dispatched: &DispatchedEvent, data: &ThreadData) -> (ComponentID, f64, f64)
+{
+	let mut closest = NO_COMPONENT;
+	let mut dx = INFINITY;
+	let mut dy = INFINITY;
+	let mut dist = INFINITY;
+	
+	let root = dispatched.components.find_root_id(data.id);
+	let root = dispatched.components.get(root);
+	let top = dispatched.components.find_top_id(data.id);
+
+	let delta = (0.0, 0.0);
+	for id in root.children.iter() {
+		if *id != top {
+			let (dist2, dx2, dy2) = bot_dist_squared(dispatched, *id, top, &delta);
+			if dist2 < dist {
+				closest = top;
+				dx = dx2;
+				dy = dy2;
+				dist = dist2;
+			}
+		}
+	}
+	
+	return (closest, dx, dy)
+}
+
+fn cowardly_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+{
+	if energy > 0 {
+		let mut best_delta = (0.0, 0.0);
+		let mut best_dist = INFINITY;
+		let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
+		for delta in deltas.iter() {	// TODO: can we be slicker about this?
+			let dist = get_distance_to_nearby_bots(&dispatched, data, &delta);
+			//log_info!(effector, "dist for {:?} = {:.1}", delta, dist);
+			if dist < best_dist {
+				best_delta = *delta;
+				best_dist = dist;
+			}
+		}
+		
+		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
+			log_info!(effector, "moving by {:?}", best_delta);
+			let top = dispatched.components.find_top_id(data.id);
+			offset_bot(top, effector, best_delta.0, best_delta.1);
+			energy -= 1;
+			1.0
+		} else {
+			log_debug!(effector, "no others bots are nearby");
+			0.5
+		};
+
+		let event = Event::new("timer");
+		effector.schedule_after_secs(event, data.id, delay);
+	} else {
+		log_debug!(effector, "dead");
+	}
+	energy
+}
+
+fn aggresive_ai(effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+{
+	// If we are very low health then just wait for someone to attack us and hope we still win.
+	if energy > 10 {
+		let (closest, dx, dy) = find_closest_bot(&dispatched, data);
+		if closest != NO_COMPONENT {
+			if dx*dx + dy*dy <= 1.0 {
+				log_info!(effector, "attack {:?}!", closest);
+			} else {
+				let delta = if dx.abs() > dy.abs() {
+					if dx > 0.0 {
+						(1.0, 0.0)
+					} else {
+						(-1.0, 0.0)
+					}
+				} else {
+					if dy > 0.0 {
+						(0.0, 1.0)
+					} else {
+						(0.0, -1.0)
+					}
+				};
+				let top = dispatched.components.find_top_id(data.id);
+				offset_bot(top, effector, delta.0, delta.1);
+				energy -= 1;
+
+				let event = Event::new("timer");
+				effector.schedule_after_secs(event, data.id, 1.0);
+			}
+		} else {
+			log_debug!(effector, "didn't find a bot to chase");
+		}
+	} else {
+		log_debug!(effector, "energy is to low to chase after anyone");
+	}
+	energy
+}
+
+fn bot_thread(local: LocalConfig, mut data: ThreadData, ai: AI)
 {
 	thread::spawn(move || {
-//		let mut energy = 100;
-		for dispatched in data.rx {
+		let mut energy = 100;
+		for dispatched in data.rx.iter() {
 			let mut effector = Effector::new();
+			{
 			let ename = &dispatched.event.name;
 			if ename == "init 0" {
-				log_info!(effector, "initializing {}", "foo");
+				log_info!(effector, "initializing");
 				let top = dispatched.components.find_top_id(data.id);
 				randomize_location(&local, &mut data.rng, top, &mut effector);
 
+				let event = Event::new("timer");
+				let delay = 0.1 + data.rng.next_f64();
+				effector.schedule_after_secs(event, data.id, delay);
+				
 			} else if ename == "timer" {
-//				if energy > 0 {
-				// find the nearby location with the smallest distance to bots within 5 units
-				// if the location is our current location then
-				//    schedule timer for 0.5s
-				// else
-				//    schedule a move
-				//    schedule a timer for 1s
-				//    decrement energy
-//				}
+				energy = ai(&mut effector, &dispatched, &data, energy);
 			
 			} else {
 				let cname = &(*dispatched.components).get(data.id).name;
 				panic!("component {} can't handle event {}", cname, ename);
 			}
-			
-			let _ = data.tx.send(effector);
-		}
-	});
-}
-
-fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
-{
-	thread::spawn(move || {
-//		let mut energy = 100;
-		for dispatched in data.rx {
-			let mut effector = Effector::new();
-			let ename = &dispatched.event.name;
-			if ename == "init 0" {
-				log_info!(effector, "initializing {}", "foo");
-				let top = dispatched.components.find_top_id(data.id);
-				randomize_location(&local, &mut data.rng, top, &mut effector);
-			} else {
-				let cname = &(*dispatched.components).get(data.id).name;
-				panic!("component {} can't handle event {}", cname, ename);
 			}
 			
+			drop(dispatched);
 			let _ = data.tx.send(effector);
 		}
 	});
 }
 
-fn new_random_bot(rng: &mut Rng, index: i32) -> (String, ComponentThread)
+fn new_random_bot(rng: &mut Rng, index: i32) -> (String, ComponentThread, AI)
 {
 	if rng.next_u32() < u32::max_value()/2 {
-		(format!("cowardly-{}", index), cowardly_thread)
+		(format!("cowardly-{}", index), bot_thread, cowardly_ai)
 	} else {
-		(format!("aggresive-{}", index), aggresive_thread)
+		(format!("aggresive-{}", index), bot_thread, aggresive_ai)
 	}
 }
 
@@ -206,9 +328,9 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let mut sim = Simulation::new(config);
 	let world = sim.add_component("world", NO_COMPONENT);
 	for i in 0..local.num_bots {
-		let (name, thread) = new_random_bot(sim.rng(), i);
+		let (name, thread, ai) = new_random_bot(sim.rng(), i);
 		let top = sim.add_active_component(&name, world, locatable_thread);
-		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data));
+		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data, ai));
 	}
 	sim
 }

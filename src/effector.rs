@@ -20,6 +20,9 @@ pub struct Effector
 	pub store: Store,
 }
 
+// It'd be nice to wrap this up in a smart pointer so that we could do the send
+// when the pointer is dropped. But we can't move fields out of a struct in a
+// drop method (see E0509) so we'd have to do a copy which could be expensive.
 impl Effector
 {
 	pub fn new() -> Effector
