@@ -82,9 +82,8 @@ fn get_distance_to_nearby_bots(local: &LocalConfig, dispatched: &DispatchedEvent
 {
 	let mut dist = 0.0;
 	
-	let root = dispatched.components.find_root_id(data.id);
-	let root = dispatched.components.get(root);
-	let top = dispatched.components.find_top_id(data.id);
+	let (_, root) = dispatched.components.get_root(data.id);
+	let (top, _) = dispatched.components.get_top(data.id);
 
 	for id in root.children.iter() {
 		if *id != top {
@@ -107,9 +106,8 @@ fn find_closest_bot(local: &LocalConfig, dispatched: &DispatchedEvent, data: &Th
 	let mut dy = INFINITY;
 	let mut dist = INFINITY;
 	
-	let root = dispatched.components.find_root_id(data.id);
-	let root = dispatched.components.get(root);
-	let top = dispatched.components.find_top_id(data.id);
+	let (_, root) = dispatched.components.get_root(data.id);
+	let (top, _) = dispatched.components.get_top(data.id);
 
 	let delta = (0.0, 0.0);
 	for id in root.children.iter() {
@@ -144,7 +142,7 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatche
 		
 		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
 			log_excessive!(effector, "moving by {:?}", best_delta);
-			let top = dispatched.components.find_top_id(data.id);
+			let (top, _) = dispatched.components.get_top(data.id);
 			offset_bot(top, effector, best_delta.0, best_delta.1);
 			energy -= 1;
 			1.0
@@ -168,12 +166,14 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatch
 		let (closest, dx, dy) = find_closest_bot(local, &dispatched, data);
 		if closest != NO_COMPONENT {
 			if dx*dx + dy*dy <= 1.0 {
-				let path = dispatched.components.path(closest);
-				log_info!(effector, "attacking {}", path);
-				
-				let event = Event::new_with_payload("was-attacked", (energy, data.id));
-				let target = dispatched.components.get_child_id(closest, "AI");
-				effector.schedule_immediately(event, target);
+				if let Some((target_id, _)) = dispatched.components.find_child(closest, |_child_id, child|
+					child.name == "AI") {
+					let path = dispatched.components.path(closest);
+					log_info!(effector, "attacking {}", path);
+					
+					let event = Event::new_with_payload("was-attacked", (energy, data.id));
+					effector.schedule_immediately(event, target_id);
+				}
 			} else {
 				let delta = if dx.abs() > dy.abs() {
 					if dx > 0.0 {
@@ -188,7 +188,7 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatch
 						(0.0, -1.0)
 					}
 				};
-				let top = dispatched.components.find_top_id(data.id);
+				let (top, _) = dispatched.components.get_top(data.id);
 				offset_bot(top, effector, delta.0, delta.1);
 				energy -= 1;
 
@@ -235,7 +235,7 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 				let ename = &dispatched.event.name;
 				if ename == "init 0" {
 					log_info!(effector, "initializing");
-					let top = dispatched.components.find_top_id(data.id);
+					let (top, _) = dispatched.components.get_top(data.id);
 					randomize_location(&local, &mut data.rng, top, &mut effector);
 	
 					let event = Event::new("timer");
@@ -277,7 +277,7 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 				let ename = &dispatched.event.name;
 				if ename == "init 0" {
 					log_info!(effector, "initializing");	// TODO: fn for this
-					let top = dispatched.components.find_top_id(data.id);
+					let (top, _) = dispatched.components.get_top(data.id);
 					randomize_location(&local, &mut data.rng, top, &mut effector);
 	
 					let event = Event::new("timer");
@@ -307,17 +307,6 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 			let _ = data.tx.send(effector);
 		}
 	});
-}
-
-fn new_random_bot(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread)
-{
-	// The sim is really boring if all the bots are cowardly so we'll ensure
-	// that we have at least one aggressive bot.
-	if index == 0 || rng.gen_weighted_bool(2) {
-		(format!("aggresive-{}", index), aggresive_thread)
-	} else {
-		(format!("cowardly-{}", index), cowardly_thread)
-	}
 }
 
 fn fatal_err(message: &str) -> !
@@ -403,6 +392,17 @@ fn parse_options() -> (LocalConfig, Config)
 	config.colorize = !matches.is_present("no-colors");
 	
 	(local, config)
+}
+
+fn new_random_bot(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread)
+{
+	// The sim is really boring if all the bots are cowardly so we'll ensure
+	// that we have at least one aggressive bot.
+	if index == 0 || rng.gen_weighted_bool(2) {
+		(format!("aggresive-{}", index), aggresive_thread)
+	} else {
+		(format!("cowardly-{}", index), cowardly_thread)
+	}
 }
 
 fn create_sim(local: LocalConfig, config: Config) -> Simulation
