@@ -51,9 +51,13 @@ pub struct Store
 pub trait ReadableStore
 {
 	fn get_description(&self, key: &str) -> String;
+	
 	fn get_int_setting(&self, key: &str) -> i64;
 	fn get_float_setting(&self, key: &str) -> f64;
 	fn get_string_setting(&self, key: &str) -> String;
+	
+	fn has_data(&self, key: &str) -> bool;
+
 	fn get_int_data(&self, key: &str) -> i64;
 	fn get_float_data(&self, key: &str) -> f64;
 	fn get_string_data(&self, key: &str) -> String;
@@ -107,6 +111,20 @@ impl ReadableStore for Store
 	}
 
 	// --- data ------------------------------------------------------------------
+	fn has_data(&self, key: &str) -> bool
+	{
+		if let Some(_) = self.int_data.get(key) {
+			return true
+		}
+		if let Some(_) = self.float_data.get(key) {
+			return true
+		}
+		if let Some(_) = self.string_data.get(key) {
+			return true
+		}
+		false
+	}
+
 	fn get_int_data(&self, key: &str) -> i64
 	{
 		match self.int_data.get(key) {

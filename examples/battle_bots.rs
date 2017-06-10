@@ -86,7 +86,8 @@ fn get_distance_to_nearby_bots(local: &LocalConfig, dispatched: &DispatchedEvent
 	let (top, _) = dispatched.components.get_top(data.id);
 
 	for id in root.children.iter() {
-		if *id != top {
+		let path = dispatched.components.path(*id);
+		if *id != top && dispatched.store.has_data(&(path + ".location-x")) {
 			let (candidate, _, _) = bot_dist_squared(local, dispatched, *id, top, delta);
 
 			// Ignore bots that are far away.
@@ -111,7 +112,8 @@ fn find_closest_bot(local: &LocalConfig, dispatched: &DispatchedEvent, data: &Th
 
 	let delta = (0.0, 0.0);
 	for id in root.children.iter() {
-		if *id != top {
+		let path = dispatched.components.path(*id);
+		if *id != top && dispatched.store.has_data(&(path + ".location-x")) {
 			let (dist2, dx2, dy2) = bot_dist_squared(local, dispatched, *id, top, &delta);
 			if dist2 < dist {
 				closest = *id;
