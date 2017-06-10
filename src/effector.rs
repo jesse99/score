@@ -18,6 +18,9 @@ pub struct Effector
 	
 	#[doc(hidden)]
 	pub store: Store,
+	
+	#[doc(hidden)]
+	pub exit: bool,
 }
 
 // It'd be nice to wrap this up in a smart pointer so that we could do the send
@@ -27,7 +30,7 @@ impl Effector
 {
 	pub fn new() -> Effector
 	{
-		Effector{logs: Vec::new(), events: HashMap::new(), store: Store::new()}
+		Effector{logs: Vec::new(), events: HashMap::new(), store: Store::new(), exit: false}
 	}
 	
 	/// Normally you'll use one of the log macros, e.g. log_info!.
@@ -54,6 +57,12 @@ impl Effector
 		assert!(to != NO_COMPONENT);
 
 		self.events.insert(to, (event, EPSILON));
+	}
+	
+	/// Exit the sim after all events at the current time have been processed.
+	pub fn exit(&mut self)
+	{
+		self.exit = true;
 	}
 	
 	/// Use these methods to write out new values for data associated with the component.

@@ -123,10 +123,10 @@ impl Simulation
 	/// or config.max_secs elapses.
 	pub fn run(&mut self)
 	{
-		self.init_components();
+		let exiting = self.init_components();
 				
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
-		loop {
+		while !exiting {
 			if self.scheduled.is_empty() {
 				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (no events)");
 				break;
@@ -137,23 +137,35 @@ impl Simulation
 				break;
 			}
 			
-			self.current_time = self.dispatch_events();
+			let (time, exit) = self.dispatch_events();
+			if exit {
+				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (effector.exit was called)");
+				break;
+			} else {
+				self.current_time = time;
+			}
 		}
 	}
 	
-	pub fn init_components(&mut self)
+	pub fn init_components(&mut self) -> bool
 	{
+		let mut exiting = false;
 		for i in 0..self.config.num_init_stages {
 			self.schedule_init_stage(i);
-			let time = self.dispatch_events();
+			let (time, exit) = self.dispatch_events();
 			assert!(time.0 == 0);
+			if exit {
+				exiting = true;
+			}
 		}
+		exiting
 	}
 	
-	fn dispatch_events(&mut self) -> Time
+	fn dispatch_events(&mut self) -> (Time, bool)
 	{
 		let time = self.scheduled.peek().unwrap().time;
 		let mut ids = Vec::new();
+		let mut exit = false;
 		
 		// TODO: track statistics on how parallel we are doing
 		// TODO: should cap the number of threads we use (probably via config)
@@ -195,8 +207,12 @@ impl Simulation
 			self.apply_logs(*id, e);
 			self.apply_events(e);
 			self.apply_stores(e, *id, time);
+			
+			if e.exit {
+				exit = true;
+			}
 		}
-		time
+		(time, exit)
 	}
 	
 	fn schedule_init_stage(&mut self, stage: i32)

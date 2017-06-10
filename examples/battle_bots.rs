@@ -11,12 +11,15 @@ extern crate rsimbase;
 use clap::{App, ArgMatches};
 use rand::Rng;
 use rsimbase::*;
+use std::collections::HashMap;
 use std::f64::INFINITY;
 use std::fmt::Display;
 use std::io::{Write, stderr};
 use std::process;
 use std::str::FromStr;
 use std::thread;
+
+const MOVE_DELAY: f64 = 1.0;
 
 #[derive(Clone)]
 struct LocalConfig
@@ -152,10 +155,10 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatche
 			let (top, _) = dispatched.components.get_top(data.id);
 			offset_bot(top, effector, best_delta.0, best_delta.1);
 			energy -= 1;
-			1.0
+			MOVE_DELAY
 		} else {
 			log_excessive!(effector, "no others bots are nearby");
-			0.5
+			MOVE_DELAY/2.0
 		};
 
 		let event = Event::new("timer");
@@ -200,7 +203,7 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatch
 				energy -= 1;
 
 				let event = Event::new("timer");
-				effector.schedule_after_secs(event, data.id, 1.0);
+				effector.schedule_after_secs(event, data.id, MOVE_DELAY);
 			}
 		} else {
 			log_debug!(effector, "didn't find a bot to chase");
@@ -222,12 +225,12 @@ fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, en
 	} else if attacker_energy > energy {
 		log_info!(effector, "{} won ({} > {})", attacker_path, attacker_energy, energy);
 		let event = Event::new_with_payload("won-attack", energy/2);
-		effector.schedule_after_secs(event, attacker_id, 0.5);
+		effector.schedule_after_secs(event, attacker_id, MOVE_DELAY/2.0);
 		0
 	} else {
 		log_info!(effector, "{} lost ({} <= {})", attacker_path, attacker_energy, energy);
 		let event = Event::new("lost-attack");
-		effector.schedule_after_secs(event, attacker_id, 0.5);
+		effector.schedule_after_secs(event, attacker_id, MOVE_DELAY/2.0);
 		energy + attacker_energy/2
 	}
 }
@@ -246,7 +249,7 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 					randomize_location(&local, &mut data.rng, top, &mut effector);
 	
 					let event = Event::new("timer");
-					let delay = 0.1 + data.rng.next_f64();
+					let delay = 0.1 + 0.9*data.rng.next_f64();
 					effector.schedule_after_secs(event, data.id, delay);
 					
 				} else if ename == "timer" {
@@ -288,7 +291,7 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					randomize_location(&local, &mut data.rng, top, &mut effector);
 	
 					let event = Event::new("timer");
-					let delay = 0.1 + data.rng.next_f64();
+					let delay = 0.1 + 0.9*data.rng.next_f64();
 					effector.schedule_after_secs(event, data.id, delay);
 					
 				} else if ename == "timer" {
@@ -311,6 +314,55 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 			}
 			
 			drop(dispatched);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
+			let _ = data.tx.send(effector);
+		}
+	});
+}
+
+fn bots_have_moved(self_id: ComponentID, locations: &mut HashMap<String, (f64, f64)>, dispatched: &DispatchedEvent) -> bool
+{
+	let mut moved = false;
+	let (_, root) = dispatched.components.get_root(self_id);
+
+	for id in root.children.iter() {
+		if is_bot(dispatched, *id) {
+			let path = dispatched.components.path(*id);
+			let new_x = dispatched.store.get_float_data(&(path.clone() + ".location-x"));
+			let new_y = dispatched.store.get_float_data(&(path.clone() + ".location-y"));
+			
+			if let Some(&(old_x, old_y)) = locations.get(&path) {
+				if (old_x - new_x).abs() > 0.1 || (old_y - new_y).abs() > 0.1 {
+					moved = true;
+				}
+			}
+			locations.insert(path, (new_x, new_y));
+		}
+	}
+	
+	moved
+}
+
+fn watchdog_thread(data: ThreadData)
+{
+	thread::spawn(move || {
+		let mut locations = HashMap::new();
+
+		for dispatched in data.rx {
+			let mut effector = Effector::new();
+			{
+				let ename = &dispatched.event.name;
+				if ename == "timer" {
+					// If no bots move within 2s then they're not going to move so we can stop the sim.
+					if !bots_have_moved(data.id, &mut locations, &dispatched) {
+						effector.exit();
+					}
+				}
+			}
+			
+			let event = Event::new("timer");
+			effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
+
+			drop(dispatched);
 			let _ = data.tx.send(effector);
 		}
 	});
@@ -421,6 +473,7 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 		let top = sim.add_active_component(&name, world, locatable_thread);
 		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data));
 	}
+	let _ = sim.add_active_component("watch-dog", world, watchdog_thread);
 	sim
 }
 
