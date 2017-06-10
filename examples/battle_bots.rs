@@ -135,7 +135,7 @@ fn find_closest_bot(local: &LocalConfig, dispatched: &DispatchedEvent, data: &Th
 	return (closest, dx, dy)
 }
 
-fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i64) -> i64
 {
 	if energy > 0 {
 		let mut best_delta = (0.0, 0.0);
@@ -169,7 +169,7 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatche
 	energy
 }
 
-fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i32) -> i32
+fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i64) -> i64
 {
 	// If we are very low health then just wait for someone to attack us and hope we still win.
 	if energy > 10 {
@@ -214,9 +214,9 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatch
 	energy
 }
 
-fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, energy: i32) -> i32
+fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, energy: i64) -> i64
 {
-	let &(attacker_energy, attacker_id) = dispatched.expect_payload::<(i32, ComponentID)>("was-attacked should have an (i32, ComponentID) payload");
+	let &(attacker_energy, attacker_id) = dispatched.expect_payload::<(i64, ComponentID)>("was-attacked should have an (i64, ComponentID) payload");
 	let attacker_path = dispatched.components.path(attacker_id);
 	
 	if energy == 0 {
@@ -238,12 +238,11 @@ fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, en
 fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
-		let mut energy = 100;
 		for dispatched in data.rx.iter() {
 			let mut effector = Effector::new();
 			{
 				let ename = &dispatched.event.name;
-				if ename == "init 0" {
+				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");
 					let (top, _) = dispatched.components.get_top(data.id);
 					randomize_location(&local, &mut data.rng, top, &mut effector);
@@ -251,24 +250,32 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 					let event = Event::new("timer");
 					let delay = 0.1 + 0.9*data.rng.next_f64();
 					effector.schedule_after_secs(event, data.id, delay);
+					100
 					
 				} else if ename == "timer" {
-					energy = handle_cowardly_timer(&local, &mut effector, &dispatched, &data, energy);
+					let path = dispatched.components.path(data.id);
+					let energy = dispatched.store.get_int_data(&(path + ".energy"));
+					handle_cowardly_timer(&local, &mut effector, &dispatched, &data, energy)
 				
 				} else if ename == "was-attacked" {
-					energy = handle_begin_attack(&mut effector, &dispatched, energy);
+					let path = dispatched.components.path(data.id);
+					let energy = dispatched.store.get_int_data(&(path + ".energy"));
+					handle_begin_attack(&mut effector, &dispatched, energy)
 				
 				} else if ename == "won-attack" {
-					let bonus = dispatched.expect_payload::<i32>("won-attack should have an i32 payload");
-					energy += *bonus;
+					let path = dispatched.components.path(data.id);
+					let energy = dispatched.store.get_int_data(&(path + ".energy"));
+					let bonus = dispatched.expect_payload::<i64>("won-attack should have an i64 payload");
+					energy + *bonus
 
 				} else if ename == "lost-attack" {
-					energy = 0;
+					0
 				
 				} else {
 					let cname = &(*dispatched.components).get(data.id).name;
 					panic!("component {} can't handle event {}", cname, ename);
-				}
+				};
+				effector.set_int_data("energy", energy);
 			}
 			
 			drop(dispatched);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
@@ -280,12 +287,11 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
-		let mut energy = 100;
 		for dispatched in data.rx.iter() {
 			let mut effector = Effector::new();
 			{
 				let ename = &dispatched.event.name;
-				if ename == "init 0" {
+				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");	// TODO: fn for this
 					let (top, _) = dispatched.components.get_top(data.id);
 					randomize_location(&local, &mut data.rng, top, &mut effector);
@@ -293,24 +299,32 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					let event = Event::new("timer");
 					let delay = 0.1 + 0.9*data.rng.next_f64();
 					effector.schedule_after_secs(event, data.id, delay);
+					100
 					
 				} else if ename == "timer" {
-					energy = handle_aggresive_timer(&local, &mut effector, &dispatched, &data, energy);
+					let path = dispatched.components.path(data.id);
+					let energy = dispatched.store.get_int_data(&(path + ".energy"));
+					handle_aggresive_timer(&local, &mut effector, &dispatched, &data, energy)
 				
 				} else if ename == "was-attacked" {
-					energy = handle_begin_attack(&mut effector, &dispatched, energy);
+					let path = dispatched.components.path(data.id);
+					let energy = dispatched.store.get_int_data(&(path + ".energy"));
+					handle_begin_attack(&mut effector, &dispatched, energy)
 				
 				} else if ename == "won-attack" {
-					let bonus = dispatched.expect_payload::<i32>("won-attack should have an i32 payload");
-					energy += *bonus;
+					let path = dispatched.components.path(data.id);
+					let energy = dispatched.store.get_int_data(&(path + ".energy"));
+					let bonus = dispatched.expect_payload::<i64>("won-attack should have an i64 payload");
+					energy + *bonus
 
 				} else if ename == "lost-attack" {
-					energy = 0;
+					0
 				
 				} else {
 					let cname = &(*dispatched.components).get(data.id).name;
 					panic!("component {} can't handle event {}", cname, ename);
-				}
+				};
+				effector.set_int_data("energy", energy);
 			}
 			
 			drop(dispatched);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
