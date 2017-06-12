@@ -333,23 +333,22 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 	});
 }
 
-fn bots_have_moved(self_id: ComponentID, locations: &mut HashMap<String, (f64, f64)>, dispatched: &DispatchedEvent) -> bool
+fn bots_have_changed(locations: &mut HashMap<String, i64>, dispatched: &DispatchedEvent) -> bool
 {
 	let mut moved = false;
-	let (_, root) = dispatched.components.get_root(self_id);
 
-	for id in root.children.iter() {
-		if is_bot(dispatched, *id) {
-			let path = dispatched.components.path(*id);
-			let new_x = dispatched.store.get_float_data(&(path.clone() + ".location-x"));
-			let new_y = dispatched.store.get_float_data(&(path.clone() + ".location-y"));
-			
-			if let Some(&(old_x, old_y)) = locations.get(&path) {
-				if (old_x - new_x).abs() > 0.1 || (old_y - new_y).abs() > 0.1 {
+	for (id, _) in dispatched.components.iter() {
+		let path = dispatched.components.path(id);
+		let path = path + ".energy";
+		
+		if dispatched.store.has_data(&path) {
+			let new_energy = dispatched.store.get_int_data(&path);
+			if let Some(&old_energy) = locations.get(&path) {
+				if new_energy != old_energy {
 					moved = true;
 				}
 			}
-			locations.insert(path, (new_x, new_y));
+			locations.insert(path, new_energy);
 		}
 	}
 	
@@ -366,8 +365,10 @@ fn watchdog_thread(data: ThreadData)
 			{
 				let ename = &dispatched.event.name;
 				if ename == "timer" {
-					// If no bots move within 2s then they're not going to move so we can stop the sim.
-					if !bots_have_moved(data.id, &mut locations, &dispatched) {
+					// The longest action bots take is movement so if none of the bots do anything
+					// for a bit longer then that then we have reached a steady state and can stop
+					// the sim.
+					if !bots_have_changed(&mut locations, &dispatched) {
 						effector.exit();
 					}
 				}

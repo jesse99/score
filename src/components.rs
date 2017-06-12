@@ -7,6 +7,12 @@ pub struct Components
 	components: Vec<Component>,
 }
 
+pub struct ComponentsIterator<'a>
+{
+	components: &'a Components,
+	next: usize,
+}
+
 // TODO:
 // sim needs a way to remove a component
 //    swap in a thread that does nothing (or maybe rx can fail silently)
@@ -117,9 +123,9 @@ impl Components
 	}
 		
 	/// Iterates over all the components.
-	pub fn iter<'a>(&'a self) -> Box<Iterator<Item=&'a Component> + 'a>
+	pub fn iter(&self) -> ComponentsIterator
 	{
-		Box::new(self.components.iter())
+		ComponentsIterator::new(self)
 	}
 	
 	/// Returns the path from the top component downwards. Returns "removed" 
@@ -157,5 +163,28 @@ impl Components
 		}
 		
 		self.components.push(component);
+	}
+}
+
+impl<'a> ComponentsIterator<'a>
+{
+	pub fn new(components: &'a Components) -> ComponentsIterator
+	{
+		ComponentsIterator {components: components, next: 0}
+	}
+}
+
+impl<'a> Iterator for ComponentsIterator<'a>
+{
+	type Item = (ComponentID, &'a Component);
+	
+	fn next(&mut self) -> Option<Self::Item>
+	{
+		if self.next < self.components.components.len() {
+			self.next += 1;
+			Some((ComponentID(self.next-1), &self.components.components[self.next-1]))
+		} else {
+			None
+		}
 	}
 }

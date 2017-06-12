@@ -39,10 +39,6 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \pard\pardeftab720\partightenfactor0
 
 \f0\b0\fs48 \cf2 \
-* Add a watchdog thread\
-	- store enery in the store\
-	- watchdog should check for energy changes\
-		will have to find the AI components (or just check for energy)\
 * Better handle removed components:\
 	- add the support to the lib\
 	- when components die remove them\
@@ -69,16 +65,11 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
 \f0\fs48 \cf2 * Rename it score?\
-	- {\field{\*\fldinst{HYPERLINK "https://help.github.com/articles/renaming-a-repository/"}}{\fldrslt \cf2 https://help.github.com/articles/renaming-a-repository/}}\
+	- {\field{\*\fldinst{HYPERLINK "https://help.github.com/articles/renaming-a-repository/"}}{\fldrslt https://help.github.com/articles/renaming-a-repository/}}\
 	- add some lame readme\
 * Try making panic abort\
 	- make sure that we still get a stack trace\
 * Figure out what kind of channels to use\
-* Persist the store\
-* Try 
-\fs36 \cf0 \expnd0\expndtw0\kerning0
-#[warn(unused_must_use)]
-\fs48 \cf2 \kerning1\expnd0\expndtw0 \
 * What do we do about reproducibility checks?\
 	- an option to examples? integration tests?\
 	- check logs as well as a hash?\
@@ -86,9 +77,17 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 
 \f4\fs50\fsmilli25333 \cf6 \expnd0\expndtw0\kerning0
 	- hash could be sum of: event time/component id/1st eight bytes of event name\
+* Add an embedded web server\
+	- starts up if \'97web\
+	- waits for \'93run\'94 to be written to the web component\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Try separate executioners\
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Persist the store\
+* Try 
+\fs36 \cf0 \expnd0\expndtw0\kerning0
+#[warn(unused_must_use)]
+\fs48 \cf2 \kerning1\expnd0\expndtw0 \
+* Try separate executioners\
 * goals: deterministic, extensible, parallel, off-line analysis, portable, fast\
 * use a write-once temporal store\
 		- string keys, typed values\
