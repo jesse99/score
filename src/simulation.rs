@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::mpsc;
+use std::thread;
 use time::get_time;
 
 /// This is the top-level data structure. Once an exe initializes
@@ -22,7 +23,7 @@ use time::get_time;
 pub struct Simulation
 {
 	store: Arc<Store>,
-	components: Arc<Components>,	// all of these are indexed by ComponentID
+	components: Arc<Components>,	// Components and vectors are indexed by ComponentID
 	event_senders: Vec<Option<mpsc::Sender<DispatchedEvent>>>,
 	effector_receivers: Vec<Option<mpsc::Receiver<Effector>>>,
 	config: Config,
@@ -211,8 +212,26 @@ impl Simulation
 			if e.exit {
 				exit = true;
 			}
+			if e.removed {
+				self.install_removed_thread(*id);
+				
+				let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");		
+				let key = self.components.path(*id) + ".removed";
+				store.set_int_data(&key, 1, time);
+			}
 		}
 		(time, exit)
+	}
+	
+	fn install_removed_thread(&mut self, id: ComponentID)
+	{
+		let (txd, rxd) = mpsc::channel::<DispatchedEvent>();
+		let (txe, rxe) = mpsc::channel::<Effector>();
+		
+		self.event_senders[id.0] = Some(txd);
+		self.effector_receivers[id.0] = Some(rxe);
+		
+		no_op_thread(rxd, txe);
 	}
 	
 	fn schedule_init_stage(&mut self, stage: i32)
@@ -389,3 +408,15 @@ fn new_rng(seed: u32, offset: u32) -> XorShiftRng
 	let seed = if seed != 0 {seed} else {get_time().nsec as u32};
 	XorShiftRng::from_seed([seed + offset; 4])	// offset is used to give each thread its own random stream
 }
+
+fn no_op_thread(rx: mpsc::Receiver<DispatchedEvent>, tx: mpsc::Sender<Effector>)
+{
+	thread::spawn(move || {
+		for dispatched in rx {
+			// We drop all events but we still need to tell the Simulator that we haven't actually done anything.
+			drop(dispatched);
+			let _ = tx.send(Effector::new());
+		}
+	});
+}
+

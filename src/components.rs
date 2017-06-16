@@ -13,12 +13,6 @@ pub struct ComponentsIterator<'a>
 	next: usize,
 }
 
-// TODO:
-// sim needs a way to remove a component
-//    swap in a thread that does nothing (or maybe rx can fail silently)
-//    add a removed flag to the store
-//    don't allow the root to be deleted
-// DispatchedEvent needs some sort of was_removed method
 impl Components
 {
 	pub fn new() -> Components

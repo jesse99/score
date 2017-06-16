@@ -39,22 +39,18 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \pard\pardeftab720\partightenfactor0
 
 \f0\b0\fs48 \cf2 \
+* Maybe should dispatch (Event, SimState)\
 * Better handle removed components:\
-	- add the support to the lib\
-	- when components die remove them\
+	- DispatchedEvent needs a removed function? or Components?\
+		note that Components has a comment about this\
+		should we even bother? probably, can easily attack dead bots\
 	- check for removed bots when doing neighbor detection\
+	- should AI threads exit when dead?\
 * Instead of new_with_foo use with_foo\
 * Print wall clock time on exit\
 	- maybe events/sec too\
-* Events should have a number (would help with debugging)\
-	- print that number when logging event dispatch\
-* Handle dead bots better\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf2 * Check parallelism:\
-	- maintain a list of buckets where the bucket number is how many threads executed\
-	- log that at debug\
-	- counting should only be done if should_log\
-* Implement check_descriptions\
+\cf2 * Implement check_descriptions\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
 \f2\i\b\fs40 \cf5 /// _Setters_ set a value for the current time. Note that it is a programmer error to
@@ -62,9 +58,16 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 
 \f2\i\b \cf5 /// set a value more than once for the current time.
 \f3\i0\b0 \cf0 \
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\pard\pardeftab720\partightenfactor0
 
-\f0\fs48 \cf2 * Rename it score?\
+\f0\fs48 \cf2 I* Events should have a number (would help with debugging)\
+	- print that number when logging event dispatch\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf2 * Check parallelism:\
+	- maintain a list of buckets where the bucket number is how many threads executed\
+	- log that at debug\
+	- counting should only be done if should_log\
+* Rename it score?\
 	- {\field{\*\fldinst{HYPERLINK "https://help.github.com/articles/renaming-a-repository/"}}{\fldrslt https://help.github.com/articles/renaming-a-repository/}}\
 	- add some lame readme\
 * Try making panic abort\

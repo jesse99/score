@@ -231,6 +231,7 @@ fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, en
 		log_info!(effector, "{} lost ({} <= {})", attacker_path, attacker_energy, energy);
 		let event = Event::new("lost-attack");
 		effector.schedule_after_secs(event, attacker_id, MOVE_DELAY/2.0);
+		effector.remove();
 		energy + attacker_energy/2
 	}
 }

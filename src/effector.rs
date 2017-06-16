@@ -21,6 +21,9 @@ pub struct Effector
 	
 	#[doc(hidden)]
 	pub exit: bool,
+	
+	#[doc(hidden)]
+	pub removed: bool,
 }
 
 // It'd be nice to wrap this up in a smart pointer so that we could do the send
@@ -30,7 +33,7 @@ impl Effector
 {
 	pub fn new() -> Effector
 	{
-		Effector{logs: Vec::new(), events: HashMap::new(), store: Store::new(), exit: false}
+		Effector{logs: Vec::new(), events: HashMap::new(), store: Store::new(), exit: false, removed: false}
 	}
 	
 	/// Normally you'll use one of the log macros, e.g. log_info!.
@@ -63,6 +66,13 @@ impl Effector
 	pub fn exit(&mut self)
 	{
 		self.exit = true;
+	}
+	
+	/// This will swap in a Component thread that drops all events and add a removed=1
+	/// data entry to the store (so GUIs can stop rendering the component).
+	pub fn remove(&mut self)
+	{
+		self.removed = true;
 	}
 	
 	/// Use these methods to write out new values for data associated with the component.
