@@ -46,13 +46,13 @@ type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
 fn move_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
-	let event = Event::new_with_payload("set-location", (x, y));
+	let event = Event::with_payload("set-location", (x, y));
 	effector.schedule_immediately(event, top);
 }
 
 fn offset_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
-	let event = Event::new_with_payload("offset-location", (x, y));
+	let event = Event::with_payload("offset-location", (x, y));
 	effector.schedule_immediately(event, top);
 }
 
@@ -63,15 +63,15 @@ fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, top: Compo
 	move_bot(top, effector, x, y);
 }
 
-fn bot_dist_squared(local: &LocalConfig, dispatched: &DispatchedEvent, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
+fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
 {
-	let p1 = dispatched.components.path(id1);
-	let x1 = dispatched.store.get_float_data(&(p1.clone() + ".location-x"));
-	let y1 = dispatched.store.get_float_data(&(p1 + ".location-y"));
+	let p1 = state.components.path(id1);
+	let x1 = state.store.get_float_data(&(p1.clone() + ".location-x"));
+	let y1 = state.store.get_float_data(&(p1 + ".location-y"));
 	
-	let p2 = dispatched.components.path(id2);
-	let x2 = dispatched.store.get_float_data(&(p2.clone() + ".location-x")) + delta.0;
-	let y2 = dispatched.store.get_float_data(&(p2 + ".location-y")) + delta.1;
+	let p2 = state.components.path(id2);
+	let x2 = state.store.get_float_data(&(p2.clone() + ".location-x")) + delta.0;
+	let y2 = state.store.get_float_data(&(p2 + ".location-y")) + delta.1;
 	
 	let x2 = x2.max(0.0).min(local.width);
 	let y2 = y2.max(0.0).min(local.height);
@@ -81,23 +81,23 @@ fn bot_dist_squared(local: &LocalConfig, dispatched: &DispatchedEvent, id1: Comp
 	(dx*dx + dy*dy, dx, dy)
 }
 
-fn is_bot(dispatched: &DispatchedEvent, id: ComponentID) -> bool
+fn is_bot(state: &SimState, id: ComponentID) -> bool
 {
-	let path = dispatched.components.path(id);
+	let path = state.components.path(id);
 	let path = path + ".location-x";
-	dispatched.store.has_data(&path)
+	state.store.has_data(&path)
 }
 
-fn get_distance_to_nearby_bots(local: &LocalConfig, dispatched: &DispatchedEvent, data: &ThreadData, delta: &(f64, f64)) -> f64
+fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
 {
 	let mut dist = 0.0;
 	
-	let (_, root) = dispatched.components.get_root(data.id);
-	let (top, _) = dispatched.components.get_top(data.id);
+	let (_, root) = state.components.get_root(data.id);
+	let (top, _) = state.components.get_top(data.id);
 
 	for id in root.children.iter() {
-		if *id != top && is_bot(dispatched, *id) {
-			let (candidate, _, _) = bot_dist_squared(local, dispatched, *id, top, delta);
+		if *id != top && is_bot(state, *id) {
+			let (candidate, _, _) = bot_dist_squared(local, state, *id, top, delta);
 
 			// Ignore bots that are far away.
 			if candidate <= 5.0 {
@@ -109,20 +109,20 @@ fn get_distance_to_nearby_bots(local: &LocalConfig, dispatched: &DispatchedEvent
 	return dist
 }
 
-fn find_closest_bot(local: &LocalConfig, dispatched: &DispatchedEvent, data: &ThreadData) -> (ComponentID, f64, f64)
+fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (ComponentID, f64, f64)
 {
 	let mut closest = NO_COMPONENT;
 	let mut dx = INFINITY;
 	let mut dy = INFINITY;
 	let mut dist = INFINITY;
 	
-	let (_, root) = dispatched.components.get_root(data.id);
-	let (top, _) = dispatched.components.get_top(data.id);
+	let (_, root) = state.components.get_root(data.id);
+	let (top, _) = state.components.get_top(data.id);
 
 	let delta = (0.0, 0.0);
 	for id in root.children.iter() {
-		if *id != top && is_bot(dispatched, *id) {
-			let (dist2, dx2, dy2) = bot_dist_squared(local, dispatched, *id, top, &delta);
+		if *id != top && is_bot(state, *id) {
+			let (dist2, dx2, dy2) = bot_dist_squared(local, state, *id, top, &delta);
 			if dist2 < dist {
 				closest = *id;
 				dx = dx2;
@@ -135,14 +135,14 @@ fn find_closest_bot(local: &LocalConfig, dispatched: &DispatchedEvent, data: &Th
 	return (closest, dx, dy)
 }
 
-fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i64) -> i64
+fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, state: &SimState, data: &ThreadData, mut energy: i64) -> i64
 {
 	if energy > 0 {
 		let mut best_delta = (0.0, 0.0);
 		let mut best_dist = INFINITY;
 		let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
 		for delta in deltas.iter() {	// TODO: can we be slicker about this?
-			let dist = get_distance_to_nearby_bots(local, &dispatched, data, &delta);
+			let dist = get_distance_to_nearby_bots(local, &state, data, &delta);
 			//log_info!(effector, "dist for {:?} = {:.1}", delta, dist);
 			if dist < best_dist {
 				best_delta = *delta;
@@ -152,7 +152,7 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatche
 		
 		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
 			log_excessive!(effector, "moving by {:?}", best_delta);
-			let (top, _) = dispatched.components.get_top(data.id);
+			let (top, _) = state.components.get_top(data.id);
 			offset_bot(top, effector, best_delta.0, best_delta.1);
 			energy -= 1;
 			MOVE_DELAY
@@ -169,19 +169,19 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, dispatche
 	energy
 }
 
-fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatched: &DispatchedEvent, data: &ThreadData, mut energy: i64) -> i64
+fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, state: &SimState, data: &ThreadData, mut energy: i64) -> i64
 {
 	// If we are very low health then just wait for someone to attack us and hope we still win.
 	if energy > 10 {
-		let (closest, dx, dy) = find_closest_bot(local, &dispatched, data);
+		let (closest, dx, dy) = find_closest_bot(local, &state, data);
 		if closest != NO_COMPONENT {
 			if dx*dx + dy*dy <= 1.0 {
-				if let Some((target_id, _)) = dispatched.components.find_child(closest, |_child_id, child|
+				if let Some((target_id, _)) = state.components.find_child(closest, |_child_id, child|
 					child.name == "AI") {
-					let path = dispatched.components.path(closest);
+					let path = state.components.path(closest);
 					log_info!(effector, "attacking {}", path);
 					
-					let event = Event::new_with_payload("was-attacked", (energy, data.id));
+					let event = Event::with_payload("was-attacked", (energy, data.id));
 					effector.schedule_immediately(event, target_id);
 				}
 			} else {
@@ -198,7 +198,7 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatch
 						(0.0, -1.0)
 					}
 				};
-				let (top, _) = dispatched.components.get_top(data.id);
+				let (top, _) = state.components.get_top(data.id);
 				offset_bot(top, effector, delta.0, delta.1);
 				energy -= 1;
 
@@ -214,17 +214,17 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, dispatch
 	energy
 }
 
-fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, energy: i64) -> i64
+fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState, energy: i64) -> i64
 {
-	let &(attacker_energy, attacker_id) = dispatched.expect_payload::<(i64, ComponentID)>("was-attacked should have an (i64, ComponentID) payload");
-	let attacker_path = dispatched.components.path(attacker_id);
+	let &(attacker_energy, attacker_id) = event.expect_payload::<(i64, ComponentID)>("was-attacked should have an (i64, ComponentID) payload");
+	let attacker_path = state.components.path(attacker_id);
 	
 	if energy == 0 {
 		log_info!(effector, "{} attacked a dead bot", attacker_path);	// TODO: handle this better
 		0
 	} else if attacker_energy > energy {
 		log_info!(effector, "{} won ({} > {})", attacker_path, attacker_energy, energy);
-		let event = Event::new_with_payload("won-attack", energy/2);
+		let event = Event::with_payload("won-attack", energy/2);
 		effector.schedule_after_secs(event, attacker_id, MOVE_DELAY/2.0);
 		0
 	} else {
@@ -239,13 +239,13 @@ fn handle_begin_attack(effector: &mut Effector, dispatched: &DispatchedEvent, en
 fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
-		for dispatched in data.rx.iter() {
+		for (event, state) in data.rx.iter() {
 			let mut effector = Effector::new();
 			{
-				let ename = &dispatched.event.name;
+				let ename = &event.name;
 				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");
-					let (top, _) = dispatched.components.get_top(data.id);
+					let (top, _) = state.components.get_top(data.id);
 					randomize_location(&local, &mut data.rng, top, &mut effector);
 	
 					let event = Event::new("timer");
@@ -254,32 +254,32 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 					100
 					
 				} else if ename == "timer" {
-					let path = dispatched.components.path(data.id);
-					let energy = dispatched.store.get_int_data(&(path + ".energy"));
-					handle_cowardly_timer(&local, &mut effector, &dispatched, &data, energy)
+					let path = state.components.path(data.id);
+					let energy = state.store.get_int_data(&(path + ".energy"));
+					handle_cowardly_timer(&local, &mut effector, &state, &data, energy)
 				
 				} else if ename == "was-attacked" {
-					let path = dispatched.components.path(data.id);
-					let energy = dispatched.store.get_int_data(&(path + ".energy"));
-					handle_begin_attack(&mut effector, &dispatched, energy)
+					let path = state.components.path(data.id);
+					let energy = state.store.get_int_data(&(path + ".energy"));
+					handle_begin_attack(&mut effector, &event, &state, energy)
 				
 				} else if ename == "won-attack" {
-					let path = dispatched.components.path(data.id);
-					let energy = dispatched.store.get_int_data(&(path + ".energy"));
-					let bonus = dispatched.expect_payload::<i64>("won-attack should have an i64 payload");
+					let path = state.components.path(data.id);
+					let energy = state.store.get_int_data(&(path + ".energy"));
+					let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 					energy + *bonus
 
 				} else if ename == "lost-attack" {
 					0
 				
 				} else {
-					let cname = &(*dispatched.components).get(data.id).name;
+					let cname = &(*state.components).get(data.id).name;
 					panic!("component {} can't handle event {}", cname, ename);
 				};
 				effector.set_int_data("energy", energy);
 			}
 			
-			drop(dispatched);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
+			drop(state);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
 			let _ = data.tx.send(effector);
 		}
 	});
@@ -288,13 +288,13 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
-		for dispatched in data.rx.iter() {
+		for (event, state) in data.rx.iter() {
 			let mut effector = Effector::new();
 			{
-				let ename = &dispatched.event.name;
+				let ename = &event.name;
 				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");	// TODO: fn for this
-					let (top, _) = dispatched.components.get_top(data.id);
+					let (top, _) = state.components.get_top(data.id);
 					randomize_location(&local, &mut data.rng, top, &mut effector);
 	
 					let event = Event::new("timer");
@@ -303,47 +303,47 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					100
 					
 				} else if ename == "timer" {
-					let path = dispatched.components.path(data.id);
-					let energy = dispatched.store.get_int_data(&(path + ".energy"));
-					handle_aggresive_timer(&local, &mut effector, &dispatched, &data, energy)
+					let path = state.components.path(data.id);
+					let energy = state.store.get_int_data(&(path + ".energy"));
+					handle_aggresive_timer(&local, &mut effector, &state, &data, energy)
 				
 				} else if ename == "was-attacked" {
-					let path = dispatched.components.path(data.id);
-					let energy = dispatched.store.get_int_data(&(path + ".energy"));
-					handle_begin_attack(&mut effector, &dispatched, energy)
+					let path = state.components.path(data.id);
+					let energy = state.store.get_int_data(&(path + ".energy"));
+					handle_begin_attack(&mut effector, &event, &state, energy)
 				
 				} else if ename == "won-attack" {
-					let path = dispatched.components.path(data.id);
-					let energy = dispatched.store.get_int_data(&(path + ".energy"));
-					let bonus = dispatched.expect_payload::<i64>("won-attack should have an i64 payload");
+					let path = state.components.path(data.id);
+					let energy = state.store.get_int_data(&(path + ".energy"));
+					let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 					energy + *bonus
 
 				} else if ename == "lost-attack" {
 					0
 				
 				} else {
-					let cname = &(*dispatched.components).get(data.id).name;
+					let cname = &(*state.components).get(data.id).name;
 					panic!("component {} can't handle event {}", cname, ename);
 				};
 				effector.set_int_data("energy", energy);
 			}
 			
-			drop(dispatched);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
+			drop(state);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
 			let _ = data.tx.send(effector);
 		}
 	});
 }
 
-fn bots_have_changed(locations: &mut HashMap<String, i64>, dispatched: &DispatchedEvent) -> bool
+fn bots_have_changed(locations: &mut HashMap<String, i64>, state: &SimState) -> bool
 {
 	let mut moved = false;
 
-	for (id, _) in dispatched.components.iter() {
-		let path = dispatched.components.path(id);
+	for (id, _) in state.components.iter() {
+		let path = state.components.path(id);
 		let path = path + ".energy";
 		
-		if dispatched.store.has_data(&path) {
-			let new_energy = dispatched.store.get_int_data(&path);
+		if state.store.has_data(&path) {
+			let new_energy = state.store.get_int_data(&path);
 			if let Some(&old_energy) = locations.get(&path) {
 				if new_energy != old_energy {
 					moved = true;
@@ -361,15 +361,15 @@ fn watchdog_thread(data: ThreadData)
 	thread::spawn(move || {
 		let mut locations = HashMap::new();
 
-		for dispatched in data.rx {
+		for (event, state) in data.rx {
 			let mut effector = Effector::new();
 			{
-				let ename = &dispatched.event.name;
+				let ename = &event.name;
 				if ename == "timer" {
 					// The longest action bots take is movement so if none of the bots do anything
 					// for a bit longer then that then we have reached a steady state and can stop
 					// the sim.
-					if !bots_have_changed(&mut locations, &dispatched) {
+					if !bots_have_changed(&mut locations, &state) {
 						effector.exit();
 					}
 				}
@@ -378,7 +378,7 @@ fn watchdog_thread(data: ThreadData)
 			let event = Event::new("timer");
 			effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
 
-			drop(dispatched);
+			drop(state);
 			let _ = data.tx.send(effector);
 		}
 	});

@@ -5,6 +5,7 @@ use effector::*;
 use event::*;
 use logging::*;
 use rand::{Rng, SeedableRng, XorShiftRng};
+use sim_state::*;
 use sim_time::*;
 use store::*;
 use thread_data::*;
@@ -24,7 +25,7 @@ pub struct Simulation
 {
 	store: Arc<Store>,
 	components: Arc<Components>,	// Components and vectors are indexed by ComponentID
-	event_senders: Vec<Option<mpsc::Sender<DispatchedEvent>>>,
+	event_senders: Vec<Option<mpsc::Sender<(Event, SimState)>>>,
 	effector_receivers: Vec<Option<mpsc::Receiver<Effector>>>,
 	config: Config,
 	precision: usize,	// number of decimal places to include when logging, derived from config.time_units
@@ -80,7 +81,7 @@ impl Simulation
 		id
 	}
 	
-	/// Adds a component with a thread that can be sent a `DispatchedEvent`
+	/// Adds a component with a thread that can be sent an (`Event`, `SimState`)
 	/// which processes the event and sends back an `Effector` .
 	pub fn add_active_component<T>(&mut self, name: &str, parent: ComponentID, thread: T) -> ComponentID
 		where T: FnOnce (ThreadData) -> ()
@@ -89,7 +90,7 @@ impl Simulation
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
 		// TODO: when we support children properly assert that parent is not in children (recursively?)
 		
-		let (txd, rxd) = mpsc::channel::<DispatchedEvent>();
+		let (txd, rxd) = mpsc::channel::<(Event, SimState)>();
 		let (txe, rxe) = mpsc::channel::<Effector>();
 
 		let id = ComponentID(self.event_senders.len());
@@ -180,8 +181,8 @@ impl Simulation
 			ids.push(e.to);
 			
 			if let Some(ref tx) = self.event_senders[e.to.0] {
-				let d = DispatchedEvent{event: e.event, store: self.store.clone(), components: self.components.clone()};
-				tx.send(d).unwrap();
+				let state = SimState{store: self.store.clone(), components: self.components.clone()};
+				tx.send((e.event, state)).unwrap();
 			} else {
 				let c = self.components.get(e.to);
 				panic!("Attempt to send event {} to component {} which isn't an active component",
@@ -225,7 +226,7 @@ impl Simulation
 	
 	fn install_removed_thread(&mut self, id: ComponentID)
 	{
-		let (txd, rxd) = mpsc::channel::<DispatchedEvent>();
+		let (txd, rxd) = mpsc::channel::<(Event, SimState)>();
 		let (txe, rxe) = mpsc::channel::<Effector>();
 		
 		self.event_senders[id.0] = Some(txd);
@@ -409,7 +410,7 @@ fn new_rng(seed: u32, offset: u32) -> XorShiftRng
 	XorShiftRng::from_seed([seed + offset; 4])	// offset is used to give each thread its own random stream
 }
 
-fn no_op_thread(rx: mpsc::Receiver<DispatchedEvent>, tx: mpsc::Sender<Effector>)
+fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector>)
 {
 	thread::spawn(move || {
 		for dispatched in rx {

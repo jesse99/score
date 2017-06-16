@@ -24,7 +24,7 @@ impl Components
 	/// a removed `Component`. This is not a problem in general but if
 	/// you are regularly sending events to a component that may have
 	/// been removed then you can make your simulation more efficient
-	/// by asking `DispatchedEvent` if the component has been removed.
+	/// by asking `SimState` if the component has been removed.
 	pub fn get(&self, id: ComponentID) -> &Component
 	{
 		assert!(id != NO_COMPONENT);

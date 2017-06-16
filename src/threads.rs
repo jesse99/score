@@ -11,24 +11,24 @@ use thread_data::*;
 pub fn locatable_thread(data: ThreadData)
 {
 	thread::spawn(move || {
-		for dispatched in data.rx {
+		for (event, state) in data.rx {
 			let mut effector = Effector::new();
 
 			{
-			let cname = &(*dispatched.components).get(data.id).name;
-			let ename = &dispatched.event.name;
+			let cname = &(*state.components).get(data.id).name;
+			let ename = &event.name;
 			if ename == "set-location" {
-				let loc = dispatched.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
+				let loc = event.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
 				log_info!(effector, "setting location to {:.1}, {:.1}", loc.0, loc.1);
 				effector.set_float_data("location-x", loc.0);
 				effector.set_float_data("location-y", loc.1);
 				
 			} else if ename == "offset-location" {
-				let path = dispatched.components.path(data.id);
-				let x = dispatched.store.get_float_data(&(path.clone() + ".location-x"));
-				let y = dispatched.store.get_float_data(&(path + ".location-y"));
+				let path = state.components.path(data.id);
+				let x = state.store.get_float_data(&(path.clone() + ".location-x"));
+				let y = state.store.get_float_data(&(path + ".location-y"));
 
-				let loc = dispatched.expect_payload::<(f64, f64)>(&format!("component {} offset-location should have an (f64, f64) payload", cname));
+				let loc = event.expect_payload::<(f64, f64)>(&format!("component {} offset-location should have an (f64, f64) payload", cname));
 				log_info!(effector, "setting location to {:.1}, {:.1}", x+loc.0, y+loc.1);
 				effector.set_float_data("location-x", x+loc.0);
 				effector.set_float_data("location-y", y+loc.1);
@@ -41,7 +41,7 @@ pub fn locatable_thread(data: ThreadData)
 			}
 			}
 			
-			drop(dispatched);
+			drop(state);
 			let _ = data.tx.send(effector);
 		}
 	});

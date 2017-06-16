@@ -1,7 +1,4 @@
-use components::*;
-use store::*;
 use std::any::Any;
-use std::sync::Arc;
 
 /// Events are scheduled to be sent to a `Component` at a particular `Time`.
 /// Components process the event using a thread and send an `Effector` back
@@ -25,41 +22,22 @@ impl Event
 		Event{name: name.to_string(), payload: None}
 	}
 
-	pub fn new_with_payload<T: Any + Send>(name: &str, payload: T) -> Event
+	pub fn with_payload<T: Any + Send>(name: &str, payload: T) -> Event
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		Event{name: name.to_string(), payload: Some(Box::new(payload))}
 	}
-}
 
-/// This is what is actually sent to a `Component` when the `Simulation`
-/// processes an `Event`.
-pub struct DispatchedEvent
-{
-	/// The event that was scheduled.
-	pub event: Event,
-	
-	/// The components in the Simulation.
-	pub components: Arc<Components>,
-	
-	/// The state of the `Store` at the `Time` the event was dispatched:
-	/// changes to the simulation happen after all events at time T have
-	/// finished processing.
-	pub store: Arc<Store>,
-}
-
-impl DispatchedEvent
-{
 	pub fn expect_payload<T: Any>(&self, message: &str) -> &T
 	{
-		if let Some(ref value) = self.event.payload {
+		if let Some(ref value) = self.payload {
 			if let Some(x) = value.downcast_ref::<T>() {
 				x
 			} else {
-				panic!("event {} {} (downcast failed)", self.event.name, message);
+				panic!("event {} {} (downcast failed)", self.name, message);
 			}
 		} else {
-			panic!("event {} {} (missing payload)", self.event.name, message);
+			panic!("event {} {} (missing payload)", self.name, message);
 		}
 	}
 }

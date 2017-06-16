@@ -6,7 +6,7 @@ use store::*;
 use std::collections::HashMap;
 use std::f64::EPSILON;
 
-/// Effectors are returned by `Component`s after they process a `DispatchedEvent`.
+/// Effectors are returned by `Component`s after they process an `Event`.
 /// The effector encapsulates the state changes the component wishes to make.
 pub struct Effector
 {

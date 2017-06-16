@@ -1,6 +1,7 @@
 use component::*;
 use effector::*;
 use event::*;
+use sim_state::*;
 use std::sync::mpsc;
 use rand::{Rng, XorShiftRng};
 
@@ -11,7 +12,7 @@ pub struct ThreadData
 	pub id: ComponentID,
 
 	/// Threads receive from this in order to process `Event`s sent to them.
-	pub rx: mpsc::Receiver<DispatchedEvent>,
+	pub rx: mpsc::Receiver<(Event, SimState)>,
 	
 	pub tx: mpsc::Sender<Effector>,
 	
@@ -22,7 +23,7 @@ pub struct ThreadData
 
 impl ThreadData
 {
-	pub fn new(id: ComponentID, rx: mpsc::Receiver<DispatchedEvent>, tx: mpsc::Sender<Effector>, rng: XorShiftRng) -> ThreadData
+	pub fn new(id: ComponentID, rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector>, rng: XorShiftRng) -> ThreadData
 	{
 		ThreadData{id, rx, tx, rng: Box::new(rng)}
 	}
