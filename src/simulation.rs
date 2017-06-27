@@ -139,12 +139,10 @@ impl Simulation
 				break;
 			}
 			
-			let (time, exit) = self.dispatch_events();
+			let exit = self.dispatch_events();
 			if exit {
 				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (effector.exit was called)");
 				break;
-			} else {
-				self.current_time = time;
 			}
 		}
 	}
@@ -154,8 +152,8 @@ impl Simulation
 		let mut exiting = false;
 		for i in 0..self.config.num_init_stages {
 			self.schedule_init_stage(i);
-			let (time, exit) = self.dispatch_events();
-			assert!(time.0 == 0);
+			let exit = self.dispatch_events();
+			assert!(self.current_time.0 == 0);
 			if exit {
 				exiting = true;
 			}
@@ -163,15 +161,15 @@ impl Simulation
 		exiting
 	}
 	
-	fn dispatch_events(&mut self) -> (Time, bool)
+	fn dispatch_events(&mut self) -> bool
 	{
-		let time = self.scheduled.peek().unwrap().time;
+		self.current_time = self.scheduled.peek().unwrap().time;
 		let mut ids = Vec::new();
 		let mut exit = false;
 		
 		// TODO: track statistics on how parallel we are doing
 		// TODO: should cap the number of threads we use (probably via config)
-		while !self.scheduled.is_empty() && self.scheduled.peek().unwrap().time == time {	// while let can't have a guard so we use this somewhat ugly syntax
+		while !self.scheduled.is_empty() && self.scheduled.peek().unwrap().time == self.current_time {	// while let can't have a guard so we use this somewhat ugly syntax
 			let e = self.scheduled.pop().unwrap();
 			
 			if self.should_log(&LogLevel::Excessive, NO_COMPONENT) {
@@ -208,7 +206,7 @@ impl Simulation
 		for (id, e) in effects.iter_mut() {
 			self.apply_logs(*id, e);
 			self.apply_events(e);
-			self.apply_stores(e, *id, time);
+			self.apply_stores(e, *id);
 			
 			if e.exit {
 				exit = true;
@@ -218,10 +216,10 @@ impl Simulation
 				
 				let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");		
 				let key = self.components.path(*id) + ".removed";
-				store.set_int_data(&key, 1, time);
+				store.set_int_data(&key, 1, self.current_time);
 			}
 		}
-		(time, exit)
+		exit
 	}
 	
 	fn install_removed_thread(&mut self, id: ComponentID)
@@ -269,7 +267,7 @@ impl Simulation
 		}
 	}
 
-	fn apply_stores(&mut self, effects: &Effector, id: ComponentID, time: Time)
+	fn apply_stores(&mut self, effects: &Effector, id: ComponentID)
 	{
 		let path = self.components.path(id);
 		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
@@ -277,19 +275,19 @@ impl Simulation
 		store.int_data.reserve(effects.store.int_data.len());
 		for (key, value) in effects.store.int_data.iter() {
 			let key = format!("{}.{}", path, key);
-			store.set_int_data(&key, value.1, time);
+			store.set_int_data(&key, value.1, self.current_time);
 		}
 		
 		store.float_data.reserve(effects.store.float_data.len());
 		for (key, value) in effects.store.float_data.iter() {
 			let key = format!("{}.{}", path, key);
-			store.set_float_data(&key, value.1, time);
+			store.set_float_data(&key, value.1, self.current_time);
 		}
 		
 		store.string_data.reserve(effects.store.string_data.len());
 		for (key, value) in effects.store.string_data.iter() {
 			let key = format!("{}.{}", path, key);
-			store.set_string_data(&key, &value.1, time);
+			store.set_string_data(&key, &value.1, self.current_time);
 		}
 	}
 
