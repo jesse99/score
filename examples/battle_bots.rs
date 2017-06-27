@@ -85,7 +85,7 @@ fn is_bot(state: &SimState, id: ComponentID) -> bool
 {
 	let path = state.components.path(id);
 	let path = path + ".location-x";
-	state.store.has_data(&path)
+	state.store.has_data(&path) && !state.was_removed(id)
 }
 
 fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
@@ -231,7 +231,7 @@ fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState,
 		log_info!(effector, "{} lost ({} <= {})", attacker_path, attacker_energy, energy);
 		let event = Event::new("lost-attack");
 		effector.schedule_after_secs(event, attacker_id, MOVE_DELAY/2.0);
-		effector.remove();
+		log_info!(effector, "energy is now {}", energy + attacker_energy/2);
 		energy + attacker_energy/2
 	}
 }
@@ -267,9 +267,11 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 					let path = state.components.path(data.id);
 					let energy = state.store.get_int_data(&(path + ".energy"));
 					let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
+					log_info!(effector, "energy is now {}", energy + *bonus);
 					energy + *bonus
 
 				} else if ename == "lost-attack" {
+					effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 					0
 				
 				} else {
@@ -316,9 +318,11 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					let path = state.components.path(data.id);
 					let energy = state.store.get_int_data(&(path + ".energy"));
 					let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
+					log_info!(effector, "energy is now {}", energy + *bonus);
 					energy + *bonus
 
 				} else if ename == "lost-attack" {
+					effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 					0
 				
 				} else {
@@ -376,7 +380,7 @@ fn watchdog_thread(data: ThreadData)
 			}
 			
 			let event = Event::new("timer");
-			effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
+			effector.schedule_after_secs(event, data.id, 2.1*MOVE_DELAY);
 
 			drop(state);
 			let _ = data.tx.send(effector);

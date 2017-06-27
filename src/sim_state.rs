@@ -1,5 +1,7 @@
+use component::*;
 use components::*;
 use store::*;
+use std::borrow::Borrow;
 use std::sync::Arc;
 
 /// This is sent together with an `Event` when the `Simulation` dispatches
@@ -13,4 +15,14 @@ pub struct SimState
 	/// changes to the simulation happen after all events at time T have
 	/// finished processing.
 	pub store: Arc<Store>,
+}
+
+impl SimState
+{
+	pub fn was_removed(&self, id: ComponentID) -> bool
+	{
+		let store:&Store = self.store.borrow();
+		let key = self.components.path(id) + ".removed";
+		store.has_data(&key)
+	}
 }
