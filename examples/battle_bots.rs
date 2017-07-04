@@ -44,6 +44,7 @@ impl LocalConfig
 
 type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
+// These events are handled by rsimbase's handle_location_event function.
 fn move_bot(id: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::with_payload("set-location", (x, y));
@@ -81,6 +82,8 @@ fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2
 	(dx*dx + dy*dy, dx, dy)
 }
 
+// When a bot's energy goes to zero we consider it to be dead and remove it (which switches in a
+// do-nothing thread so that it stops responding to events and adds a removed flag to the store).
 fn is_bot(state: &SimState, id: ComponentID) -> bool
 {
 	let path = state.components.path(id);
@@ -113,7 +116,7 @@ fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &Thr
 			let (candidate, _, _) = bot_dist_squared(local, state, *id, data.id, delta);
 
 			// Ignore bots that are far away.
-			if candidate <= 5.0 {
+			if candidate <= 16.0 {
 				dist += candidate;
 			}
 		}
@@ -184,46 +187,52 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, state: &S
 
 fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, state: &SimState, data: &ThreadData, mut energy: i64) -> i64
 {
-	// If we are very low health then just wait for someone to attack us and hope we still win.
-	if energy > 10 {
-		let (closest, dx, dy) = find_closest_bot(local, &state, data);
-		if closest != NO_COMPONENT {
-			if dx*dx + dy*dy <= 1.0 {
-				let path = state.components.path(closest);
-				log_info!(effector, "attacking {}", path);
-				
-				let event = Event::with_payload("attacked", (energy, data.id));
-				effector.schedule_immediately(event, closest);
-			} else {
-				let delta = if dx.abs() > dy.abs() {
-					if dx > 0.0 {
-						(1.0, 0.0)
-					} else {
-						(-1.0, 0.0)
-					}
-				} else {
-					if dy > 0.0 {
-						(0.0, 1.0)
-					} else {
-						(0.0, -1.0)
-					}
-				};
-				offset_bot(data.id, effector, delta.0, delta.1);
-				energy -= 1;
-			}
-
+	let (closest, dx, dy) = find_closest_bot(local, &state, data);
+	if closest != NO_COMPONENT {
+		if dx*dx + dy*dy <= 1.0 {
+			let path = state.components.path(closest);
+			log_info!(effector, "attacking {}", path);
+			
+			let event = Event::with_payload("attacked", (energy, data.id));
+			effector.schedule_immediately(event, closest);
+	
 			let event = Event::new("timer");
 			effector.schedule_after_secs(event, data.id, MOVE_DELAY);
 
+		// If we are very low health then just wait for someone to get close and hope we still win.
+		} else if energy > 10 {
+			let delta = if dx.abs() > dy.abs() {
+				if dx > 0.0 {
+					(1.0, 0.0)
+				} else {
+					(-1.0, 0.0)
+				}
+			} else {
+				if dy > 0.0 {
+					(0.0, 1.0)
+				} else {
+					(0.0, -1.0)
+				}
+			};
+			offset_bot(data.id, effector, delta.0, delta.1);
+			energy -= 1;
+	
+			let event = Event::new("timer");
+			effector.schedule_after_secs(event, data.id, MOVE_DELAY);
+	
 		} else {
-			log_debug!(effector, "didn't find a bot to chase");
+			log_debug!(effector, "energy is to low to chase after anyone");
 		}
+
 	} else {
-		log_debug!(effector, "energy is to low to chase after anyone");
+		log_debug!(effector, "didn't find a bot to chase");
 	}
 	energy
 }
 
+// Components can read each others state but they cannot change other components so when a bot
+// attacks another bot it sends the other bot an "attacked" event so that it can decide whether
+// the attacker won or lost. This is the function that handles the "attacked" event.
 fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState, energy: i64) -> i64
 {
 	let &(attacker_energy, attacker_id) = event.expect_payload::<(i64, ComponentID)>("was-attacked should have an (i64, ComponentID) payload");
@@ -252,16 +261,26 @@ fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState,
 	}
 }
 
+// This bot will run from all the other bots and will never initiate an attack.
 fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
-	thread::spawn(move || {
+	thread::spawn(move || {	// TODO: is there a way to put this entire fn in a macro or fn?
+	
+		// "init N" events are scheduled by the simulation. All other events are scheduled
+		// by component threads. Components may send an event to a different component.
+		// SimState encapsulates the state of the simulation at the time the event was
+		// dispatched.
 		for (event, state) in data.rx.iter() {
+		
+			// The only way components can affect the simulation state is through an
+			// Effector. This prevents spooky action at a distance and also allows
+			// component threads to execute in parallel.
 			let mut effector = Effector::new();
 			{
 				let ename = &event.name;
 				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");
-					effector.set_description("energy", "Amount of health the bot has.");
+					effector.set_description("energy", "Amount of health the bot has.");	// all data in the store needs a description
 					handle_location_event(data.id, &state, &event, &mut effector);
 					randomize_location(&local, &mut data.rng, data.id, &mut effector);
 	
@@ -298,6 +317,7 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 	});
 }
 
+// This bot will chase the closest bot to it and attack bots that are nearby.
 fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
@@ -341,7 +361,7 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 				} else if handle_location_event(data.id, &state, &event, &mut effector) {
 					let path = state.components.path(data.id);
 					let energy = state.store.get_int_data(&(path + ".energy"));
-				energy	// we've already accounted for the move cost
+					energy	// we've already accounted for the move cost
 					
 				} else {
 					let cname = &(*state.components).get(data.id).name;
@@ -356,6 +376,8 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 	});
 }
 
+// Everything a bot does (except just sitting in place) costs energy so if a bot's
+// energy changes something significant happened.
 fn bots_have_changed(locations: &mut HashMap<String, i64>, state: &SimState) -> bool
 {
 	let mut moved = false;
