@@ -150,84 +150,22 @@ fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) ->
 	return (closest, dx, dy)
 }
 
-fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, state: &SimState, data: &ThreadData, mut energy: i64) -> i64
+fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (f64, f64)
 {
-	if energy > 0 {
-		// See which direction we can move (including not moving at all) which will put us the
-		// furthest from other bots).
-		let mut best_delta = (0.0, 0.0);
-		let mut best_dist = INFINITY;
-		let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
-		for delta in deltas.iter() {	// TODO: can we be slicker about this?
-			let dist = get_distance_to_nearby_bots(local, &state, data, &delta);
-			//log_info!(effector, "dist for {:?} = {:.1}", delta, dist);
-			if dist < best_dist {
-				best_delta = *delta;
-				best_dist = dist;
-			}
+	// See which direction we can move (including not moving at all) which will put us the
+	// furthest from other bots).
+	let mut best_delta = (0.0, 0.0);
+	let mut best_dist = INFINITY;
+	let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
+	for delta in deltas.iter() {	// TODO: can we be slicker about this?
+		let dist = get_distance_to_nearby_bots(local, &state, data, &delta);
+		if dist < best_dist {
+			best_delta = *delta;
+			best_dist = dist;
 		}
-		
-		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
-			log_excessive!(effector, "moving by {:?}", best_delta);
-			offset_bot(data.id, effector, best_delta.0, best_delta.1);
-			energy -= 1;
-			MOVE_DELAY
-		} else {
-			log_excessive!(effector, "no others bots are nearby");
-			MOVE_DELAY/2.0
-		};
-
-		let event = Event::new("timer");
-		effector.schedule_after_secs(event, data.id, delay);
-	} else {
-		log_excessive!(effector, "dead");
 	}
-	energy
-}
-
-fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, state: &SimState, data: &ThreadData, mut energy: i64) -> i64
-{
-	let (closest, dx, dy) = find_closest_bot(local, &state, data);
-	if closest != NO_COMPONENT {
-		if dx*dx + dy*dy <= 1.0 {
-			let path = state.components.path(closest);
-			log_info!(effector, "attacking {}", path);
-			
-			let event = Event::with_payload("attacked", (energy, data.id));
-			effector.schedule_immediately(event, closest);
 	
-			let event = Event::new("timer");
-			effector.schedule_after_secs(event, data.id, MOVE_DELAY);
-
-		// If we are very low health then just wait for someone to get close and hope we still win.
-		} else if energy > 10 {
-			let delta = if dx.abs() > dy.abs() {
-				if dx > 0.0 {
-					(1.0, 0.0)
-				} else {
-					(-1.0, 0.0)
-				}
-			} else {
-				if dy > 0.0 {
-					(0.0, 1.0)
-				} else {
-					(0.0, -1.0)
-				}
-			};
-			offset_bot(data.id, effector, delta.0, delta.1);
-			energy -= 1;
-	
-			let event = Event::new("timer");
-			effector.schedule_after_secs(event, data.id, MOVE_DELAY);
-	
-		} else {
-			log_debug!(effector, "energy is to low to chase after anyone");
-		}
-
-	} else {
-		log_debug!(effector, "didn't find a bot to chase");
-	}
-	energy
+	best_delta
 }
 
 // Components can read each others state but they cannot change other components so when a bot
@@ -261,6 +199,21 @@ fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState,
 	}
 }
 
+fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut Box<Rng + Send>, state: &SimState, event: &Event, effector: &mut Effector)
+{
+	// The only way components can affect the simulation state is through an
+	// Effector. This prevents spooky action at a distance and also allows
+	// component threads to execute in parallel.
+	effector.set_description("energy", "Amount of health the bot has.");	// all data in the store needs a description
+	handle_location_event(id, state, event, effector);
+	randomize_location(&local, rng, id, effector);
+
+	let event = Event::new("timer");
+	let delay = 0.1 + 0.9*rng.next_f64();
+	effector.schedule_after_secs(event, id, delay);
+	effector.set_int_data("energy", 100);
+}
+
 // This bot will run from all the other bots and will never initiate an attack.
 fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
@@ -271,23 +224,31 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 		// dispatched.
 		process_events!(data, event, state, effector,
 			"init 0" => {
-				// The only way components can affect the simulation state is through an
-				// Effector. This prevents spooky action at a distance and also allows
-				// component threads to execute in parallel.
-				effector.set_description("energy", "Amount of health the bot has.");	// all data in the store needs a description
-				handle_location_event(data.id, &state, &event, &mut effector);
-				randomize_location(&local, &mut data.rng, data.id, &mut effector);
-
-				let event = Event::new("timer");
-				let delay = 0.1 + 0.9*data.rng.next_f64();
-				effector.schedule_after_secs(event, data.id, delay);
-				effector.set_int_data("energy", 100);
+				init_bot(&local, data.id, &mut data.rng, &state, &event, &mut effector);
 			},
 			"timer" => {
 				let path = state.components.path(data.id);
 				let energy = state.store.get_int_data(&(path + ".energy"));
-				let energy = handle_cowardly_timer(&local, &mut effector, &state, &data, energy);
-				effector.set_int_data("energy", energy);
+
+				if energy > 0 {
+					// See which direction we can move (including not moving at all) which will
+					// put us the furthest from other bots).
+					let best_delta = dir_furthest_from_other_bots(&local, &state, &data);
+					let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
+						log_excessive!(effector, "moving by {:?}", best_delta);
+						offset_bot(data.id, &mut effector, best_delta.0, best_delta.1);
+						effector.set_int_data("energy", energy - 1);
+						MOVE_DELAY
+					} else {
+						log_excessive!(effector, "no others bots are nearby");
+						MOVE_DELAY/2.0
+					};
+			
+					let event = Event::new("timer");
+					effector.schedule_after_secs(event, data.id, delay);
+				} else {
+					log_excessive!(effector, "dead");
+				}
 			},
 			"attacked" => {
 				let path = state.components.path(data.id);
@@ -312,20 +273,43 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
 			"init 0" => {
-				effector.set_description("energy", "Amount of health the bot has.");
-				handle_location_event(data.id, &state, &event, &mut effector);
-				randomize_location(&local, &mut data.rng, data.id, &mut effector);
-
-				let event = Event::new("timer");
-				let delay = 0.1 + 0.9*data.rng.next_f64();
-				effector.schedule_after_secs(event, data.id, delay);
-				effector.set_int_data("energy", 100);
+				init_bot(&local, data.id, &mut data.rng, &state, &event, &mut effector);
 			},
 			"timer" => {
 				let path = state.components.path(data.id);
 				let energy = state.store.get_int_data(&(path + ".energy"));
-				let energy = handle_aggresive_timer(&local, &mut effector, &state, &data, energy);
-				effector.set_int_data("energy", energy);
+				if energy > 10 {
+					let (closest, dx, dy) = find_closest_bot(&local, &state, &data);
+					if closest != NO_COMPONENT {
+						let path = state.components.path(closest);
+						if dx*dx + dy*dy <= 1.0 {
+							log_info!(effector, "attacking {}", path);
+							let event = Event::with_payload("attacked", (energy, data.id));
+							effector.schedule_immediately(event, closest);
+				
+						} else {
+							log_info!(effector, "chasing {}", path);
+							let delta = if dx.abs() > dy.abs() {
+								if dx > 0.0 {(1.0, 0.0)} else {(-1.0, 0.0)}
+							} else {
+								if dy > 0.0 {(0.0, 1.0)} else {(0.0, -1.0)}
+							};
+							offset_bot(data.id, &mut effector, delta.0, delta.1);
+							effector.set_int_data("energy", energy - 1);
+						}
+				
+					} else {
+						log_debug!(effector, "didn't find a bot to chase");
+					}
+			
+					let event = Event::new("timer");
+					effector.schedule_after_secs(event, data.id, MOVE_DELAY);
+
+				} else {
+					// If we are very low health then just wait for someone to get close
+					// and hope we still win.
+					log_debug!(effector, "energy is to low to chase after anyone");
+				}
 			},
 			"attacked" => {
 				let path = state.components.path(data.id);
