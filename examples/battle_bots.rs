@@ -94,78 +94,57 @@ fn is_bot(state: &SimState, id: ComponentID) -> bool
 
 fn count_bots(state: &SimState, id: ComponentID) -> i64
 {
-	let mut count = 0;
-	
 	let (_, root) = state.components.get_root(id);
-	for id in root.children.iter() {	// TODO: use a HOF
-		if is_bot(state, *id) {
-			count += 1;
-		}
-	}
-	
-	return count
+	root.children.iter().filter(|&id| is_bot(state, *id)).fold(0, |sum, _| sum + 1)
 }
 
 fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
 {
-	let mut dist = 0.0;
-	
 	let (_, root) = state.components.get_root(data.id);
-	for id in root.children.iter() {
-		if *id != data.id && is_bot(state, *id) {
-			let (candidate, _, _) = bot_dist_squared(local, state, *id, data.id, delta);
-
+	root.children.iter()
+		.filter(|&id| *id != data.id && is_bot(state, *id))
+		.fold(0.0, |dist, &id| {
 			// Ignore bots that are far away.
-			if candidate <= 16.0 {
-				dist += candidate;
-			}
-		}
-	}
-	
-	return dist
+			let (candidate, _, _) = bot_dist_squared(local, state, id, data.id, delta);
+			if candidate <= 16.0 {dist + candidate} else {dist}
+		})
 }
 
 fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (ComponentID, f64, f64)
 {
-	let mut closest = NO_COMPONENT;
-	let mut dx = INFINITY;
-	let mut dy = INFINITY;
-	let mut dist = INFINITY;
-	
+	let zero = (0.0, 0.0);
 	let (_, root) = state.components.get_root(data.id);
-
-	let delta = (0.0, 0.0);
-	for id in root.children.iter() {
-		if *id != data.id && is_bot(state, *id) {
-			let (dist2, dx2, dy2) = bot_dist_squared(local, state, *id, data.id, &delta);
-			if dist2 < dist {
-				closest = *id;
-				dx = dx2;
-				dy = dy2;
-				dist = dist2;
+	let result = root.children.iter()
+		.filter(|&id| *id != data.id && is_bot(state, *id))
+		
+		//     0=id          1=dx      2=dy      3=dist
+		.fold((NO_COMPONENT, INFINITY, INFINITY, INFINITY), |closest, &id| {
+			let (new_dist, dx, dy) = bot_dist_squared(local, state, id, data.id, &zero);
+			if new_dist < closest.3 {
+				(id, dx, dy, new_dist)
+			} else {
+				closest
 			}
-		}
-	}
-	
-	return (closest, dx, dy)
+		});
+	(result.0, result.1, result.2)
 }
 
 fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (f64, f64)
 {
 	// See which direction we can move (including not moving at all) which will put us the
 	// furthest from other bots).
-	let mut best_delta = (0.0, 0.0);
-	let mut best_dist = INFINITY;
 	let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
-	for delta in deltas.iter() {	// TODO: can we be slicker about this?
-		let dist = get_distance_to_nearby_bots(local, &state, data, &delta);
-		if dist < best_dist {
-			best_delta = *delta;
-			best_dist = dist;
-		}
-	}
-	
-	best_delta
+	let result = deltas.iter()
+		//      0=delta    1=dist
+		.fold(((0.0, 0.0), INFINITY), |best, delta| {
+			let dist = get_distance_to_nearby_bots(local, state, data, delta);
+			if dist < best.1 {
+				(*delta, dist)
+			} else {
+				best
+			}
+		});
+	result.0
 }
 
 fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut Box<Rng + Send>, state: &SimState, event: &Event, effector: &mut Effector)
@@ -200,7 +179,7 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 				let energy = state.store.get_int_data(&(path + ".energy"));
 				assert!(energy > 0, "energy was {}", energy);	// should be removed once energy hits zero
 
-				// If we have enough energy to move then see which direction would be futhest
+				// If we have enough energy to move then see which direction would be furthest
 				// from all the other bots (including not moving at all).
 				let delay = if energy > 1 {
 					let best_delta = dir_furthest_from_other_bots(&local, &state, &data);
