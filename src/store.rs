@@ -5,20 +5,11 @@ use std::collections::HashMap;
 /// It is a write-once temporal store, i.e. new values can be written to the
 /// current time but values at prior times cannot be overwritten. The store is
 /// normally written to disk to allow for off-line analysis of the results and
-/// to allow the simulation to be replayed. The store contains settings and data.
-///
-/// _Settings_ are typically configured on startup and not changed. In the battle-bots
-/// example the number of bots is a setting.
-///
-/// _Data_, on the other hand, typically does change as the simulation runs. In the
-/// battle-bots example the position of a bot is data.
-///
-/// Note that there is no fundamental difference between the two: having them both
-/// simply better expresses intent and makes GUIs a bit nicer.
+/// to allow the simulation to be replayed.
 ///
 /// _Getters_ take a &str key and return either an i64, an f64, or a &str. The key
-/// is normally a path from the root component through the inner components to a setting
-/// or data name. The value returned is that for the current time. Note that it is a
+/// is normally a path from the root component through the inner components to a
+/// data name. The value returned is that for the current time. Note that it is a
 /// programmer error if the key or description is missing.
 ///
 /// _Setters_ set a value for the current time. To ensure thread safety and to allow
@@ -28,21 +19,12 @@ pub struct Store
 {
 	#[doc(hidden)]
 	pub descriptions: HashMap<String, String>,
-
-	#[doc(hidden)]
-	pub int_settings: HashMap<String, (Time, i64)>,
 	
 	#[doc(hidden)]
 	pub int_data: HashMap<String, (Time, i64)>,
-
-	#[doc(hidden)]
-	pub float_settings: HashMap<String, (Time, f64)>,
 	
 	#[doc(hidden)]
 	pub float_data: HashMap<String, (Time, f64)>,
-
-	#[doc(hidden)]
-	pub string_settings: HashMap<String, (Time, String)>,
 	
 	#[doc(hidden)]
 	pub string_data: HashMap<String, (Time, String)>,
@@ -51,10 +33,6 @@ pub struct Store
 pub trait ReadableStore
 {
 	fn get_description(&self, key: &str) -> String;
-	
-	fn get_int_setting(&self, key: &str) -> i64;
-	fn get_float_setting(&self, key: &str) -> f64;
-	fn get_string_setting(&self, key: &str) -> String;
 	
 	fn has_data(&self, key: &str) -> bool;
 
@@ -66,9 +44,6 @@ pub trait ReadableStore
 pub trait WriteableStore
 {
 	fn set_description(&mut self, key: &str, value: &str);
-	fn set_int_setting(&mut self, key: &str, value: i64, time: Time);
-	fn set_float_setting(&mut self, key: &str, value: f64, time: Time);
-	fn set_string_setting(&mut self, key: &str, value: &str, time: Time);
 	fn set_int_data(&mut self, key: &str, value: i64, time: Time);
 	fn set_float_data(&mut self, key: &str, value: f64, time: Time);
 	fn set_string_data(&mut self, key: &str, value: &str, time: Time);
@@ -85,31 +60,6 @@ impl ReadableStore for Store
 		}
 	}
 	
-	// --- settings --------------------------------------------------------------
-	fn get_int_setting(&self, key: &str) -> i64
-	{
-		match self.int_settings.get(key) {
-			Some(ref value) => return value.1,
-			_ => panic!("int key '{}' is missing", key)
-		}
-	}
-
-	fn get_float_setting(&self, key: &str) -> f64
-	{
-		match self.float_settings.get(key) {
-			Some(ref value) => return value.1,
-			_ => panic!("float key '{}' is missing", key)
-		}
-	}
-
-	fn get_string_setting(&self, key: &str) -> String
-	{
-		match self.string_settings.get(key) {
-			Some(ref value) => return value.1.clone(),
-			_ => panic!("string key '{}' is missing", key)
-		}
-	}
-
 	// --- data ------------------------------------------------------------------
 	fn has_data(&self, key: &str) -> bool
 	{
@@ -161,40 +111,6 @@ impl WriteableStore for Store
 		}
 	}
 
-	// --- settings --------------------------------------------------------------
-	fn set_int_setting(&mut self, key: &str, value: i64, time: Time)
-	{
-		assert!(!key.is_empty(), "key should not be empty");
-		if let Some(old) = self.int_settings.insert(key.to_string(), (time, value)) {
-			if old.0 == time {
-				// If it becomes annoying to be unable to set a value more than once then
-				// we could add change methods (or maybe weaken the precondition by allowing
-				// people to set the same value more than once).
-				panic!("int key '{}' has already been set", key)
-			}
-		}
-	}
-	
-	fn set_float_setting(&mut self, key: &str, value: f64, time: Time)
-	{
-		assert!(!key.is_empty(), "key should not be empty");
-		if let Some(old) = self.float_settings.insert(key.to_string(), (time, value)) {
-			if old.0 == time {
-				panic!("float key '{}' has already been set", key)
-			}
-		}
-	}
-	
-	fn set_string_setting(&mut self, key: &str, value: &str, time: Time)
-	{
-		assert!(!key.is_empty(), "key should not be empty");
-		if let Some(old) = self.string_settings.insert(key.to_string(), (time, value.to_string())) {
-			if old.0 == time {
-				panic!("string key '{}' has already been set", key)
-			}
-		}
-	}
-	
 	// --- data ------------------------------------------------------------------
 	fn set_int_data(&mut self, key: &str, value: i64, time: Time)
 	{
@@ -234,13 +150,8 @@ impl Store
 		Store{
 			descriptions: HashMap::new(),
 			
-			int_settings: HashMap::new(),
 			int_data: HashMap::new(),
-			
-			float_settings: HashMap::new(),
 			float_data: HashMap::new(),
-			
-			string_settings: HashMap::new(),
 			string_data: HashMap::new()
 		}
 	}
@@ -249,11 +160,8 @@ impl Store
 	pub fn check_descriptions<T>(&self, logger: T)
 		where T: Fn (&str) -> ()
 	{
-		self.check_descriptions_for(&self.int_settings, &logger);
 		self.check_descriptions_for(&self.int_data, &logger);
-		self.check_descriptions_for(&self.float_settings, &logger);
 		self.check_descriptions_for(&self.float_data, &logger);
-		self.check_descriptions_for(&self.string_settings, &logger);
 		self.check_descriptions_for(&self.string_data, &logger);
 	}
 	
@@ -285,15 +193,15 @@ mod tests
 	fn mising_key()
 	{
 		let store = Store::new();
-		store.get_int_setting("foo");
+		store.get_int_data("foo");
 	}
 	
 	#[test]
 	fn has_value()
 	{
 		let mut store = Store::new();
-		store.set_int_setting("weight", 120, Time(0));
-		let weight = store.get_int_setting("weight");
+		store.set_int_data("weight", 120, Time(0));
+		let weight = store.get_int_data("weight");
 		assert_eq!(weight, 120);
 	}
 	
@@ -301,9 +209,9 @@ mod tests
 	fn has_new_value()
 	{
 		let mut store = Store::new();
-		store.set_int_setting("weight", 120, Time(0));
-		store.set_int_setting("weight", 130, Time(1));
-		let weight = store.get_int_setting("weight");
+		store.set_int_data("weight", 120, Time(0));
+		store.set_int_data("weight", 130, Time(1));
+		let weight = store.get_int_data("weight");
 		assert_eq!(weight, 130);
 	}
 	
@@ -312,7 +220,7 @@ mod tests
 	fn changing_value()
 	{
 		let mut store = Store::new();
-		store.set_int_setting("weight", 120, Time(1));
-		store.set_int_setting("weight", 130, Time(1));
+		store.set_int_data("weight", 120, Time(1));
+		store.set_int_data("weight", 130, Time(1));
 	}
 }

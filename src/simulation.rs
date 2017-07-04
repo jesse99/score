@@ -291,11 +291,13 @@ impl Simulation
 		let path = self.components.path(id);
 		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 
+		// descriptions
 		for (key, value) in effects.store.descriptions.iter() {
 			let key = format!("{}.{}", path, key);
 			store.set_description(&key, value);
 		}
 		
+		// data
 		store.int_data.reserve(effects.store.int_data.len());
 		for (key, value) in effects.store.int_data.iter() {
 			let key = format!("{}.{}", path, key);

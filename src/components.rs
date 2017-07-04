@@ -123,15 +123,19 @@ impl Components
 		ComponentsIterator::new(self)
 	}
 	
-	/// Returns the path from the top component downwards. Returns "removed" 
+	/// Returns the path from the top component downwards. Returns "removed"
 	/// if id or a parent of id has been removed. Note that this does not
-	/// include the root component because it's a little silly to include
-	/// it everywhere when it never changes.
+	/// include a root prefix because it's a little silly to include it
+	/// everywhere when it never changes.
 	pub fn path(&self, id: ComponentID) -> String
 	{
 		let mut path = Vec::new();
 		
 		let mut c = self.get(id);
+		if c.parent == NO_COMPONENT {
+			return c.name.clone()	// don't use "" for the root
+		}
+		
 		while c.parent != NO_COMPONENT {
 			path.insert(0, c.name.clone());
 			c = self.get(c.parent);

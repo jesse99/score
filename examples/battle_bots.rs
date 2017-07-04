@@ -409,6 +409,32 @@ fn watchdog_thread(data: ThreadData)
 	});
 }
 
+fn world_thread(local: LocalConfig, data: ThreadData)
+{
+	thread::spawn(move || {
+		for (event, state) in data.rx.iter() {
+			let mut effector = Effector::new();
+			{
+				let ename = &event.name;
+				if ename == "init 0" {
+					// It's nice to log important configuration details so that they can be seen
+					// when reviewing a saved run.
+					log_info!(effector, "num-bots = {}", local.num_bots);
+					log_info!(effector, "height = {}", local.height);
+					log_info!(effector, "width = {}", local.width);
+										
+				} else {
+					let cname = &(*state.components).get(data.id).name;
+					panic!("component {} can't handle event {}", cname, ename);
+				};
+			}
+			
+			drop(state);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
+			let _ = data.tx.send(effector);
+		}
+	});
+}
+
 fn fatal_err(message: &str) -> !
 {
 	let _ = writeln!(&mut stderr(), "{}", message);
@@ -441,7 +467,7 @@ fn new_random_thread(rng: &mut Box<Rng + Send>, index: i32) -> (String, Componen
 fn create_sim(local: LocalConfig, config: Config) -> Simulation
 {
 	let mut sim = Simulation::new(config);
-	let world = sim.add_component("world", NO_COMPONENT);
+	let world = sim.add_active_component("world", NO_COMPONENT, |data| world_thread(local.clone(), data));
 	for i in 0..local.num_bots {
 		let (name, thread) = new_random_thread(sim.rng(), i);
 		let _ = sim.add_active_component(&name, world, |data| thread(local.clone(), data));
