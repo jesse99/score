@@ -261,8 +261,10 @@ impl Simulation
 
 	fn apply_events(&mut self, effects: &mut Effector)
 	{
-		for (to, (event, secs)) in effects.events.drain() {
+		for (to, event, secs) in effects.events.drain(..) {
 			let time = self.add_secs(secs);
+//			let path = self.components.path(to);
+//			self.log(&LogLevel::Info, NO_COMPONENT, &format!("scheduling {} to {} at {:.3}", event.name, path, secs));
 			self.schedule(event, to, time);
 		}
 	}
@@ -293,7 +295,7 @@ impl Simulation
 
 	// TODO: We'll need a logger to write to a file or something (the store doesn't seem
 	// like a great place because we need to record stuff with a fair amount of structure).
-	fn log(&mut self, level: &LogLevel, id: ComponentID, message: &str)
+	fn log(&self, level: &LogLevel, id: ComponentID, message: &str)
 	{
 		if self.should_log(level, id) {
 			let t = (self.current_time.0 as f64)/self.config.time_units;

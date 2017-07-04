@@ -32,6 +32,7 @@ impl Components
 		&self.components[index]
 	}
 	
+	/// The root is the component that is the grand parent of all components.
 	pub fn get_root(&self, id: ComponentID) -> (ComponentID, &Component)
 	{
 		assert!(id != NO_COMPONENT);

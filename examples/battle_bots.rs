@@ -44,23 +44,23 @@ impl LocalConfig
 
 type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
-fn move_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn move_bot(id: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::with_payload("set-location", (x, y));
-	effector.schedule_immediately(event, top);
+	effector.schedule_immediately(event, id);
 }
 
-fn offset_bot(top: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn offset_bot(id: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::with_payload("offset-location", (x, y));
-	effector.schedule_immediately(event, top);
+	effector.schedule_immediately(event, id);
 }
 
-fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, top: ComponentID, effector: &mut Effector)
+fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, id: ComponentID, effector: &mut Effector)
 {
 	let x = rng.gen_range(0.0, local.width);
 	let y = rng.gen_range(0.0, local.height);
-	move_bot(top, effector, x, y);
+	move_bot(id, effector, x, y);
 }
 
 fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
@@ -84,8 +84,9 @@ fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2
 fn is_bot(state: &SimState, id: ComponentID) -> bool
 {
 	let path = state.components.path(id);
-	let path = path + ".location-x";
-	state.store.has_data(&path) && !state.was_removed(id)
+	let lpath = path.clone() + ".location-x";
+	let epath = path + ".energy";
+	state.store.has_data(&lpath) && state.store.get_int_data(&epath) > 0 && !state.was_removed(id)
 }
 
 fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
@@ -93,11 +94,9 @@ fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &Thr
 	let mut dist = 0.0;
 	
 	let (_, root) = state.components.get_root(data.id);
-	let (top, _) = state.components.get_top(data.id);
-
 	for id in root.children.iter() {
-		if *id != top && is_bot(state, *id) {
-			let (candidate, _, _) = bot_dist_squared(local, state, *id, top, delta);
+		if *id != data.id && is_bot(state, *id) {
+			let (candidate, _, _) = bot_dist_squared(local, state, *id, data.id, delta);
 
 			// Ignore bots that are far away.
 			if candidate <= 5.0 {
@@ -117,12 +116,11 @@ fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) ->
 	let mut dist = INFINITY;
 	
 	let (_, root) = state.components.get_root(data.id);
-	let (top, _) = state.components.get_top(data.id);
 
 	let delta = (0.0, 0.0);
 	for id in root.children.iter() {
-		if *id != top && is_bot(state, *id) {
-			let (dist2, dx2, dy2) = bot_dist_squared(local, state, *id, top, &delta);
+		if *id != data.id && is_bot(state, *id) {
+			let (dist2, dx2, dy2) = bot_dist_squared(local, state, *id, data.id, &delta);
 			if dist2 < dist {
 				closest = *id;
 				dx = dx2;
@@ -138,6 +136,8 @@ fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) ->
 fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, state: &SimState, data: &ThreadData, mut energy: i64) -> i64
 {
 	if energy > 0 {
+		// See which direction we can move (including not moving at all) which will put us the
+		// furthest from other bots).
 		let mut best_delta = (0.0, 0.0);
 		let mut best_dist = INFINITY;
 		let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
@@ -152,8 +152,7 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, state: &S
 		
 		let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
 			log_excessive!(effector, "moving by {:?}", best_delta);
-			let (top, _) = state.components.get_top(data.id);
-			offset_bot(top, effector, best_delta.0, best_delta.1);
+			offset_bot(data.id, effector, best_delta.0, best_delta.1);
 			energy -= 1;
 			MOVE_DELAY
 		} else {
@@ -164,7 +163,7 @@ fn handle_cowardly_timer(local: &LocalConfig, effector: &mut Effector, state: &S
 		let event = Event::new("timer");
 		effector.schedule_after_secs(event, data.id, delay);
 	} else {
-		log_debug!(effector, "dead");
+		log_excessive!(effector, "dead");
 	}
 	energy
 }
@@ -176,14 +175,11 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, state: &
 		let (closest, dx, dy) = find_closest_bot(local, &state, data);
 		if closest != NO_COMPONENT {
 			if dx*dx + dy*dy <= 1.0 {
-				if let Some((target_id, _)) = state.components.find_child(closest, |_child_id, child|
-					child.name == "AI") {
-					let path = state.components.path(closest);
-					log_info!(effector, "attacking {}", path);
-					
-					let event = Event::with_payload("was-attacked", (energy, data.id));
-					effector.schedule_immediately(event, target_id);
-				}
+				let path = state.components.path(closest);
+				log_info!(effector, "attacking {}", path);
+				
+				let event = Event::with_payload("attacked", (energy, data.id));
+				effector.schedule_immediately(event, closest);
 			} else {
 				let delta = if dx.abs() > dy.abs() {
 					if dx > 0.0 {
@@ -198,13 +194,13 @@ fn handle_aggresive_timer(local: &LocalConfig, effector: &mut Effector, state: &
 						(0.0, -1.0)
 					}
 				};
-				let (top, _) = state.components.get_top(data.id);
-				offset_bot(top, effector, delta.0, delta.1);
+				offset_bot(data.id, effector, delta.0, delta.1);
 				energy -= 1;
-
-				let event = Event::new("timer");
-				effector.schedule_after_secs(event, data.id, MOVE_DELAY);
 			}
+
+			let event = Event::new("timer");
+			effector.schedule_after_secs(event, data.id, MOVE_DELAY);
+
 		} else {
 			log_debug!(effector, "didn't find a bot to chase");
 		}
@@ -221,16 +217,21 @@ fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState,
 	
 	if energy == 0 {
 		log_info!(effector, "{} attacked a dead bot", attacker_path);	// TODO: handle this better
+		let event = Event::with_payload("attacker-won", 0 as i64);
+		effector.schedule_immediately(event, attacker_id);
 		0
-	} else if attacker_energy > energy {
-		log_info!(effector, "{} won ({} > {})", attacker_path, attacker_energy, energy);
-		let event = Event::with_payload("won-attack", energy/2);
-		effector.schedule_after_secs(event, attacker_id, MOVE_DELAY/2.0);
+		
+	} else if attacker_energy >= energy {	// this is the attackee lost case
+		log_info!(effector, "{} won ({} >= {})", attacker_path, attacker_energy, energy);
+		effector.remove();
+		let event = Event::with_payload("attacker-won", energy/2);
+		effector.schedule_immediately(event, attacker_id);
 		0
-	} else {
-		log_info!(effector, "{} lost ({} <= {})", attacker_path, attacker_energy, energy);
-		let event = Event::new("lost-attack");
-		effector.schedule_after_secs(event, attacker_id, MOVE_DELAY/2.0);
+		
+	} else {	// this is the attacker lost case (so it needs to remove itself because we can't)
+		log_info!(effector, "{} lost ({} < {})", attacker_path, attacker_energy, energy);
+		let event = Event::new("attacker-lost");
+		effector.schedule_immediately(event, attacker_id);
 		log_info!(effector, "energy is now {}", energy + attacker_energy/2);
 		energy + attacker_energy/2
 	}
@@ -245,8 +246,7 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 				let ename = &event.name;
 				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");
-					let (top, _) = state.components.get_top(data.id);
-					randomize_location(&local, &mut data.rng, top, &mut effector);
+					randomize_location(&local, &mut data.rng, data.id, &mut effector);
 	
 					let event = Event::new("timer");
 					let delay = 0.1 + 0.9*data.rng.next_f64();
@@ -258,22 +258,16 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 					let energy = state.store.get_int_data(&(path + ".energy"));
 					handle_cowardly_timer(&local, &mut effector, &state, &data, energy)
 				
-				} else if ename == "was-attacked" {
+				} else if ename == "attacked" {
 					let path = state.components.path(data.id);
 					let energy = state.store.get_int_data(&(path + ".energy"));
 					handle_begin_attack(&mut effector, &event, &state, energy)
-				
-				} else if ename == "won-attack" {
+								
+				} else if handle_location_event(data.id, &state, &event, &mut effector) {
 					let path = state.components.path(data.id);
 					let energy = state.store.get_int_data(&(path + ".energy"));
-					let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
-					log_info!(effector, "energy is now {}", energy + *bonus);
-					energy + *bonus
-
-				} else if ename == "lost-attack" {
-					effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
-					0
-				
+					energy	// we've already accounted for the move cost
+					
 				} else {
 					let cname = &(*state.components).get(data.id).name;
 					panic!("component {} can't handle event {}", cname, ename);
@@ -296,8 +290,7 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 				let ename = &event.name;
 				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");	// TODO: fn for this
-					let (top, _) = state.components.get_top(data.id);
-					randomize_location(&local, &mut data.rng, top, &mut effector);
+					randomize_location(&local, &mut data.rng, data.id, &mut effector);
 	
 					let event = Event::new("timer");
 					let delay = 0.1 + 0.9*data.rng.next_f64();
@@ -309,22 +302,27 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					let energy = state.store.get_int_data(&(path + ".energy"));
 					handle_aggresive_timer(&local, &mut effector, &state, &data, energy)
 				
-				} else if ename == "was-attacked" {
+				} else if ename == "attacked" {
 					let path = state.components.path(data.id);
 					let energy = state.store.get_int_data(&(path + ".energy"));
 					handle_begin_attack(&mut effector, &event, &state, energy)
 				
-				} else if ename == "won-attack" {
+				} else if ename == "attacker-won" {
 					let path = state.components.path(data.id);
 					let energy = state.store.get_int_data(&(path + ".energy"));
 					let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 					log_info!(effector, "energy is now {}", energy + *bonus);
 					energy + *bonus
 
-				} else if ename == "lost-attack" {
+				} else if ename == "attacker-lost" {
 					effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 					0
 				
+				} else if handle_location_event(data.id, &state, &event, &mut effector) {
+					let path = state.components.path(data.id);
+					let energy = state.store.get_int_data(&(path + ".energy"));
+				energy	// we've already accounted for the move cost
+					
 				} else {
 					let cname = &(*state.components).get(data.id).name;
 					panic!("component {} can't handle event {}", cname, ename);
@@ -380,7 +378,7 @@ fn watchdog_thread(data: ThreadData)
 			}
 			
 			let event = Event::new("timer");
-			effector.schedule_after_secs(event, data.id, 2.1*MOVE_DELAY);
+			effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
 
 			drop(state);
 			let _ = data.tx.send(effector);
@@ -473,7 +471,7 @@ fn parse_options() -> (LocalConfig, Config)
 	(local, config)
 }
 
-fn new_random_bot(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread)
+fn new_random_thread(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread)
 {
 	// The sim is really boring if all the bots are cowardly so we'll ensure
 	// that we have at least one aggressive bot.
@@ -489,9 +487,8 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let mut sim = Simulation::new(config);
 	let world = sim.add_component("world", NO_COMPONENT);
 	for i in 0..local.num_bots {
-		let (name, thread) = new_random_bot(sim.rng(), i);
-		let top = sim.add_active_component(&name, world, locatable_thread);
-		let _ = sim.add_active_component("AI", top, |data| thread(local.clone(), data));
+		let (name, thread) = new_random_thread(sim.rng(), i);
+		let _ = sim.add_active_component(&name, world, |data| thread(local.clone(), data));
 	}
 	let _ = sim.add_active_component("watch-dog", world, watchdog_thread);
 	sim

@@ -1,4 +1,5 @@
 use std;
+use std::fmt;
 
 /// `Component`s are the building blocks of a `Simulation`. They are arranged into
 /// a tree and use a thread to respond to `Event`s which execute at some particular
@@ -17,13 +18,6 @@ pub struct Component
 	pub children: Vec<ComponentID>,
 }
 
-// Formed by concatenating component names from the root to this component.
-// These do uniquely identify a component.
-//fn path(&self) -> String
-//{
-//	self.name().clone()
-//}
-
 /// To make lifetime management easier components are referenced using a small
 /// integer instead of a rust reference.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -31,3 +25,11 @@ pub struct ComponentID(pub usize);
 
 /// The id of the root component.
 pub const NO_COMPONENT: ComponentID = ComponentID(std::usize::MAX);
+
+impl fmt::Display for ComponentID
+{
+	fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result
+	{
+		write!(formatter, "{}", self.0)
+	}
+}
