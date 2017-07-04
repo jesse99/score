@@ -1,12 +1,10 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
-{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Bold;\f2\fnil\fcharset0 Menlo-Italic;
-\f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 ArialMT;}
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-Bold;
+\f3\fswiss\fcharset0 ArialMT;}
 {\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red32\green78\blue51;
-\red240\green0\blue31;\red0\green72\blue255;\red161\green33\blue108;\red140\green83\blue65;\red0\green0\blue0;
-}
+\red0\green0\blue0;}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgenericrgb\c12549\c30588\c20000;
-\csgenericrgb\c94118\c0\c12157;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c63137\c12941\c42353;\csgenericrgb\c54902\c32549\c25490;\cssrgb\c0\c0\c0;
-}
+\cssrgb\c0\c0\c0;}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt 
 \f0\fs48 \cf2 https://github.com/brson/rust-api-guidelines}}
@@ -37,97 +35,14 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f1\b\fs40 \cf4 \kerning1\expnd0\expndtw0 \
-\
+\f1\fs40 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f2\i\b0 \cf5 // Components can read each others state but they cannot change other components so when a bot
-\f3\i0 \cf0 \
-
-\f2\i \cf5 // attacks another bot it sends the other bot an "attacked" event so that it can decide whether
-\f3\i0 \cf0 \
-
-\f2\i \cf5 // the attacker won or lost. This is the function that handles the "attacked" event.
-\f3\i0 \cf0 \
-
-\f1\b \cf6 fn
-\f3\b0 \cf0  
-\f1\b handle_begin_attack
-\f3\b0 (
-\f2\i \cf6 effector
-\f3\i0 \cf0 : &
-\f1\b \cf6 mut
-\f3\b0 \cf0  Effector, 
-\f2\i \cf6 event
-\f3\i0 \cf0 : &Event, 
-\f2\i \cf6 state
-\f3\i0 \cf0 : &SimState, 
-\f2\i \cf6 energy
-\f3\i0 \cf0 : \cf6 i64\cf0 ) -> \cf6 i64\cf0 \
-\{\
-	
-\f1\b \cf6 let
-\f3\b0 \cf0  &(attacker_energy, attacker_id) = event.expect_payload::<(\cf6 i64\cf0 , ComponentID)>(\cf7 "was-attacked should have an (i64, ComponentID) payload"\cf0 );\
-	
-\f1\b \cf6 let
-\f3\b0 \cf0  attacker_path = state.components.path(attacker_id);\
-	\
-	
-\f1\b \cf6 if
-\f3\b0 \cf0  energy == \cf8 0\cf0  \{\
-		log_info!(effector, \cf7 "\{\} attacked a dead bot"\cf0 , attacker_path);	
-\f2\i \cf5 // 
-\fs44 \outl0\strokewidth-100 TODO
-\fs40 \outl0\strokewidth0 : handle this better
-\f3\i0 \cf0 \
-		
-\f1\b \cf6 let
-\f3\b0 \cf0  event = Event::with_payload(\cf7 "attacker-won"\cf0 , \cf8 0\cf0  
-\f1\b \cf6 as
-\f3\b0 \cf0  \cf6 i64\cf0 );\
-		effector.schedule_immediately(event, attacker_id);\
-		\cf8 0\cf0 \
-		\
-	\} 
-\f1\b \cf6 else
-\f3\b0 \cf0  
-\f1\b \cf6 if
-\f3\b0 \cf0  attacker_energy >= energy \{	
-\f2\i \cf5 // this is the attackee lost case
-\f3\i0 \cf0 \
-		log_info!(effector, \cf7 "\{\} won (\{\} >= \{\})"\cf0 , attacker_path, attacker_energy, energy);\
-		log_info!(effector, \cf7 "\{\} bots left"\cf0 , count_bots(state, attacker_id)-\cf8 1\cf0 );\
-		effector.remove();\
-		
-\f1\b \cf6 let
-\f3\b0 \cf0  event = Event::with_payload(\cf7 "attacker-won"\cf0 , energy/\cf8 2\cf0 );\
-		effector.schedule_immediately(event, attacker_id);\
-		\cf8 0\cf0 \
-		\
-	\} 
-\f1\b \cf6 else
-\f3\b0 \cf0  \{	
-\f2\i \cf5 // this is the attacker lost case (so it needs to remove itself because we can't)
-\f3\i0 \cf0 \
-		log_info!(effector, \cf7 "\{\} lost (\{\} < \{\})"\cf0 , attacker_path, attacker_energy, energy);\
-		
-\f1\b \cf6 let
-\f3\b0 \cf0  event = Event::new(\cf7 "attacker-lost"\cf0 );\
-		effector.schedule_immediately(event, attacker_id);\
-		log_info!(effector, \cf7 "energy is now \{\}"\cf0 , energy + attacker_energy/\cf8 2\cf0 );\
-		energy + attacker_energy/\cf8 2\cf0 \
-	\}\
-\}\
-		effector.remove();\
-\
-\pard\pardeftab963\pardirnatural\partightenfactor0
-
-\f1\b \cf4 \
+\f2\b \cf4 \
 \pard\pardeftab720\partightenfactor0
 
 \f0\b0\fs48 \cf2 \
 * Do mail\
-* Try changing up attacking so that there is only \'93won-attack\'94 and \'93lost-attack\'94 events\
 * Clean up example\
 	- HOFs instead of loops\
 	- maybe if statements too\
@@ -149,7 +64,7 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 	- check logs as well as a hash?\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f4\fs50\fsmilli25333 \cf9 \expnd0\expndtw0\kerning0
+\f3\fs50\fsmilli25333 \cf5 \expnd0\expndtw0\kerning0
 	- hash could be sum of: event time/component id/1st eight bytes of event name\
 * Add an embedded web server\
 	- starts up if \'97web\

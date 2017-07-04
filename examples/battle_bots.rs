@@ -198,12 +198,13 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 			"timer" => {
 				let path = state.components.path(data.id);
 				let energy = state.store.get_int_data(&(path + ".energy"));
+				assert!(energy > 0, "energy was {}", energy);	// should be removed once energy hits zero
 
-				if energy > 0 {
-					// See which direction we can move (including not moving at all) which will
-					// put us the furthest from other bots).
+				// If we have enough energy to move then see which direction would be futhest
+				// from all the other bots (including not moving at all).
+				let delay = if energy > 1 {
 					let best_delta = dir_furthest_from_other_bots(&local, &state, &data);
-					let delay = if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
+					if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
 						log_excessive!(effector, "moving by {:?}", best_delta);
 						offset_bot(data.id, &mut effector, best_delta.0, best_delta.1);
 						effector.set_int_data("energy", energy - 1);
@@ -211,13 +212,16 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 					} else {
 						log_excessive!(effector, "no others bots are nearby");
 						MOVE_DELAY/2.0
-					};
-			
-					let event = Event::new("timer");
-					effector.schedule_after_secs(event, data.id, delay);
+					}
 				} else {
-					log_excessive!(effector, "dead");
-				}
+					MOVE_DELAY
+				};
+		
+				// We should always schedule our timer, e.g. if we're really low on energy
+				// someone could attack us and if we win then we'll want to have an opportunity
+				// to begin running again.
+				let event = Event::new("timer");
+				effector.schedule_after_secs(event, data.id, delay);
 			},
 			"won-attack" => {
 				let path = state.components.path(data.id);
@@ -298,6 +302,8 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 			"timer" => {
 				let path = state.components.path(data.id);
 				let energy = state.store.get_int_data(&(path + ".energy"));
+				assert!(energy > 0, "energy was {}", energy);	// should be removed once energy hits zero
+
 				if energy > 10 {
 					let (closest, dx, dy) = find_closest_bot(&local, &state, &data);
 					if closest != NO_COMPONENT {
@@ -310,15 +316,15 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					} else {
 						log_debug!(effector, "didn't find a bot to chase");
 					}
-			
-					let event = Event::new("timer");
-					effector.schedule_after_secs(event, data.id, MOVE_DELAY);
 
 				} else {
 					// If we are very low health then just wait for someone to get close
 					// and hope we still win.
 					log_debug!(effector, "energy is to low to chase after anyone");
 				}
+		
+				let event = Event::new("timer");
+				effector.schedule_after_secs(event, data.id, MOVE_DELAY);
 			},
 			"won-attack" => {
 				let path = state.components.path(data.id);
