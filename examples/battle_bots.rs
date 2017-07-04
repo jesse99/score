@@ -423,6 +423,29 @@ fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
 	}
 }
 
+fn new_random_thread(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread)
+{
+	// The sim is really boring if all the bots are cowardly so we'll ensure
+	// that we have at least one aggressive bot.
+	if index == 0 || rng.gen_weighted_bool(2) {
+		(format!("aggresive-{}", index), aggresive_thread)
+	} else {
+		(format!("cowardly-{}", index), cowardly_thread)
+	}
+}
+
+fn create_sim(local: LocalConfig, config: Config) -> Simulation
+{
+	let mut sim = Simulation::new(config);
+	let world = sim.add_component("world", NO_COMPONENT);
+	for i in 0..local.num_bots {
+		let (name, thread) = new_random_thread(sim.rng(), i);
+		let _ = sim.add_active_component(&name, world, |data| thread(local.clone(), data));
+	}
+	let _ = sim.add_active_component("watch-dog", world, watchdog_thread);
+	sim
+}
+
 fn parse_options() -> (LocalConfig, Config)
 {
 	let mut local = LocalConfig::new();
@@ -488,29 +511,6 @@ fn parse_options() -> (LocalConfig, Config)
 	config.colorize = !matches.is_present("no-colors");
 	
 	(local, config)
-}
-
-fn new_random_thread(rng: &mut Box<Rng + Send>, index: i32) -> (String, ComponentThread)
-{
-	// The sim is really boring if all the bots are cowardly so we'll ensure
-	// that we have at least one aggressive bot.
-	if index == 0 || rng.gen_weighted_bool(2) {
-		(format!("aggresive-{}", index), aggresive_thread)
-	} else {
-		(format!("cowardly-{}", index), cowardly_thread)
-	}
-}
-
-fn create_sim(local: LocalConfig, config: Config) -> Simulation
-{
-	let mut sim = Simulation::new(config);
-	let world = sim.add_component("world", NO_COMPONENT);
-	for i in 0..local.num_bots {
-		let (name, thread) = new_random_thread(sim.rng(), i);
-		let _ = sim.add_active_component(&name, world, |data| thread(local.clone(), data));
-	}
-	let _ = sim.add_active_component("watch-dog", world, watchdog_thread);
-	sim
 }
 
 fn main()
