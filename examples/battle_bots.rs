@@ -270,6 +270,23 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 	}
 }
 
+fn handle_chase(effector: &mut Effector, state: &SimState, dx: f64, dy: f64, my_id: ComponentID, their_id: ComponentID)
+{
+	let my_path = state.components.path(my_id);
+	let my_energy = state.store.get_int_data(&(my_path.clone() + ".energy"));
+
+	let their_path = state.components.path(their_id);
+	log_info!(effector, "chasing {}", their_path);
+	
+	let delta = if dx.abs() > dy.abs() {
+		if dx > 0.0 {(1.0, 0.0)} else {(-1.0, 0.0)}
+	} else {
+		if dy > 0.0 {(0.0, 1.0)} else {(0.0, -1.0)}
+	};
+	offset_bot(my_id, effector, delta.0, delta.1);
+	effector.set_int_data("energy", my_energy - 1);
+}
+
 // This bot will chase the closest bot to it and attack bots that are nearby.
 fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 {
@@ -284,19 +301,10 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 				if energy > 10 {
 					let (closest, dx, dy) = find_closest_bot(&local, &state, &data);
 					if closest != NO_COMPONENT {
-						let path = state.components.path(closest);
 						if dx*dx + dy*dy <= 1.0 {
 							handle_attack(&mut effector, &state, data.id, closest);
-				
 						} else {
-							log_info!(effector, "chasing {}", path);
-							let delta = if dx.abs() > dy.abs() {
-								if dx > 0.0 {(1.0, 0.0)} else {(-1.0, 0.0)}
-							} else {
-								if dy > 0.0 {(0.0, 1.0)} else {(0.0, -1.0)}
-							};
-							offset_bot(data.id, &mut effector, delta.0, delta.1);
-							effector.set_int_data("energy", energy - 1);
+							handle_chase(&mut effector, &state, dx, dy, data.id, closest);
 						}
 				
 					} else {
