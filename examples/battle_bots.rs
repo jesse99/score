@@ -362,10 +362,13 @@ fn bots_have_changed(locations: &mut HashMap<String, i64>, state: &SimState) -> 
 		
 		if state.store.has_data(&path) {
 			let new_energy = state.store.get_int_data(&path);
+			//print!("{} = {}\n", path, new_energy);
 			if let Some(&old_energy) = locations.get(&path) {
 				if new_energy != old_energy {
 					moved = true;
 				}
+			} else {
+				moved = true;
 			}
 			locations.insert(path, new_energy);
 		}
@@ -394,7 +397,7 @@ fn watchdog_thread(data: ThreadData)
 			}
 			
 			let event = Event::new("timer");
-			effector.schedule_after_secs(event, data.id, 10.1*MOVE_DELAY);
+			effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
 
 			drop(state);
 			let _ = data.tx.send(effector);
