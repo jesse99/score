@@ -245,15 +245,27 @@ impl Store
 		}
 	}
 	
-	// TODO: call this when the simulation exits
-	// #[doc(hidden)]
-	//	pub fn _check_descriptions(&self, local: &mut LocalEnv)
-	//	{
-	//		// instead of a LocalEnv take a logger trait
-	//		// then for testing can uise a special version
-	//		// if any values are missing a description then call a log method on LocalEnv
-	//		// should use an "error" topic
-	//	}
+	#[doc(hidden)]
+	pub fn check_descriptions<T>(&self, logger: T)
+		where T: Fn (&str) -> ()
+	{
+		self.check_descriptions_for(&self.int_settings, &logger);
+		self.check_descriptions_for(&self.int_data, &logger);
+		self.check_descriptions_for(&self.float_settings, &logger);
+		self.check_descriptions_for(&self.float_data, &logger);
+		self.check_descriptions_for(&self.string_settings, &logger);
+		self.check_descriptions_for(&self.string_data, &logger);
+	}
+	
+	fn check_descriptions_for<T, V>(&self, map: &HashMap<String, (Time, V)>, logger: &T)
+		where T: Fn (&str) -> ()
+	{
+		for name in map.keys() {
+			if !self.descriptions.contains_key(name) && !name.ends_with(".removed") {
+				logger(&format!("Effector.set_description was not called for '{}'", name));
+			}
+		}
+	}
 	
 	// TODO:
 	// persist old state

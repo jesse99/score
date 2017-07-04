@@ -43,7 +43,7 @@ impl Simulation
 	{
 		assert!(config.time_units > 0.0, "time units ({}) are not positive", config.time_units);
 		assert!(config.num_init_stages > 0, "num_init_stages ({}) is not positive", config.num_init_stages);	// need an init step to schedule at least one event to process
-		
+				
 		let precision = config.time_units.log10().max(0.0) as usize;
 		let seed = config.seed;
 		Simulation {
@@ -128,38 +128,39 @@ impl Simulation
 	/// config.max_secs elapses, or `Effector`s exit method was called.
 	pub fn run(&mut self)
 	{
-		let exiting = self.init_components();
-		let elapsed = self.start_time.elapsed().as_secs();	// TODO: time crate has ms, also there's a ticket to add ms to the std: #1545
+		let mut exiting = self.init_components();
 				
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
-		while !exiting {
+		while exiting.len() == 0 {
 			if self.scheduled.is_empty() {
-				self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s (no events)", elapsed));
-				break;
+				exiting = "no events".to_string();
 			}
 			
 			if self.current_time.0 >= max_time {
-				self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s (reached config.max_secs)", elapsed));
-				break;
+				exiting = "reached config.max_secs".to_string();
 			}
 			
 			let exit = self.dispatch_events();
 			if exit {
-				self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s (effector.exit was called)", elapsed));
-				break;
+				exiting = "effector.exit was called".to_string();
 			}
 		}
+
+		// TODO: Might want to also print events/sec, maybe at debug
+		let elapsed = self.start_time.elapsed().as_secs();	// TODO: time crate has ms, also there's a ticket to add ms to the std: #1545
+		self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s ({})", elapsed, exiting));
+		self.store.check_descriptions(|s| self.log(&LogLevel::Error, NO_COMPONENT, s));
 	}
 	
-	pub fn init_components(&mut self) -> bool
+	pub fn init_components(&mut self) -> String
 	{
-		let mut exiting = false;
+		let mut exiting = "".to_string();
 		for i in 0..self.config.num_init_stages {
 			self.schedule_init_stage(i);
 			let exit = self.dispatch_events();
 			assert!(self.current_time.0 == 0);
 			if exit {
-				exiting = true;
+				exiting = "Effector.exit was called during initialization".to_string();
 			}
 		}
 		exiting
@@ -169,7 +170,6 @@ impl Simulation
 	{
 		self.current_time = self.scheduled.peek().unwrap().time;
 		let mut ids = Vec::new();
-		let mut exit = false;
 		
 		// TODO: track statistics on how parallel we are doing
 		// TODO: should cap the number of threads we use (probably via config)
@@ -207,6 +207,7 @@ impl Simulation
 			}
 		}
 		
+		let mut exit = false;
 		for (id, e) in effects.iter_mut() {
 			self.apply_logs(*id, e);
 			self.apply_events(e);
@@ -290,6 +291,11 @@ impl Simulation
 		let path = self.components.path(id);
 		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 
+		for (key, value) in effects.store.descriptions.iter() {
+			let key = format!("{}.{}", path, key);
+			store.set_description(&key, value);
+		}
+		
 		store.int_data.reserve(effects.store.int_data.len());
 		for (key, value) in effects.store.int_data.iter() {
 			let key = format!("{}.{}", path, key);

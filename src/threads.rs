@@ -14,7 +14,12 @@ pub fn handle_location_event(id: ComponentID, state: &SimState, event: &Event, e
 {
 	let cname = &(*state.components).get(id).name;
 	let ename = &event.name;
-	if ename == "set-location" {
+	if ename == "init 0" {
+		effector.set_description("location-x", "The x coordinate of the component.");
+		effector.set_description("location-y", "The y coordinate of the component.");
+		true
+		
+	} else if ename == "set-location" {
 		let loc = event.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
 		log_info!(effector, "setting location to {:.1}, {:.1}", loc.0, loc.1);
 		effector.set_float_data("location-x", loc.0);

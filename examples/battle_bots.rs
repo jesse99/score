@@ -261,6 +261,8 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 				let ename = &event.name;
 				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");
+					effector.set_description("energy", "Amount of health the bot has.");
+					handle_location_event(data.id, &state, &event, &mut effector);
 					randomize_location(&local, &mut data.rng, data.id, &mut effector);
 	
 					let event = Event::new("timer");
@@ -305,6 +307,8 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 				let ename = &event.name;
 				let energy = if ename == "init 0" {
 					log_info!(effector, "initializing");	// TODO: fn for this
+					effector.set_description("energy", "Amount of health the bot has.");
+					handle_location_event(data.id, &state, &event, &mut effector);
 					randomize_location(&local, &mut data.rng, data.id, &mut effector);
 	
 					let event = Event::new("timer");
