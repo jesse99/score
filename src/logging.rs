@@ -48,7 +48,7 @@ macro_rules! log_warning
 ///
 /// ```rust
 /// #[macro_use]
-/// extern crate rsimbase;
+/// extern crate score;
 ///
 /// log_info!(effector);						// logs an empty line
 /// log_info!(effector, "hello");			// logs a string

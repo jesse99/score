@@ -6,11 +6,11 @@ extern crate clap;
 extern crate glob;
 extern crate rand;
 #[macro_use]
-extern crate rsimbase;
+extern crate score;
 
 use clap::{App, ArgMatches};
 use rand::Rng;
-use rsimbase::*;
+use score::*;
 use std::collections::HashMap;
 use std::f64::INFINITY;
 use std::fmt::Display;
@@ -44,7 +44,7 @@ impl LocalConfig
 
 type ComponentThread = fn (LocalConfig, ThreadData) -> ();
 
-// These events are handled by rsimbase's handle_location_event function.
+// These events are handled by score's handle_location_event function.
 fn move_bot(id: ComponentID, effector: &mut Effector, x: f64, y: f64)
 {
 	let event = Event::with_payload("set-location", (x, y));

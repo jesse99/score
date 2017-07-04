@@ -14,7 +14,7 @@ use store::*;
 /// # Examples
 ///
 /// ```
-/// use rsimbase::*;
+/// use score::*;
 ///
 /// fn my_thread(data: ThreadData)
 /// {
