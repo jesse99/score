@@ -35,6 +35,7 @@ pub struct Simulation
 	rng: Box<Rng + Send>,
 	max_path_len: usize,
 	start_time: time::Instant,
+	event_num: u64,
 }
 	
 impl Simulation
@@ -58,6 +59,7 @@ impl Simulation
 			rng: Box::new(new_rng(seed, 10_000)),
 			max_path_len: 0,
 			start_time: time::Instant::now(),
+			event_num: 0,
 		}
 	}
 	
@@ -178,10 +180,11 @@ impl Simulation
 			
 			if self.should_log(&LogLevel::Excessive, NO_COMPONENT) {
 				let path = self.components.path(e.to);
-				self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching {} to id {}", e.event.name, path));
+				self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching #{} '{}' to {}", self.event_num, e.event.name, path));
 			}
 			ids.push(e.to);
 			
+			self.event_num += 1;
 			if let Some(ref tx) = self.event_senders[e.to.0] {
 				let state = SimState{store: self.store.clone(), components: self.components.clone()};
 				tx.send((e.event, state)).unwrap();
