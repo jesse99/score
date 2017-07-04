@@ -16,6 +16,7 @@ use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
+use std::time;
 use time::get_time;
 
 /// This is the top-level data structure. Once an exe initializes
@@ -33,6 +34,7 @@ pub struct Simulation
 	scheduled: BinaryHeap<ScheduledEvent>,
 	rng: Box<Rng + Send>,
 	max_path_len: usize,
+	start_time: time::Instant,
 }
 	
 impl Simulation
@@ -55,6 +57,7 @@ impl Simulation
 			scheduled: BinaryHeap::new(),
 			rng: Box::new(new_rng(seed, 10_000)),
 			max_path_len: 0,
+			start_time: time::Instant::now(),
 		}
 	}
 	
@@ -121,27 +124,28 @@ impl Simulation
 		&mut self.rng
 	}
 	
-	/// Dispatches events until there are no more events left to dispatch
-	/// or config.max_secs elapses.
+	/// Dispatches events until there are no more events left to dispatch,
+	/// config.max_secs elapses, or `Effector`s exit method was called.
 	pub fn run(&mut self)
 	{
 		let exiting = self.init_components();
+		let elapsed = self.start_time.elapsed().as_secs();	// TODO: time crate has ms, also there's a ticket to add ms to the std: #1545
 				
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
 		while !exiting {
 			if self.scheduled.is_empty() {
-				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (no events)");
+				self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s (no events)", elapsed));
 				break;
 			}
 			
 			if self.current_time.0 >= max_time {
-				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (reached config.max_secs)");
+				self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s (reached config.max_secs)", elapsed));
 				break;
 			}
 			
 			let exit = self.dispatch_events();
 			if exit {
-				self.log(&LogLevel::Debug, NO_COMPONENT, "exiting sim (effector.exit was called)");
+				self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s (effector.exit was called)", elapsed));
 				break;
 			}
 		}

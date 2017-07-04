@@ -1,10 +1,15 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
-{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-BoldItalic;\f2\fnil\fcharset0 Menlo-Regular;
-\f3\fswiss\fcharset0 ArialMT;}
-{\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red240\green0\blue31;
-\red0\green0\blue0;}
-{\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgenericrgb\c94118\c0\c12157;
-\cssrgb\c0\c0\c0;}
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 HelveticaNeue-Light;
+\f3\fnil\fcharset0 HelveticaNeue;\f4\fnil\fcharset0 Menlo-BoldItalic;\f5\fswiss\fcharset0 ArialMT;
+}
+{\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red117\green66\blue151;
+\red0\green0\blue0;\red123\green126\blue121;\red95\green124\blue3;\red51\green136\blue141;\red242\green242\blue242;
+\red146\green154\blue161;\red27\green31\blue34;\red255\green255\blue255;\red240\green0\blue31;\red0\green0\blue0;
+}
+{\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\cssrgb\c53725\c34902\c65882;
+\cssrgb\c0\c0\c0;\cssrgb\c55686\c56471\c54902;\cssrgb\c44314\c54902\c0;\cssrgb\c24314\c60000\c62353;\cssrgb\c96078\c96078\c96078;
+\cssrgb\c63922\c66667\c69412;\cssrgb\c14118\c16078\c18039;\cssrgb\c100000\c100000\c100000;\csgenericrgb\c94118\c0\c12157;\cssrgb\c0\c0\c0;
+}
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt 
 \f0\fs48 \cf2 https://github.com/brson/rust-api-guidelines}}
@@ -37,24 +42,49 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 
 \fs48 \cf2 \kerning1\expnd0\expndtw0 \
 \
+\pard\pardeftab720\sl380\partightenfactor0
+
+\f1\fs32 \cf4 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec4 use\cf5 \strokec5  std::time::\{Duration, Instant\};\
+\cf4 \strokec4 use\cf5 \strokec5  std::thread::sleep;\
+\
+\cf4 \strokec4 fn\cf5 \strokec5  main() \{\
+   \cf4 \strokec4 let\cf5 \strokec5  now = Instant::now();\
+\
+   \cf6 \strokec6 // we sleep for 2 seconds\cf5 \strokec5 \
+   sleep(Duration::new(\cf7 \strokec7 2\cf5 \strokec5 , \cf7 \strokec7 0\cf5 \strokec5 ));\
+   \cf6 \strokec6 // it prints '2'\cf5 \strokec5 \
+   \cf8 \strokec8 println!\cf5 \strokec5 (\cf7 \strokec7 "\{\}"\cf5 \strokec5 , now.elapsed().as_secs());\
+\}\cb9 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
+time crate\
+\pard\pardeftab720\ri3000\sl720\partightenfactor0
+
+\f2\fs64 \cf10 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec10 #1545
+\f3 \cf11 \cb12 \strokec11 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
+\
 * Do mail\
-* Add an ambush AI\
-	- doesn\'92t move, just attacks anyone nearby\
-* Instead of new_with_foo use with_foo\
 * Print wall clock time on exit\
 	- maybe events/sec too\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 \cf2 * Implement check_descriptions\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f1\i\b\fs40 \cf4 /// _Setters_ set a value for the current time. Note that it is a programmer error to
-\f2\i0\b0 \cf0 \
+\f4\i\b\fs40 \cf13 /// _Setters_ set a value for the current time. Note that it is a programmer error to
+\f1\i0\b0 \cf0 \
 
-\f1\i\b \cf4 /// set a value more than once for the current time.
-\f2\i0\b0 \cf0 \
+\f4\i\b \cf13 /// set a value more than once for the current time.
+\f1\i0\b0 \cf0 \
 \pard\pardeftab720\partightenfactor0
 
-\f0\fs48 \cf2 * Make sure example is well commented.\
+\f0\fs48 \cf2 * Clean up example\
+* Make sure example is well commented.\
 * Events should have a number (would help with debugging)\
 	- print that number when logging event dispatch\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
@@ -74,7 +104,7 @@ https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
 	- check logs as well as a hash?\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f3\fs50\fsmilli25333 \cf5 \expnd0\expndtw0\kerning0
+\f5\fs50\fsmilli25333 \cf14 \expnd0\expndtw0\kerning0
 	- hash could be sum of: event time/component id/1st eight bytes of event name\
 * Add an embedded web server\
 	- starts up if \'97web\
