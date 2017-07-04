@@ -83,7 +83,7 @@ fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2
 }
 
 // When a bot's energy goes to zero we consider it to be dead and remove it (which switches in a
-// do-nothing thread so that it stops responding to events and adds a removed flag to the store).
+// do-nothing thread so that it stops responding to events and also adds a removed flag to the store).
 fn is_bot(state: &SimState, id: ComponentID) -> bool
 {
 	let path = state.components.path(id);

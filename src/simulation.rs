@@ -9,7 +9,7 @@ use sim_state::*;
 use sim_time::*;
 use store::*;
 use thread_data::*;
-use std::cmp::{max, Ordering};
+use std::cmp::{max, min, Ordering};
 use std::collections::BinaryHeap;
 use std::collections::BTreeMap;
 use std::f64::EPSILON;
@@ -36,6 +36,7 @@ pub struct Simulation
 	max_path_len: usize,
 	start_time: time::Instant,
 	event_num: u64,
+	finger_print: u64,
 }
 	
 impl Simulation
@@ -60,6 +61,7 @@ impl Simulation
 			max_path_len: 0,
 			start_time: time::Instant::now(),
 			event_num: 0,
+			finger_print: 0,
 		}
 	}
 	
@@ -151,6 +153,7 @@ impl Simulation
 		// TODO: Might want to also print events/sec, maybe at debug
 		let elapsed = self.start_time.elapsed().as_secs();	// TODO: time crate has ms, also there's a ticket to add ms to the std: #1545
 		self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s ({})", elapsed, exiting));
+		self.log(&LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", self.finger_print));
 		self.store.check_descriptions(|s| self.log(&LogLevel::Error, NO_COMPONENT, s));
 	}
 	
@@ -177,6 +180,7 @@ impl Simulation
 		// TODO: should cap the number of threads we use (probably via config)
 		while !self.scheduled.is_empty() && self.scheduled.peek().unwrap().time == self.current_time {	// while let can't have a guard so we use this somewhat ugly syntax
 			let e = self.scheduled.pop().unwrap();
+			self.update_finger_print(&e);
 			
 			if self.should_log(&LogLevel::Excessive, NO_COMPONENT) {
 				let path = self.components.path(e.to);
@@ -224,6 +228,24 @@ impl Simulation
 			}
 		}
 		exit
+	}
+	
+	// The finger print is used to verify that the simulation is deterministic: things like
+	// the order of hash map iteration or random number generation (assuming the same seed)
+	// should not change what happens during a simulation run. We could only compute the finger
+	// print when told to but it should be quite cheap and non-determinism is annoying enough
+	// that it's worth keeping an eye on.
+	fn update_finger_print(&mut self, sevent: &ScheduledEvent)
+	{
+		let mut delta = sevent.time.0 as u64;
+		delta += sevent.to.0 as u64;
+		
+		let name = &sevent.event.name;
+		for b in name.bytes().take(min(name.len(), 8)) {
+			delta += b as u64;
+		}
+		
+		self.finger_print = self.finger_print.wrapping_add(delta);
 	}
 	
 	fn remove_components(&mut self, id: ComponentID)
