@@ -67,8 +67,9 @@ impl Effector
 		self.exit = true;
 	}
 	
-	/// This will swap in a Component thread that drops all events and add a removed=1
-	/// data entry to the store (so GUIs can stop rendering the component).
+	/// This will swap in a `Component` thread that drops all events and add a removed=1
+	/// data entry to the store (so GUIs can stop rendering the component). Note that
+	/// this is done for the associated component and all its children.
 	pub fn remove(&mut self)
 	{
 		self.removed = true;

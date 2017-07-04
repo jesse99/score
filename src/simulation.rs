@@ -212,14 +212,26 @@ impl Simulation
 				exit = true;
 			}
 			if e.removed {
-				self.install_removed_thread(*id);
-				
-				let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");		
-				let key = self.components.path(*id) + ".removed";
-				store.set_int_data(&key, 1, self.current_time);
+				self.remove_components(*id);
 			}
 		}
 		exit
+	}
+	
+	fn remove_components(&mut self, id: ComponentID)
+	{
+		{
+		self.install_removed_thread(id);
+		
+		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
+		let key = self.components.path(id) + ".removed";
+		store.set_int_data(&key, 1, self.current_time);
+		}
+		
+		let children = self.components.get(id).children.clone();
+		for child_id in children.iter() {
+			self.remove_components(*child_id);
+		}
 	}
 	
 	fn install_removed_thread(&mut self, id: ComponentID)
