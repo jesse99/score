@@ -89,6 +89,20 @@ fn is_bot(state: &SimState, id: ComponentID) -> bool
 	state.store.has_data(&lpath) && state.store.get_int_data(&epath) > 0 && !state.was_removed(id)
 }
 
+fn count_bots(state: &SimState, id: ComponentID) -> i64
+{
+	let mut count = 0;
+	
+	let (_, root) = state.components.get_root(id);
+	for id in root.children.iter() {	// TODO: use a HOF
+		if is_bot(state, *id) {
+			count += 1;
+		}
+	}
+	
+	return count
+}
+
 fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
 {
 	let mut dist = 0.0;
@@ -223,6 +237,7 @@ fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState,
 		
 	} else if attacker_energy >= energy {	// this is the attackee lost case
 		log_info!(effector, "{} won ({} >= {})", attacker_path, attacker_energy, energy);
+		log_info!(effector, "{} bots left", count_bots(state, attacker_id)-1);
 		effector.remove();
 		let event = Event::with_payload("attacker-won", energy/2);
 		effector.schedule_immediately(event, attacker_id);
@@ -315,6 +330,7 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					energy + *bonus
 
 				} else if ename == "attacker-lost" {
+					log_info!(effector, "{} bots left", count_bots(&state, data.id)-1);
 					effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 					0
 				
@@ -378,7 +394,7 @@ fn watchdog_thread(data: ThreadData)
 			}
 			
 			let event = Event::new("timer");
-			effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
+			effector.schedule_after_secs(event, data.id, 10.1*MOVE_DELAY);
 
 			drop(state);
 			let _ = data.tx.send(effector);
