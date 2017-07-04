@@ -3,7 +3,6 @@ use event::*;
 use logging::*;
 use sim_time::*;
 use store::*;
-use std::collections::HashMap;
 use std::f64::EPSILON;
 
 /// Effectors are returned by `Component`s after they process an `Event`.
@@ -14,7 +13,7 @@ pub struct Effector
 	pub logs: Vec<LogRecord>,
 	
 	#[doc(hidden)]
-	pub events: HashMap<ComponentID, (Event, f64)>,
+	pub events: Vec<(ComponentID, Event, f64)>,
 	
 	#[doc(hidden)]
 	pub store: Store,
@@ -33,7 +32,7 @@ impl Effector
 {
 	pub fn new() -> Effector
 	{
-		Effector{logs: Vec::new(), events: HashMap::new(), store: Store::new(), exit: false, removed: false}
+		Effector{logs: Vec::new(), events: Vec::new(), store: Store::new(), exit: false, removed: false}
 	}
 	
 	/// Normally you'll use one of the log macros, e.g. log_info!.
@@ -49,7 +48,7 @@ impl Effector
 		assert!(to != NO_COMPONENT);
 		assert!(secs > 0.0, "secs ({:.3}) is not positive", secs);	// negative secs are just bad, for zero secs use schedule_immediately
 
-		self.events.insert(to, (event, secs));
+		self.events.push((to, event, secs));
 	}
 	
 	/// Events should not be scheduled for zero time because the `Simulation` guarantees
@@ -59,7 +58,7 @@ impl Effector
 	{
 		assert!(to != NO_COMPONENT);
 
-		self.events.insert(to, (event, EPSILON));
+		self.events.push((to, event, EPSILON));
 	}
 	
 	/// Exit the sim after all events at the current time have been processed.
