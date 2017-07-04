@@ -14,6 +14,7 @@ pub struct ThreadData
 	/// Threads receive from this in order to process `Event`s sent to them.
 	pub rx: mpsc::Receiver<(Event, SimState)>,
 	
+	#[doc(hidden)]
 	pub tx: mpsc::Sender<Effector>,
 	
 	/// This should be the only source of randomness used within a `Component`s

@@ -264,56 +264,45 @@ fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState,
 // This bot will run from all the other bots and will never initiate an attack.
 fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 {
-	thread::spawn(move || {	// TODO: is there a way to put this entire fn in a macro or fn?
-	
+	thread::spawn(move || {
 		// "init N" events are scheduled by the simulation. All other events are scheduled
 		// by component threads. Components may send an event to a different component.
 		// SimState encapsulates the state of the simulation at the time the event was
 		// dispatched.
-		for (event, state) in data.rx.iter() {
-		
-			// The only way components can affect the simulation state is through an
-			// Effector. This prevents spooky action at a distance and also allows
-			// component threads to execute in parallel.
-			let mut effector = Effector::new();
-			{
-				let ename = &event.name;
-				let energy = if ename == "init 0" {
-					log_info!(effector, "initializing");
-					effector.set_description("energy", "Amount of health the bot has.");	// all data in the store needs a description
-					handle_location_event(data.id, &state, &event, &mut effector);
-					randomize_location(&local, &mut data.rng, data.id, &mut effector);
-	
-					let event = Event::new("timer");
-					let delay = 0.1 + 0.9*data.rng.next_f64();
-					effector.schedule_after_secs(event, data.id, delay);
-					100
-					
-				} else if ename == "timer" {
-					let path = state.components.path(data.id);
-					let energy = state.store.get_int_data(&(path + ".energy"));
-					handle_cowardly_timer(&local, &mut effector, &state, &data, energy)
-				
-				} else if ename == "attacked" {
-					let path = state.components.path(data.id);
-					let energy = state.store.get_int_data(&(path + ".energy"));
-					handle_begin_attack(&mut effector, &event, &state, energy)
-								
-				} else if handle_location_event(data.id, &state, &event, &mut effector) {
-					let path = state.components.path(data.id);
-					let energy = state.store.get_int_data(&(path + ".energy"));
-					energy	// we've already accounted for the move cost
-					
-				} else {
-					let cname = &(*state.components).get(data.id).name;
-					panic!("component {} can't handle event {}", cname, ename);
-				};
+		process_events!(data, event, state, effector,
+			"init 0" => {
+				// The only way components can affect the simulation state is through an
+				// Effector. This prevents spooky action at a distance and also allows
+				// component threads to execute in parallel.
+				effector.set_description("energy", "Amount of health the bot has.");	// all data in the store needs a description
+				handle_location_event(data.id, &state, &event, &mut effector);
+				randomize_location(&local, &mut data.rng, data.id, &mut effector);
+
+				let event = Event::new("timer");
+				let delay = 0.1 + 0.9*data.rng.next_f64();
+				effector.schedule_after_secs(event, data.id, delay);
+				effector.set_int_data("energy", 100);
+			},
+			"timer" => {
+				let path = state.components.path(data.id);
+				let energy = state.store.get_int_data(&(path + ".energy"));
+				let energy = handle_cowardly_timer(&local, &mut effector, &state, &data, energy);
 				effector.set_int_data("energy", energy);
+			},
+			"attacked" => {
+				let path = state.components.path(data.id);
+				let energy = state.store.get_int_data(&(path + ".energy"));
+				let energy = handle_begin_attack(&mut effector, &event, &state, energy);
+				effector.set_int_data("energy", energy);
+			},
+			"set-location" => {	// TODO: for now can't do "xxx" | "xxx" which is part of https://github.com/rust-lang/rust/issues/30450
+				// Don't need to fiddle with energy because it has already been accounted for.
+				handle_location_event(data.id, &state, &event, &mut effector);
+			},
+			"offset-location" => {
+				handle_location_event(data.id, &state, &event, &mut effector);
 			}
-			
-			drop(state);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
-			let _ = data.tx.send(effector);
-		}
+		);
 	});
 }
 
@@ -321,58 +310,49 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 {
 	thread::spawn(move || {
-		for (event, state) in data.rx.iter() {
-			let mut effector = Effector::new();
-			{
-				let ename = &event.name;
-				let energy = if ename == "init 0" {
-					log_info!(effector, "initializing");	// TODO: fn for this
-					effector.set_description("energy", "Amount of health the bot has.");
-					handle_location_event(data.id, &state, &event, &mut effector);
-					randomize_location(&local, &mut data.rng, data.id, &mut effector);
-	
-					let event = Event::new("timer");
-					let delay = 0.1 + 0.9*data.rng.next_f64();
-					effector.schedule_after_secs(event, data.id, delay);
-					100
-					
-				} else if ename == "timer" {
-					let path = state.components.path(data.id);
-					let energy = state.store.get_int_data(&(path + ".energy"));
-					handle_aggresive_timer(&local, &mut effector, &state, &data, energy)
-				
-				} else if ename == "attacked" {
-					let path = state.components.path(data.id);
-					let energy = state.store.get_int_data(&(path + ".energy"));
-					handle_begin_attack(&mut effector, &event, &state, energy)
-				
-				} else if ename == "attacker-won" {
-					let path = state.components.path(data.id);
-					let energy = state.store.get_int_data(&(path + ".energy"));
-					let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
-					log_info!(effector, "energy is now {}", energy + *bonus);
-					energy + *bonus
+		process_events!(data, event, state, effector,
+			"init 0" => {
+				effector.set_description("energy", "Amount of health the bot has.");
+				handle_location_event(data.id, &state, &event, &mut effector);
+				randomize_location(&local, &mut data.rng, data.id, &mut effector);
 
-				} else if ename == "attacker-lost" {
-					log_info!(effector, "{} bots left", count_bots(&state, data.id)-1);
-					effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
-					0
-				
-				} else if handle_location_event(data.id, &state, &event, &mut effector) {
-					let path = state.components.path(data.id);
-					let energy = state.store.get_int_data(&(path + ".energy"));
-					energy	// we've already accounted for the move cost
-					
-				} else {
-					let cname = &(*state.components).get(data.id).name;
-					panic!("component {} can't handle event {}", cname, ename);
-				};
+				let event = Event::new("timer");
+				let delay = 0.1 + 0.9*data.rng.next_f64();
+				effector.schedule_after_secs(event, data.id, delay);
+				effector.set_int_data("energy", 100);
+			},
+			"timer" => {
+				let path = state.components.path(data.id);
+				let energy = state.store.get_int_data(&(path + ".energy"));
+				let energy = handle_aggresive_timer(&local, &mut effector, &state, &data, energy);
 				effector.set_int_data("energy", energy);
+			},
+			"attacked" => {
+				let path = state.components.path(data.id);
+				let energy = state.store.get_int_data(&(path + ".energy"));
+				let energy = handle_begin_attack(&mut effector, &event, &state, energy);
+				effector.set_int_data("energy", energy);
+			},
+			"attacker-won" => {
+				let path = state.components.path(data.id);
+				let energy = state.store.get_int_data(&(path + ".energy"));
+				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
+				log_info!(effector, "energy is now {}", energy + *bonus);
+				effector.set_int_data("energy", energy + *bonus);
+			},
+			"attacker-lost" => {
+				log_info!(effector, "{} bots left", count_bots(&state, data.id)-1);
+				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
+				effector.set_int_data("energy", 0);
+			},
+			"set-location" => {
+				// Don't need to fiddle with energy because it has already been accounted for.
+				handle_location_event(data.id, &state, &event, &mut effector);
+			},
+			"offset-location" => {
+				handle_location_event(data.id, &state, &event, &mut effector);
 			}
-			
-			drop(state);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
-			let _ = data.tx.send(effector);
-		}
+		);
 	});
 }
 
@@ -408,52 +388,39 @@ fn watchdog_thread(data: ThreadData)
 	thread::spawn(move || {
 		let mut locations = HashMap::new();
 
-		for (event, state) in data.rx {
-			let mut effector = Effector::new();
-			{
-				let ename = &event.name;
-				if ename == "timer" {
-					// The longest action bots take is movement so if none of the bots do anything
-					// for a bit longer then that then we have reached a steady state and can stop
-					// the sim.
-					if !bots_have_changed(&mut locations, &state) {
-						effector.exit();
-					}
+		process_events!(data, event, state, effector,
+			"init 0" => {
+				let event = Event::new("timer");
+				effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
+			},
+			"timer" => {
+				// The longest action bots take is movement so if none of the bots do anything
+				// for a bit longer then that then we have reached a steady state and can stop
+				// the sim.
+				if !bots_have_changed(&mut locations, &state) {
+					effector.exit();
+				} else {
+					let event = Event::new("timer");
+					effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
 				}
 			}
-			
-			let event = Event::new("timer");
-			effector.schedule_after_secs(event, data.id, 1.1*MOVE_DELAY);
-
-			drop(state);
-			let _ = data.tx.send(effector);
-		}
+		);
 	});
 }
 
 fn world_thread(local: LocalConfig, data: ThreadData)
 {
 	thread::spawn(move || {
-		for (event, state) in data.rx.iter() {
-			let mut effector = Effector::new();
-			{
-				let ename = &event.name;
-				if ename == "init 0" {
-					// It's nice to log important configuration details so that they can be seen
-					// when reviewing a saved run.
-					log_info!(effector, "num-bots = {}", local.num_bots);
-					log_info!(effector, "height = {}", local.height);
-					log_info!(effector, "width = {}", local.width);
-										
-				} else {
-					let cname = &(*state.components).get(data.id).name;
-					panic!("component {} can't handle event {}", cname, ename);
-				};
+		process_events!(data, event, state, effector,
+			"init 0" => {
+				// It's nice to log important configuration details so that they can be seen
+				// when reviewing a saved run.
+				log_info!(effector, "num-bots = {}", local.num_bots);
+				log_info!(effector, "height = {}", local.height);
+				log_info!(effector, "width = {}", local.width);
+				log_info!(effector, "processing {}", event.name);
 			}
-			
-			drop(state);	// we need to do this before the send to ensure that our references are dropped before the Simulator processes the send
-			let _ = data.tx.send(effector);
-		}
+		);
 	});
 }
 
