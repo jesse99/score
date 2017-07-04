@@ -168,37 +168,6 @@ fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &Th
 	best_delta
 }
 
-// Components can read each others state but they cannot change other components so when a bot
-// attacks another bot it sends the other bot an "attacked" event so that it can decide whether
-// the attacker won or lost. This is the function that handles the "attacked" event.
-fn handle_begin_attack(effector: &mut Effector, event: &Event, state: &SimState, energy: i64) -> i64
-{
-	let &(attacker_energy, attacker_id) = event.expect_payload::<(i64, ComponentID)>("was-attacked should have an (i64, ComponentID) payload");
-	let attacker_path = state.components.path(attacker_id);
-	
-	if energy == 0 {
-		log_info!(effector, "{} attacked a dead bot", attacker_path);	// TODO: handle this better
-		let event = Event::with_payload("attacker-won", 0 as i64);
-		effector.schedule_immediately(event, attacker_id);
-		0
-		
-	} else if attacker_energy >= energy {	// this is the attackee lost case
-		log_info!(effector, "{} won ({} >= {})", attacker_path, attacker_energy, energy);
-		log_info!(effector, "{} bots left", count_bots(state, attacker_id)-1);
-		effector.remove();
-		let event = Event::with_payload("attacker-won", energy/2);
-		effector.schedule_immediately(event, attacker_id);
-		0
-		
-	} else {	// this is the attacker lost case (so it needs to remove itself because we can't)
-		log_info!(effector, "{} lost ({} < {})", attacker_path, attacker_energy, energy);
-		let event = Event::new("attacker-lost");
-		effector.schedule_immediately(event, attacker_id);
-		log_info!(effector, "energy is now {}", energy + attacker_energy/2);
-		energy + attacker_energy/2
-	}
-}
-
 fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut Box<Rng + Send>, state: &SimState, event: &Event, effector: &mut Effector)
 {
 	// The only way components can affect the simulation state is through an
@@ -250,11 +219,16 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 					log_excessive!(effector, "dead");
 				}
 			},
-			"attacked" => {
+			"won-attack" => {
 				let path = state.components.path(data.id);
 				let energy = state.store.get_int_data(&(path + ".energy"));
-				let energy = handle_begin_attack(&mut effector, &event, &state, energy);
-				effector.set_int_data("energy", energy);
+				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
+				log_info!(effector, "energy is now {}", energy + *bonus);
+				effector.set_int_data("energy", energy + *bonus);
+			},
+			"lost-attack" => {
+				effector.set_int_data("energy", 0);
+				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 			},
 			"set-location" => {	// TODO: for now can't do "xxx" | "xxx" which is part of https://github.com/rust-lang/rust/issues/30450
 				// Don't need to fiddle with energy because it has already been accounted for.
@@ -265,6 +239,35 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 			}
 		);
 	});
+}
+
+// Components can read each others state but they cannot change other components so when a bot
+// attacks another bot it figures out who won or lost and then sends a "won-attack" or "lost-attack"
+// event to the other bot so that it can update its state.
+fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, their_id: ComponentID)
+{
+	let my_path = state.components.path(my_id);
+	let my_energy = state.store.get_int_data(&(my_path.clone() + ".energy"));
+
+	let their_path = state.components.path(their_id);
+	let their_energy = state.store.get_int_data(&(their_path.clone() + ".energy"));
+	
+	if my_energy >= their_energy {
+		log_info!(effector, "{} lost ({} >= {})", their_path, my_energy, their_energy);
+		let gained = their_energy/2;
+		log_info!(effector, "energy is now {}", my_energy + gained);
+		log_info!(effector, "{} bots left", count_bots(state, my_id)-1);
+		let event = Event::with_payload("lost-attack", their_energy/2);
+		effector.schedule_immediately(event, their_id);
+		effector.set_int_data("energy", my_energy + gained);
+		
+	} else {
+		log_info!(effector, "{} won ({} < {})", their_path, my_energy, their_energy);
+		effector.remove();
+		let event = Event::with_payload("won-attack", my_energy/2);
+		effector.schedule_immediately(event, their_id);
+		effector.set_int_data("energy", 0);
+	}
 }
 
 // This bot will chase the closest bot to it and attack bots that are nearby.
@@ -283,9 +286,7 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					if closest != NO_COMPONENT {
 						let path = state.components.path(closest);
 						if dx*dx + dy*dy <= 1.0 {
-							log_info!(effector, "attacking {}", path);
-							let event = Event::with_payload("attacked", (energy, data.id));
-							effector.schedule_immediately(event, closest);
+							handle_attack(&mut effector, &state, data.id, closest);
 				
 						} else {
 							log_info!(effector, "chasing {}", path);
@@ -311,23 +312,16 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 					log_debug!(effector, "energy is to low to chase after anyone");
 				}
 			},
-			"attacked" => {
-				let path = state.components.path(data.id);
-				let energy = state.store.get_int_data(&(path + ".energy"));
-				let energy = handle_begin_attack(&mut effector, &event, &state, energy);
-				effector.set_int_data("energy", energy);
-			},
-			"attacker-won" => {
+			"won-attack" => {
 				let path = state.components.path(data.id);
 				let energy = state.store.get_int_data(&(path + ".energy"));
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int_data("energy", energy + *bonus);
 			},
-			"attacker-lost" => {
-				log_info!(effector, "{} bots left", count_bots(&state, data.id)-1);
-				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
+			"lost-attack" => {
 				effector.set_int_data("energy", 0);
+				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 			},
 			"set-location" => {
 				// Don't need to fiddle with energy because it has already been accounted for.
