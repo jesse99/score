@@ -450,6 +450,7 @@ fn parse_options() -> (LocalConfig, Config)
 		--no-colors 'Don't color code console output'
 		--num-bots=[N] 'Number of bots to start out with [{default_bots}]'
 		--seed=[N] 'Random number generator seed [random]'
+		--server 'Startup a web server so sdebug can be used'
 		--width=[N] 'Max number of times bots can move right without wrapping [{default_width}]'",
 		default_height = local.height,
 		default_width = local.width,
@@ -477,6 +478,10 @@ fn parse_options() -> (LocalConfig, Config)
 	
 	if matches.is_present("seed") {
 		config.seed = match_num(&matches, "seed", 1, u32::max_value());
+	}
+	
+	if matches.is_present("server") {
+		config.address = "127.0.0.1:9000".to_string();
 	}
 	
 	if matches.is_present("log-level") {

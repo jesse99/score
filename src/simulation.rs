@@ -5,6 +5,8 @@ use effector::*;
 use event::*;
 use logging::*;
 use rand::{Rng, SeedableRng, XorShiftRng};
+use rouille;
+use rustc_serialize;
 use sim_state::*;
 use sim_time::*;
 use store::*;
@@ -14,7 +16,7 @@ use std::collections::BinaryHeap;
 use std::collections::BTreeMap;
 use std::f64::EPSILON;
 use std::sync::Arc;
-use std::sync::mpsc;
+use std::sync::{mpsc, Mutex};
 use std::thread;
 use time;
 
@@ -131,6 +133,16 @@ impl Simulation
 	/// config.max_secs elapses, or `Effector`s exit method was called.
 	pub fn run(&mut self)
 	{
+		if self.config.address.is_empty() {
+			self.run_normally();
+		} else {
+			self.run_server();
+		}
+	}
+	
+	// ---- Private Functions ----------------------------------------------------------------
+	fn run_normally(&mut self)
+	{
 		let mut exiting = self.init_components();
 		while exiting.is_empty() {
 			exiting = self.run_time_slice()
@@ -139,8 +151,52 @@ impl Simulation
 		self.exit(exiting);
 	}
 	
-	#[doc(hidden)]
-	pub fn run_time_slice(&mut self) -> &'static str
+	fn run_server(&mut self)
+	{
+		self.log(&LogLevel::Info, NO_COMPONENT, &format!("running web server at {}", self.config.address));
+
+		let (tx_command, rx_command) = mpsc::channel();
+		let (tx_reply, rx_reply) = mpsc::channel();
+		spin_up_rest(&self.config.address, tx_command, rx_reply);
+
+		let mut exiting = self.init_components();
+		for command in rx_command.iter() {
+			match command {
+				RestCommand::GetLog => {
+					let lines = LogLines{lines: vec!("line 1".to_string(), "line 2".to_string())};
+					let data = rustc_serialize::json::encode(&lines).unwrap();
+					tx_reply.send(RestReply{data, code:200}).unwrap();
+				},
+				RestCommand::SetTime(secs) => {
+					self.log(&LogLevel::Info, NO_COMPONENT, &format!("setting time to {}", secs));
+							tx_reply.send(RestReply{data:"ok".to_string(), code:200}).unwrap();
+				}
+			}
+		}
+		
+		
+//		while exiting.is_empty() {
+//			exiting = self.run_time_slice()
+//		}
+		
+		self.exit(exiting);
+	}
+	
+	fn init_components(&mut self) -> &'static str
+	{
+		let mut exiting = "";
+		for i in 0..self.config.num_init_stages {
+			self.schedule_init_stage(i);
+			let exit = self.dispatch_events();
+			assert!(self.current_time.0 == 0);
+			if exit {
+				exiting = "Effector.exit was called during initialization";
+			}
+		}
+		exiting
+	}
+	
+	fn run_time_slice(&mut self) -> &'static str
 	{
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
 		if self.scheduled.is_empty() {
@@ -156,21 +212,6 @@ impl Simulation
 				""
 			}
 		}
-	}
-	
-	// ---- Private Functions ----------------------------------------------------------------
-	fn init_components(&mut self) -> &'static str
-	{
-		let mut exiting = "";
-		for i in 0..self.config.num_init_stages {
-			self.schedule_init_stage(i);
-			let exit = self.dispatch_events();
-			assert!(self.current_time.0 == 0);
-			if exit {
-				exiting = "Effector.exit was called during initialization";
-			}
-		}
-		exiting
 	}
 	
 	fn exit(&self, exiting: &str)
@@ -483,4 +524,77 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 		}
 	});
 }
+
+enum RestCommand
+{
+	GetLog,
+	SetTime(f64),
+}
+
+struct RestReply
+{
+	data: String,
+	code: u16,
+}
+
+#[derive(RustcEncodable)]
+struct LogLines
+{
+	lines: Vec<String>,
+}
+
+// For debugging can do stuff like:
+//    curl http://127.0.0.1:9000/log/all
+//    curl -X PUT http://127.0.0.1:9000/set/time/10
+fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: mpsc::Receiver<RestReply>)
+{
+	let addr = address.to_string();
+	
+	// rouille will spawn up a thread for each client that attaches and there's no good
+	// way to clone the channels into them so we need to use a mutex to serialize access.
+	let tx_command = Mutex::new(tx_command);
+	let rx_reply = Mutex::new(rx_reply);
+
+	thread::spawn(move|| {
+		rouille::start_server(&addr, move |request| {
+		router!(request,
+			(GET) (/log/all) => {
+				handle_endpoint(RestCommand::GetLog, &tx_command, &rx_reply)
+			},
+			
+			(PUT) (/set/time/{secs: f64}) => {
+				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
+			},
+			
+	//			(GET) (/{id: String}) => {
+	//				// If the request's URL is for example `/foo`, we jump here.
+	//				//
+	//				// This route is similar to the previous one, but this time we have a `String`.
+	//				// Parsing into a `String` never fails.
+	//				println!("String {:?}", id);
+	//				
+	//				// Builds a `Response` object that contains "hello, " followed with the value
+	//				// of `id`.
+	//				rouille::Response::text(format!("hello, {}", id))
+	//			},
+			
+			_ => rouille::Response::empty_404()
+			)
+		});
+	});
+}
+
+fn handle_endpoint(command: RestCommand, tx_command: &Mutex<mpsc::Sender<RestCommand>>, rx_reply: &Mutex<mpsc::Receiver<RestReply>>) -> rouille::Response
+{
+	tx_command.lock().unwrap().send(command).unwrap();
+	let reply = rx_reply.lock().unwrap().recv().unwrap();
+	
+	rouille::Response {
+		status_code: reply.code,
+		headers: vec![("Content-Type".into(), "application/json".into())],
+		data: rouille::ResponseBody::from_data(reply.data),
+		upgrade: None,
+	}
+}
+
 
