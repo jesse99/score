@@ -133,7 +133,7 @@ impl Components
 		
 		let mut c = self.get(id);
 		if c.parent == NO_COMPONENT {
-			return c.name.clone()	// don't use "" for the root
+			return c.name.clone()	// special case the root so that it's not called ""
 		}
 		
 		while c.parent != NO_COMPONENT {
@@ -155,7 +155,7 @@ impl Components
 	{
 		assert!(id != NO_COMPONENT);
 
-		// TODO: should check for cycles
+		// TODO: should check for cycles, maybe only in debug
 		if parent != NO_COMPONENT {
 			let mut p = self.components.get_mut(parent.0).unwrap();
 			p.children.push(id);

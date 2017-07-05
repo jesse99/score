@@ -44,7 +44,6 @@ impl Effector
 	/// Dispatch an event to a component after secs time elapses.
 	pub fn schedule_after_secs(&mut self, event: Event, to: ComponentID, secs: f64)
 	{
-		// TODO: might want two versions: one that takes an absolute time and another that takes a relative time
 		assert!(to != NO_COMPONENT);
 		assert!(secs > 0.0, "secs ({:.3}) is not positive", secs);	// negative secs are just bad, for zero secs use schedule_immediately
 

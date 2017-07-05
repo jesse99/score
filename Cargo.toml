@@ -7,7 +7,7 @@ authors = ["Jesse Jones <jesse9jones@gmail.com>"]
 	name = "battle_bots"
 
 [dependencies]
-clap = "2.24.0"
-glob = "0.2.0"
-rand = "0.3.0"
-time = "0.1.0"
+clap = "2.24.0"	# pretty nifty command line parser
+glob = "0.2.0"	# used to match paths, e.g. to log only some components
+rand = "0.3.0"	# for components that want random numbers
+time = "0.1.0"	# std::time is kind of weak, e.g. can't get durations in ms
