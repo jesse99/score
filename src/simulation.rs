@@ -38,6 +38,9 @@ pub struct Simulation
 	start_time: time::Timespec,
 	event_num: u64,
 	finger_print: u64,
+
+	// These are used when the REST server is running.
+	log_lines: Vec<LogLine>,
 }
 	
 impl Simulation
@@ -63,6 +66,8 @@ impl Simulation
 			start_time: time::get_time(),
 			event_num: 0,
 			finger_print: 0,
+			
+			log_lines: Vec::new(),
 		}
 	}
 	
@@ -153,7 +158,8 @@ impl Simulation
 	
 	fn run_server(&mut self)
 	{
-		self.log(&LogLevel::Info, NO_COMPONENT, &format!("running web server at {}", self.config.address));
+		let address = self.config.address.clone();
+		self.log(&LogLevel::Info, NO_COMPONENT, &format!("running web server at {}", address));
 
 		let (tx_command, rx_command) = mpsc::channel();
 		let (tx_reply, rx_reply) = mpsc::channel();
@@ -161,24 +167,29 @@ impl Simulation
 
 		let mut exiting = self.init_components();
 		for command in rx_command.iter() {
-			match command {
+			let reply = match command {
 				RestCommand::GetLog => {
-					let lines = LogLines{lines: vec!("line 1".to_string(), "line 2".to_string())};
-					let data = rustc_serialize::json::encode(&lines).unwrap();
-					tx_reply.send(RestReply{data, code:200}).unwrap();
+					let data = rustc_serialize::json::encode(&self.log_lines).unwrap();
+					RestReply{data, code:200}
 				},
 				RestCommand::SetTime(secs) => {
-					self.log(&LogLevel::Info, NO_COMPONENT, &format!("setting time to {}", secs));
-							tx_reply.send(RestReply{data:"ok".to_string(), code:200}).unwrap();
+					let target = (secs*self.config.time_units) as i64;
+					while exiting.is_empty() && self.current_time.0 < target {
+						exiting = self.run_time_slice()
+					}
+					
+					let message = if exiting.is_empty() {
+						"ok"
+					} else {
+						"exited"
+					};
+					let data = rustc_serialize::json::encode(&message.to_string()).unwrap();
+					RestReply{data, code:200}
 				}
-			}
+			};
+			tx_reply.send(reply).unwrap();
 		}
-		
-		
-//		while exiting.is_empty() {
-//			exiting = self.run_time_slice()
-//		}
-		
+				
 		self.exit(exiting);
 	}
 	
@@ -214,14 +225,20 @@ impl Simulation
 		}
 	}
 	
-	fn exit(&self, exiting: &str)
+	fn exit(&mut self, exiting: &str)
 	{
 		// TODO: Might want to also print events/sec, maybe at debug
 		let elapsed = (time::get_time() - self.start_time).num_milliseconds();
 		self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}.{}s ({})",
 			elapsed/1000, elapsed%1000, exiting));	// TODO: eventually will need a friendly_duration_str fn
-		self.log(&LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", self.finger_print));
-		self.store.check_descriptions(|s| self.log(&LogLevel::Error, NO_COMPONENT, s));
+			
+		let finger_print = self.finger_print.clone();
+		self.log(&LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", finger_print));
+
+		let errors = self.store.check_descriptions();
+		for err in errors {
+			self.log(&LogLevel::Error, NO_COMPONENT, &err);
+		}
 	}
 	
 	fn dispatch_events(&mut self) -> bool
@@ -239,7 +256,8 @@ impl Simulation
 			// anything wrong when REST is being used. Maybe just disable speculation.
 			if self.should_log(&LogLevel::Excessive, NO_COMPONENT) {
 				let path = self.components.path(e.to);
-				self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching #{} '{}' to {}", self.event_num, e.event.name, path));
+				let num = self.event_num;
+				self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching #{} '{}' to {}", num, e.event.name, path));
 			}
 			ids.push(e.to);
 			
@@ -399,7 +417,7 @@ impl Simulation
 
 	// TODO: We'll need a logger to write to a file or something (the store doesn't seem
 	// like a great place because we need to record stuff with a fair amount of structure).
-	fn log(&self, level: &LogLevel, id: ComponentID, message: &str)
+	fn log(&mut self, level: &LogLevel, id: ComponentID, message: &str)
 	{
 		if self.should_log(level, id) {
 			let t = (self.current_time.0 as f64)/self.config.time_units;
@@ -424,6 +442,15 @@ impl Simulation
 				};
 				print!("{0:.1$}  {2} {3}  {4}\n", t, self.precision, prefix, path, message);
 			}
+		}
+
+		if !self.config.address.is_empty() {
+			let time = (self.current_time.0 as f64)/self.config.time_units;
+			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
+			let level = format!("{:?}", level);
+			let message = message.to_string();
+			let line = LogLine{time, path, level, message};
+			self.log_lines.push(line);
 		}
 	}
 
@@ -538,9 +565,12 @@ struct RestReply
 }
 
 #[derive(RustcEncodable)]
-struct LogLines
+struct LogLine
 {
-	lines: Vec<String>,
+	time: f64,
+	path: String,
+	level: String,
+	message: String,
 }
 
 // For debugging can do stuff like:

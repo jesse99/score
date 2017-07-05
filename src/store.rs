@@ -157,20 +157,22 @@ impl Store
 	}
 	
 	#[doc(hidden)]
-	pub fn check_descriptions<T>(&self, logger: T)
-		where T: Fn (&str) -> ()
+	pub fn check_descriptions(&self) -> Vec<String>
 	{
-		self.check_descriptions_for(&self.int_data, &logger);
-		self.check_descriptions_for(&self.float_data, &logger);
-		self.check_descriptions_for(&self.string_data, &logger);
+		let mut errors = Vec::new();
+		
+		self.check_descriptions_for(&self.int_data, &mut errors);
+		self.check_descriptions_for(&self.float_data, &mut errors);
+		self.check_descriptions_for(&self.string_data, &mut errors);
+		
+		errors
 	}
 	
-	fn check_descriptions_for<T, V>(&self, map: &HashMap<String, (Time, V)>, logger: &T)
-		where T: Fn (&str) -> ()
+	fn check_descriptions_for<V>(&self, map: &HashMap<String, (Time, V)>, errors: &mut Vec<String>)
 	{
 		for name in map.keys() {
 			if !self.descriptions.contains_key(name) && !name.ends_with(".removed") {
-				logger(&format!("Effector.set_description was not called for '{}'", name));
+				errors.push(format!("Effector.set_description was not called for '{}'", name));
 			}
 		}
 	}

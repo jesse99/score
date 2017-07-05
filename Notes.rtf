@@ -5,10 +5,17 @@
 \red188\green0\blue189;\red0\green0\blue0;}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgenericrgb\c0\c28235\c100000;
 \cssrgb\c79464\c18343\c78935;\cssrgb\c0\c0\c0;}
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt 
-\f0\fs48 \cf2 https://github.com/brson/rust-api-guidelines}}
-\f0\fs48 \cf2 \
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs48 \cf2 publishing a new version\
+	change the version number \
+		dependencies auto-update if the first non-zero number doesn\'92t change\
+	cargo package\
+		optional, allows you to inspect the *.crate file\
+	cargo publish\
+\
+{\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt https://github.com/brson/rust-api-guidelines}}\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\
 https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
@@ -53,6 +60,7 @@ curl http://127.0.0.1:9000/log/all\
 curl -X PUT http://127.0.0.1:9000/set/time/10\
 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
+\cf0 \
 
 \f2\b \cf4 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
@@ -85,16 +93,10 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 404	not found\
-405	not allowed\
-\
+\f0\fs48 \cf2 \
 \pard\pardeftab720\partightenfactor0
 \cf2 * Do mail\
 * Weight/finances\
-* Add support for rest\
-	- when starting up with server support then sim only runs when an endpoint is hit\
-	- for now return text\
-	- start returning json\
 * Work on an sdebug tool\
 	- {\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/awesome-rust"}}{\fldrslt https://github.com/rust-unofficial/awesome-rust}} (web clients)\
 	- verb target options\
@@ -102,10 +104,11 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	- target can be log, map, state, component, time\
 	- verb and target can be abbreviated (as long as there is no ambiguity)\
 	- paths can be globbed\
-* Support log:\
-	- get log path?		print the entire log\
+	- readme should point to sdebug\
 \pard\pardeftab720\partightenfactor0
-\cf2 	- get log path? N		print the last N logs\
+\cf2 * Support log:\
+	- get log path?		print the entire log\
+	- get log path? N		print the last N logs\
 	- get log path? N time-suffix	print the last time unit logs\
 * Support run-until:\
 	- run-until target path?		run until the associated target changes\
@@ -120,7 +123,7 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	- get component path?	print hierarchy\
 	- may want a way for components to customize this \
 * Support time:\
-	- set time N		set time forward or backward\
+	- set time N		set time forward or backward (time suffix)\
 	- set time +N time-suffix	advance time\
 	- set time -N time-suffix		roll-back time\
 	- get time		print current time\
@@ -138,6 +141,7 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 
 \f4\fs50\fsmilli25333 \cf6 \expnd0\expndtw0\kerning0
 * Look at TODOs\
+* Might be able to cleanup the code a bit by making some moduels directories\
 * Add persistence?\
 	- maybe with some simple viewer tools\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
