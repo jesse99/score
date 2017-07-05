@@ -16,8 +16,7 @@ use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::mpsc;
 use std::thread;
-use std::time;
-use time::get_time;
+use time;
 
 /// This is the top-level data structure. Once an exe initializes
 /// it the simulation will run until either a time limit elapses
@@ -34,7 +33,7 @@ pub struct Simulation
 	scheduled: BinaryHeap<ScheduledEvent>,
 	rng: Box<Rng + Send>,
 	max_path_len: usize,
-	start_time: time::Instant,
+	start_time: time::Timespec,
 	event_num: u64,
 	finger_print: u64,
 }
@@ -59,7 +58,7 @@ impl Simulation
 			scheduled: BinaryHeap::new(),
 			rng: Box::new(new_rng(seed, 10_000)),
 			max_path_len: 0,
-			start_time: time::Instant::now(),
+			start_time: time::get_time(),
 			event_num: 0,
 			finger_print: 0,
 		}
@@ -151,8 +150,9 @@ impl Simulation
 		}
 
 		// TODO: Might want to also print events/sec, maybe at debug
-		let elapsed = self.start_time.elapsed().as_secs();	// TODO: time crate has ms, also there's a ticket to add ms to the std: #1545
-		self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}s ({})", elapsed, exiting));
+		let elapsed = (time::get_time() - self.start_time).num_milliseconds();
+		self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}.{}s ({})",
+			elapsed/1000, elapsed%1000, exiting));	// TODO: eventually will need a friendly_duration_str fn
 		self.log(&LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", self.finger_print));
 		self.store.check_descriptions(|s| self.log(&LogLevel::Error, NO_COMPONENT, s));
 	}
@@ -455,7 +455,7 @@ fn end_escape() -> &'static str
 // XorShiftRng should be plenty good enough.
 fn new_rng(seed: u32, offset: u32) -> XorShiftRng
 {
-	let seed = if seed != 0 {seed} else {get_time().nsec as u32};
+	let seed = if seed != 0 {seed} else {time::get_time().nsec as u32};
 	XorShiftRng::from_seed([seed + offset; 4])	// offset is used to give each thread its own random stream
 }
 
