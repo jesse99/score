@@ -132,43 +132,55 @@ impl Simulation
 	pub fn run(&mut self)
 	{
 		let mut exiting = self.init_components();
-				
+		while exiting.is_empty() {
+			exiting = self.run_time_slice()
+		}
+		
+		self.exit(exiting);
+	}
+	
+	#[doc(hidden)]
+	pub fn run_time_slice(&mut self) -> &'static str
+	{
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
-		while exiting.len() == 0 {
-			if self.scheduled.is_empty() {
-				exiting = "no events".to_string();
-			}
-			
-			if self.current_time.0 >= max_time {
-				exiting = "reached config.max_secs".to_string();
-			}
-			
-			let exit = self.dispatch_events();
-			if exit {
-				exiting = "effector.exit was called".to_string();
+		if self.scheduled.is_empty() {
+			"no events"
+		
+		} else if self.current_time.0 >= max_time {
+			"reached config.max_secs"
+
+		} else {
+			if self.dispatch_events() {
+				"effector.exit was called"
+			} else {
+				""
 			}
 		}
-
+	}
+	
+	// ---- Private Functions ----------------------------------------------------------------
+	fn init_components(&mut self) -> &'static str
+	{
+		let mut exiting = "";
+		for i in 0..self.config.num_init_stages {
+			self.schedule_init_stage(i);
+			let exit = self.dispatch_events();
+			assert!(self.current_time.0 == 0);
+			if exit {
+				exiting = "Effector.exit was called during initialization";
+			}
+		}
+		exiting
+	}
+	
+	fn exit(&self, exiting: &str)
+	{
 		// TODO: Might want to also print events/sec, maybe at debug
 		let elapsed = (time::get_time() - self.start_time).num_milliseconds();
 		self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}.{}s ({})",
 			elapsed/1000, elapsed%1000, exiting));	// TODO: eventually will need a friendly_duration_str fn
 		self.log(&LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", self.finger_print));
 		self.store.check_descriptions(|s| self.log(&LogLevel::Error, NO_COMPONENT, s));
-	}
-	
-	pub fn init_components(&mut self) -> String
-	{
-		let mut exiting = "".to_string();
-		for i in 0..self.config.num_init_stages {
-			self.schedule_init_stage(i);
-			let exit = self.dispatch_events();
-			assert!(self.current_time.0 == 0);
-			if exit {
-				exiting = "Effector.exit was called during initialization".to_string();
-			}
-		}
-		exiting
 	}
 	
 	fn dispatch_events(&mut self) -> bool
@@ -182,6 +194,8 @@ impl Simulation
 			let e = self.scheduled.pop().unwrap();
 			self.update_finger_print(&e);
 			
+			// TODO: If we use speculative execution we'll need to be careful not to do
+			// anything wrong when REST is being used. Maybe just disable speculation.
 			if self.should_log(&LogLevel::Excessive, NO_COMPONENT) {
 				let path = self.components.path(e.to);
 				self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching #{} '{}' to {}", self.event_num, e.event.name, path));
