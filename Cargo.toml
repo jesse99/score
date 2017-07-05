@@ -2,6 +2,11 @@
 name = "score"
 version = "0.0.1"
 authors = ["Jesse Jones <jesse9jones@gmail.com>"]
+description = "Discrete event simulation library"
+readme = "README.md"
+keywords = ["discrete", "simulation"]
+categories = ["science"]
+license = "GPL-3.0"
 
 [[example]]
 	name = "battle_bots"
