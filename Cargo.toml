@@ -2,6 +2,7 @@
 name = "score"
 version = "0.0.1"
 authors = ["Jesse Jones <jesse9jones@gmail.com>"]
+repository = "https://github.com/jesse99/score"
 description = "Discrete event simulation library"
 readme = "README.md"
 keywords = ["discrete", "simulation"]
