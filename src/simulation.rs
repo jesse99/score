@@ -176,10 +176,13 @@ impl Simulation
 					let data = rustc_serialize::json::encode(&self.log_lines).unwrap();
 					RestReply{data, code:200}
 				},
-				RestCommand::GetTimeLabel => {
+				RestCommand::GetTime => {
 					let t = (self.current_time.0 as f64)/self.config.time_units;
-					let m = format!("{:.1$}", t, self.precision);
-					let data = rustc_serialize::json::encode(&m).unwrap();
+					let data = rustc_serialize::json::encode(&t).unwrap();
+					RestReply{data, code:200}
+				},
+				RestCommand::GetTimePrecision => {
+					let data = rustc_serialize::json::encode(&self.precision).unwrap();
 					RestReply{data, code:200}
 				},
 				RestCommand::SetTime(secs) => {
@@ -565,7 +568,8 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 enum RestCommand
 {
 	GetLog,
-	GetTimeLabel,
+	GetTime,
+	GetTimePrecision,
 	SetTime(f64),
 }
 
@@ -603,8 +607,12 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 				handle_endpoint(RestCommand::GetLog, &tx_command, &rx_reply)
 			},
 			
-			(GET) (/time/label) => {
-				handle_endpoint(RestCommand::GetTimeLabel, &tx_command, &rx_reply)
+			(GET) (/time) => {
+				handle_endpoint(RestCommand::GetTime, &tx_command, &rx_reply)
+			},
+			
+			(GET) (/time/precision) => {
+				handle_endpoint(RestCommand::GetTimePrecision, &tx_command, &rx_reply)
 			},
 			
 			(PUT) (/set/time/{secs: f64}) => {
