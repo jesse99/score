@@ -2,9 +2,11 @@
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-Bold;
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fswiss\fcharset0 ArialMT;}
 {\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red0\green72\blue255;
-\red188\green0\blue189;\red0\green0\blue0;}
+\red36\green38\blue41;\red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;
+\red0\green0\blue0;}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgenericrgb\c0\c28235\c100000;
-\cssrgb\c79464\c18343\c78935;\cssrgb\c0\c0\c0;}
+\cssrgb\c18824\c20000\c21176;\cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;
+\cssrgb\c0\c0\c0;}
 \deftab720
 \pard\pardeftab720\partightenfactor0
 
@@ -12,21 +14,21 @@
 	change the version number \
 		dependencies auto-update if the first non-zero number doesn\'92t change\
 	cargo package\
-		optional, allows you to inspect the *.crate file\
+		optional, allows you to inspect the target/package/*.crate file\
 	cargo publish\
 \
 {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt https://github.com/brson/rust-api-guidelines}}\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\cf2 \
 https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
   \
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://rust-lang.github.io/book/second-edition/index.html"}}{\fldrslt \cf2 https://rust-lang.github.io/book/second-edition/index.html}}\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/stable/nomicon/README.html"}}{\fldrslt \cf2 https://doc.rust-lang.org/stable/nomicon/README.html}}\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/"}}{\fldrslt \cf2 https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/}}\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/patterns"}}{\fldrslt \cf2 https://github.com/rust-unofficial/patterns}}\
  {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-cookbook"}}{\fldrslt 
 \fs36 \cf3 \expnd0\expndtw0\kerning0
@@ -59,8 +61,8 @@ curl http://127.0.0.1:9000/log/all\
 \
 curl -X PUT http://127.0.0.1:9000/set/time/10\
 \
+\
 \pard\pardeftab963\pardirnatural\partightenfactor0
-\cf0 \
 
 \f2\b \cf4 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
@@ -92,21 +94,44 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 \}\
 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
+\cf0 \
+\pard\pardeftab720\sl300\partightenfactor0
 
-\f0\fs48 \cf2 \
+\fs32 \cf5 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec5 #[derive(\cf6 \strokec6 PartialEq\cf5 \strokec5 )]\
+\cf7 \strokec7 enum\cf5 \strokec5  \cf6 \strokec6 MyEnum\cf5 \strokec5  \{ ... \}\cf8 \cb9 \strokec8 \
+\pard\pardeftab963\pardirnatural\partightenfactor0
+
+\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
 \pard\pardeftab720\partightenfactor0
-\cf2 * Do mail\
-* Weight/finances\
-* Work on an sdebug tool\
-	- {\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/awesome-rust"}}{\fldrslt https://github.com/rust-unofficial/awesome-rust}} (web clients)\
-	- verb target options\
+\cf2 * Weight/finances\
+* Present\
+* Order shower curtain liner\
+* Work on an sdebug tool:\
+	- add a helpers module\
+		fatal_err\
+\cf2 		get_rest\
+		probably also private try_get_rest\
+	- add a precision option and endpoint\
+		- replace /time/label with /time and /time/precision\
+	- do a commit and push (both projects)\
+\cf2 	- get REST working\
+		{\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/awesome-rust"}}{\fldrslt \cf2 https://crates.io/crates/crest}}\
+	- prompt should include the current sim time (or ?)\
+	- might want a status command to print info about the connection\
+	- make sure that we can get info about the root\
 	- verb can be get, set, run-until, repeat\
 	- target can be log, map, state, component, time\
 	- verb and target can be abbreviated (as long as there is no ambiguity)\
 	- paths can be globbed\
+	- can we fix doc comments so that `foo` has a link?\
+	- if we add a dependency upon score then sdebug will show up as a dependent crate\
+	- probably should use ReadLine\
+		{\field{\*\fldinst{HYPERLINK "https://robots.thoughtbot.com/tab-completion-in-gnu-readline"}}{\fldrslt https://robots.thoughtbot.com/tab-completion-in-gnu-readline}}\
+	- readme should say how to setup toml file\
 	- readme should point to sdebug\
-\pard\pardeftab720\partightenfactor0
-\cf2 * Support log:\
+	- publish a new version of score as well as sdebug\
+* Support log:\
 	- get log path?		print the entire log\
 	- get log path? N		print the last N logs\
 	- get log path? N time-suffix	print the last time unit logs\
@@ -119,32 +144,32 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 * Support state:\
 	- set state path value\
 	- get state path?\
+	- get state all\
 * Support component:\
 	- get component path?	print hierarchy\
 	- may want a way for components to customize this \
 * Support time:\
 	- set time N		set time forward or backward (time suffix)\
 	- set time +N time-suffix	advance time\
-	- set time -N time-suffix		roll-back time\
+	- set time -N time-suffix		roll-back time (undo effectors)\
 	- get time		print current time\
 * Support map:\
 	- set map size 10 10		display dimensions\
 	- get map size		print display and actual dimensions\
-\pard\pardeftab720\partightenfactor0
-\cf2 	- maybe an option to show removed components\
-\pard\pardeftab720\partightenfactor0
-\cf2 	- document location-x/y, display-name, display-color\
+	- maybe an option to show removed components\
+	- document location-x/y, display-name, display-color\
 	- probably need display-width/height too\
 	- bots should set display-name to \'931.100\'94\
 	- aggressive should be red, cowardly blue, maybe set dead to gray\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f4\fs50\fsmilli25333 \cf6 \expnd0\expndtw0\kerning0
+\f4\fs50\fsmilli25333 \cf10 \expnd0\expndtw0\kerning0
 * Look at TODOs\
+* Start using clippy\
 * Might be able to cleanup the code a bit by making some moduels directories\
 * Add persistence?\
 	- maybe with some simple viewer tools\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 
 \f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Start working on snet\
 * Check parallelism:\
@@ -153,11 +178,11 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	- counting should only be done if should_log\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f4\fs50\fsmilli25333 \cf6 \expnd0\expndtw0\kerning0
+\f4\fs50\fsmilli25333 \cf10 \expnd0\expndtw0\kerning0
 * Add an embedded web server\
 	- starts up if \'97web\
 	- waits for \'93run\'94 to be written to the web component\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 
 \f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Persist the store\
 * Try 

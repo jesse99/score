@@ -8,7 +8,8 @@ use std::str::FromStr;
 pub struct Config
 {
 	/// If set then startup a web server to control the simulation. This is
-	/// required to use GUIs or tools like sdebug. Defaults to "".
+	/// required to use GUIs or tools like sdebug. Defaults to "". Typically
+	/// if this is set it'll be set to "127.0.0.1:9000".
 	pub address: String,
 	
 	/// Use 1_000.0 for ms, 1.0 for seconds, 0.1667 for minutes, etc.

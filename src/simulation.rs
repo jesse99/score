@@ -78,6 +78,8 @@ impl Simulation
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
+		assert!(name.chars().nth(0).unwrap().is_alphabetic());
+		assert!(name.chars().all(is_valid_name_char));
 		
 		let id = ComponentID(self.event_senders.len());
 		{
@@ -101,6 +103,8 @@ impl Simulation
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
+		assert!(name.chars().nth(0).unwrap().is_alphabetic());
+		assert!(name.chars().all(is_valid_name_char));
 		// TODO: when we support children properly assert that parent is not in children (recursively?)
 		
 		let (txd, rxd) = mpsc::channel::<(Event, SimState)>();
@@ -170,6 +174,12 @@ impl Simulation
 			let reply = match command {
 				RestCommand::GetLog => {
 					let data = rustc_serialize::json::encode(&self.log_lines).unwrap();
+					RestReply{data, code:200}
+				},
+				RestCommand::GetTimeLabel => {
+					let t = (self.current_time.0 as f64)/self.config.time_units;
+					let m = format!("{:.1$}", t, self.precision);
+					let data = rustc_serialize::json::encode(&m).unwrap();
 					RestReply{data, code:200}
 				},
 				RestCommand::SetTime(secs) => {
@@ -555,6 +565,7 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 enum RestCommand
 {
 	GetLog,
+	GetTimeLabel,
 	SetTime(f64),
 }
 
@@ -592,6 +603,10 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 				handle_endpoint(RestCommand::GetLog, &tx_command, &rx_reply)
 			},
 			
+			(GET) (/time/label) => {
+				handle_endpoint(RestCommand::GetTimeLabel, &tx_command, &rx_reply)
+			},
+			
 			(PUT) (/set/time/{secs: f64}) => {
 				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
 			},
@@ -627,4 +642,10 @@ fn handle_endpoint(command: RestCommand, tx_command: &Mutex<mpsc::Sender<RestCom
 	}
 }
 
-
+fn is_valid_name_char(ch: char) -> bool
+{
+	!ch.is_whitespace() &&		// no spaces makes it much easier for sdebug to parse commands (paths don't need to be quoted)
+	!ch.is_control() &&			// these are just silly to include in a name
+	ch != '"' && ch != '\'' &&	// parsing is simpler if paths don't have quotes
+	ch != '.'					// allowing periods in a name would cause a lot of confusion when looking at paths
+}
