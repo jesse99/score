@@ -202,8 +202,10 @@ impl Simulation
 			};
 			tx_reply.send(reply).unwrap();
 		}
-				
-		self.exit(exiting);
+		
+		// Note that we don't want to exit in order to allow GUIs to inspect state at the end.
+		// TODO: but we should have some sort of /exit endpoint to allow GUIs to kill us cleanly.
+		//self.exit(exiting);
 	}
 	
 	fn init_components(&mut self) -> &'static str
@@ -615,7 +617,8 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 				handle_endpoint(RestCommand::GetTimePrecision, &tx_command, &rx_reply)
 			},
 			
-			(PUT) (/set/time/{secs: f64}) => {
+			// These really should be PUTs but crest doesn't support PUT...
+			(POST) (/time/{secs: f64}) => {
 				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
 			},
 			

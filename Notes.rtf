@@ -3,10 +3,10 @@
 \f3\fnil\fcharset0 Menlo-Italic;\f4\fswiss\fcharset0 ArialMT;}
 {\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red0\green72\blue255;
 \red36\green38\blue41;\red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;
-\red169\green28\blue21;\red0\green0\blue0;\red0\green0\blue0;}
+\red169\green28\blue21;\red0\green0\blue0;\red161\green33\blue108;\red0\green0\blue0;}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgenericrgb\c0\c28235\c100000;
 \cssrgb\c18824\c20000\c21176;\cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;
-\cssrgb\c72942\c18278\c9972;\csgray\c0;\cssrgb\c0\c0\c0;}
+\cssrgb\c72942\c18278\c9972;\csgray\c0;\csgenericrgb\c63137\c12941\c42353;\cssrgb\c0\c0\c0;}
 \deftab720
 \pard\pardeftab720\partightenfactor0
 
@@ -115,18 +115,30 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 * Present\
 * Order shower curtain liner\
 * Work on an sdebug tool:\
-	- add a helpers module\
-		fatal_err\
-\cf2 		get_rest\
-		probably also private try_get_rest\
-	- add a precision option and endpoint\
-		- replace /time/label with /time and /time/precision\
-	- do a commit and push (both projects)\
-\cf2 	- get REST working\
-		{\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/awesome-rust"}}{\fldrslt \cf2 https://crates.io/crates/crest}}\
-	- prompt should include the current sim time (or ?)\
-	- might want a status command to print info about the connection\
-	- make sure that we can get info about the root\
+	- support time commands\
+\pard\pardeftab963\pardirnatural\partightenfactor0
+
+\f1\fs40 \cf0 		\cf12 set time <duration>\cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs48 \cf2 	- support log commands\
+\pard\pardeftab963\pardirnatural\partightenfactor0
+
+\f1\fs40 \cf0 		\cf12 get log [level]\cf0 \
+		\cf12 get log <path> [level]\cf0 \
+		\cf12 get log <number> [level]\cf0 \
+		\cf12 get log <path> <number> [level]\cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs48 \cf2 	- support state commands\
+\pard\pardeftab963\pardirnatural\partightenfactor0
+
+\f1\fs40 \cf0 		\cf12 get state\cf0 \
+		\cf12 get state <path>\cf0 \
+		\cf12 set state <path> <value>\cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs48 \cf2 	- make sure that we can get info about the root\
 	- verb can be get, set, run-until, repeat\
 	- target can be log, map, state, component, time\
 	- verb and target can be abbreviated (as long as there is no ambiguity)\
@@ -170,7 +182,7 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	- aggressive should be red, cowardly blue, maybe set dead to gray\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f4\fs50\fsmilli25333 \cf12 \expnd0\expndtw0\kerning0
+\f4\fs50\fsmilli25333 \cf13 \expnd0\expndtw0\kerning0
 * Look at TODOs\
 * Start using clippy\
 * Might be able to cleanup the code a bit by making some moduels directories\
@@ -185,7 +197,7 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	- counting should only be done if should_log\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f4\fs50\fsmilli25333 \cf12 \expnd0\expndtw0\kerning0
+\f4\fs50\fsmilli25333 \cf13 \expnd0\expndtw0\kerning0
 * Add an embedded web server\
 	- starts up if \'97web\
 	- waits for \'93run\'94 to be written to the web component\
