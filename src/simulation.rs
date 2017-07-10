@@ -179,6 +179,11 @@ impl Simulation
 					let data = rustc_serialize::json::encode(&lines).unwrap();
 					RestReply{data, code:200}
 				},
+				RestCommand::GetState(path) => {
+					let lines = self.get_state(&path);
+					let data = rustc_serialize::json::encode(&lines).unwrap();
+					RestReply{data, code:200}
+				},
 				RestCommand::GetTime => {
 					let t = (self.current_time.0 as f64)/self.config.time_units;
 					let data = rustc_serialize::json::encode(&t).unwrap();
@@ -527,6 +532,21 @@ impl Simulation
 		
 		result
 	}
+
+	fn get_state(&self, path: &glob::Pattern) -> Vec<String>
+	{
+		let mut result = Vec::new();
+		
+		for (key, value) in self.store.float_data.iter() {
+			if path.matches(&key) {
+				let line = format!("{} = {}", key, value.1);
+				result.push(line);
+			}
+		}
+		
+		result.sort();
+		result
+	}
 }
 
 struct ScheduledEvent
@@ -589,6 +609,7 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 enum RestCommand
 {
 	GetLog(glob::Pattern, usize, LogLevel),
+	GetState(glob::Pattern),
 	GetTime,
 	GetTimePrecision,
 	SetTime(f64),
@@ -631,6 +652,14 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 					} else {
 						rouille::Response::empty_400()
 					}
+				} else {
+					rouille::Response::empty_400()
+				}
+			},
+			
+			(GET) (/state/{path: String}) => {
+				if let Ok(path) = glob::Pattern::new(&path) {
+					handle_endpoint(RestCommand::GetState(path), &tx_command, &rx_reply)
 				} else {
 					rouille::Response::empty_400()
 				}
