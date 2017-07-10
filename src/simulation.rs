@@ -193,6 +193,24 @@ impl Simulation
 					let data = rustc_serialize::json::encode(&self.precision).unwrap();
 					RestReply{data, code:200}
 				},
+				RestCommand::SetFloatState(path, value) => {
+					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
+					store.set_float_data(&path, value, self.current_time);
+					let data = "\"ok\"".to_string();
+					RestReply{data, code:200}
+				}
+				RestCommand::SetIntState(path, value) => {
+					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
+					store.set_int_data(&path, value, self.current_time);
+					let data = "\"ok\"".to_string();
+					RestReply{data, code:200}
+				}
+				RestCommand::SetStringState(path, value) => {
+					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
+					store.set_string_data(&path, &value, self.current_time);
+					let data = "\"ok\"".to_string();
+					RestReply{data, code:200}
+				}
 				RestCommand::SetTime(secs) => {
 					let target = (secs*self.config.time_units) as i64;
 					while exiting.is_empty() && self.current_time.0 < target {
@@ -535,11 +553,32 @@ impl Simulation
 
 	fn get_state(&self, path: &glob::Pattern) -> Vec<String>
 	{
+		let mut removed = Vec::new();
+		for (key, value) in self.store.int_data.iter() {
+			if key.ends_with(".removed") && value.1 == 1 {
+				let (prefix, _) = key.split_at(key.len() - "removed".len());
+				removed.push(prefix);
+			}
+		}
+
 		let mut result = Vec::new();
+		for (key, value) in self.store.int_data.iter() {
+			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
+				let line = format!("{} = {}", key, value.1);
+				result.push(line);
+			}
+		}
 		
 		for (key, value) in self.store.float_data.iter() {
-			if path.matches(&key) {
+			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
 				let line = format!("{} = {}", key, value.1);
+				result.push(line);
+			}
+		}
+		
+		for (key, value) in self.store.string_data.iter() {
+			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
+				let line = format!("{} = \"{}\"", key, value.1);
 				result.push(line);
 			}
 		}
@@ -612,6 +651,9 @@ enum RestCommand
 	GetState(glob::Pattern),
 	GetTime,
 	GetTimePrecision,
+	SetFloatState(String, f64),
+	SetIntState(String, i64),
+	SetStringState(String, String),
 	SetTime(f64),
 }
 
@@ -674,6 +716,18 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 			},
 			
 			// These really should be PUTs but crest doesn't support PUT...
+			(POST) (/state/float/{path: String}/{value: f64}) => {
+				handle_endpoint(RestCommand::SetFloatState(path, value), &tx_command, &rx_reply)
+			},
+			
+			(POST) (/state/int/{path: String}/{value: i64}) => {
+				handle_endpoint(RestCommand::SetIntState(path, value), &tx_command, &rx_reply)
+			},
+			
+			(POST) (/state/string/{path: String}/{value: String}) => {
+				handle_endpoint(RestCommand::SetStringState(path, value), &tx_command, &rx_reply)
+			},
+			
 			(POST) (/time/{secs: f64}) => {
 				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
 			},
