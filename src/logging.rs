@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-#[derive(Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, RustcEncodable)]
 pub enum LogLevel
 {
 	Error,	// update log_levels if this changes
@@ -20,15 +20,15 @@ pub fn log_levels() -> &'static str
 
 impl LogLevel
 {
-	pub fn sanitize(text: &str) -> Option<String>
+	pub fn with_str(text: &str) -> Option<LogLevel>
 	{
 		let text = text.to_lowercase();
 		match text.to_lowercase().as_ref() {
-			"error" => Some(text),
-			"warning" => Some(text),
-			"info" => Some(text),
-			"debug" => Some(text),
-			"excessive" => Some(text),
+			"error" => Some(LogLevel::Error),
+			"warning" => Some(LogLevel::Warning),
+			"info" => Some(LogLevel::Info),
+			"debug" => Some(LogLevel::Debug),
+			"excessive" => Some(LogLevel::Excessive),
 			_ => None,
 		}
 	}

@@ -165,7 +165,7 @@ impl Simulation
 	fn run_server(&mut self)
 	{
 		let address = self.config.address.clone();
-		self.log(&LogLevel::Info, NO_COMPONENT, &format!("running web server at {}", address));
+		self.log(LogLevel::Info, NO_COMPONENT, &format!("running web server at {}", address));
 
 		let (tx_command, rx_command) = mpsc::channel();
 		let (tx_reply, rx_reply) = mpsc::channel();
@@ -175,7 +175,7 @@ impl Simulation
 		for command in rx_command.iter() {
 			let reply = match command {
 				RestCommand::GetLog(path, limit, level) => {
-					let lines = self.get_log_lines(&path, limit, &level);
+					let lines = self.get_log_lines(&path, limit, level);
 					let data = rustc_serialize::json::encode(&lines).unwrap();
 					RestReply{data, code:200}
 				},
@@ -247,15 +247,15 @@ impl Simulation
 	{
 		// TODO: Might want to also print events/sec, maybe at debug
 		let elapsed = (time::get_time() - self.start_time).num_milliseconds();
-		self.log(&LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}.{}s ({})",
+		self.log(LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}.{}s ({})",
 			elapsed/1000, elapsed%1000, exiting));	// TODO: eventually will need a friendly_duration_str fn
 			
 		let finger_print = self.finger_print.clone();
-		self.log(&LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", finger_print));
+		self.log(LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", finger_print));
 
 		let errors = self.store.check_descriptions();
 		for err in errors {
-			self.log(&LogLevel::Error, NO_COMPONENT, &err);
+			self.log(LogLevel::Error, NO_COMPONENT, &err);
 		}
 	}
 	
@@ -272,10 +272,10 @@ impl Simulation
 			
 			// TODO: If we use speculative execution we'll need to be careful not to do
 			// anything wrong when REST is being used. Maybe just disable speculation.
-			if self.should_log(&LogLevel::Excessive, NO_COMPONENT) {
+			if self.should_log(LogLevel::Excessive, NO_COMPONENT) {
 				let path = self.components.path(e.to);
 				let num = self.event_num;
-				self.log(&LogLevel::Excessive, NO_COMPONENT, &format!("dispatching #{} '{}' to {}", num, e.event.name, path));
+				self.log(LogLevel::Excessive, NO_COMPONENT, &format!("dispatching #{} '{}' to {}", num, e.event.name, path));
 			}
 			ids.push(e.to);
 			
@@ -368,7 +368,7 @@ impl Simulation
 	
 	fn schedule_init_stage(&mut self, stage: i32)
 	{
-		self.log(&LogLevel::Info, NO_COMPONENT, &format!("initializing components at stage {}", stage));
+		self.log(LogLevel::Info, NO_COMPONENT, &format!("initializing components at stage {}", stage));
 		let name = format!("init {}", stage);
 		for i in 0..self.event_senders.len() {
 			if let Some(_) = self.event_senders[i] {
@@ -388,7 +388,7 @@ impl Simulation
 	{
 		// TODO: also need to persist these
 		for record in effects.logs.iter() {
-			self.log(&record.level, id, &record.message);
+			self.log(record.level, id, &record.message);
 		}
 	}
 
@@ -397,7 +397,7 @@ impl Simulation
 		for (to, event, secs) in effects.events.drain(..) {
 			let time = self.add_secs(secs);
 //			let path = self.components.path(to);
-//			self.log(&LogLevel::Info, NO_COMPONENT, &format!("scheduling {} to {} at {:.3}", event.name, path, secs));
+//			self.log(LogLevel::Info, NO_COMPONENT, &format!("scheduling {} to {} at {:.3}", event.name, path, secs));
 			self.schedule(event, to, time);
 		}
 	}
@@ -435,7 +435,7 @@ impl Simulation
 
 	// TODO: We'll need a logger to write to a file or something (the store doesn't seem
 	// like a great place because we need to record stuff with a fair amount of structure).
-	fn log(&mut self, level: &LogLevel, id: ComponentID, message: &str)
+	fn log(&mut self, level: LogLevel, id: ComponentID, message: &str)
 	{
 		if self.should_log(level, id) {
 			let t = (self.current_time.0 as f64)/self.config.time_units;
@@ -443,20 +443,20 @@ impl Simulation
 			let path = self.logged_path(id);
 			if self.config.colorize {
 				let begin_escape = match level {
-					&LogLevel::Error	=> &self.config.error_escape_code,
-					&LogLevel::Warning	=> &self.config.warning_escape_code,
-					&LogLevel::Info		=> &self.config.info_escape_code,
-					&LogLevel::Debug	=> &self.config.debug_escape_code,
-					&LogLevel::Excessive=> &self.config.excessive_escape_code,
+					LogLevel::Error	=> &self.config.error_escape_code,
+					LogLevel::Warning	=> &self.config.warning_escape_code,
+					LogLevel::Info		=> &self.config.info_escape_code,
+					LogLevel::Debug	=> &self.config.debug_escape_code,
+					LogLevel::Excessive=> &self.config.excessive_escape_code,
 				};
 				print!("{0}{1:.2$}   {3} {4}{5}\n", begin_escape, t, self.precision, path, message, end_escape());
 			} else {
 				let prefix = match level {
-					&LogLevel::Error	=> "error",
-					&LogLevel::Warning	=> "warn ",
-					&LogLevel::Info		=> "info ",
-					&LogLevel::Debug	=> "debug",
-					&LogLevel::Excessive=> "exces",
+					LogLevel::Error	=> "error",
+					LogLevel::Warning	=> "warn ",
+					LogLevel::Info		=> "info ",
+					LogLevel::Debug	=> "debug",
+					LogLevel::Excessive=> "exces",
 				};
 				print!("{0:.1$}  {2} {3}  {4}\n", t, self.precision, prefix, path, message);
 			}
@@ -465,7 +465,7 @@ impl Simulation
 		if !self.config.address.is_empty() {
 			let time = (self.current_time.0 as f64)/self.config.time_units;
 			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
-			let level = format!("{}", level);
+//			let level = format!("{}", level);
 			let message = message.to_string();
 			let line = LogLine{time, path, level, message};
 			self.log_lines.push(line);
@@ -487,19 +487,19 @@ impl Simulation
 		}
 	}
 	
-	fn should_log(&self, level: &LogLevel, id: ComponentID) -> bool
+	fn should_log(&self, level: LogLevel, id: ComponentID) -> bool
 	{
 		if !self.config.log_levels.is_empty() {	// short circuit some work if we have no overrides
 			let name = if id == NO_COMPONENT {"simulation"} else {&self.components.get(id).name};
 			
 			for (pattern, clevel) in self.config.log_levels.iter() {
 				if pattern.matches(name) {
-					return *level <= *clevel
+					return level <= *clevel
 				}
 			}
 		}
 
-		*level <= self.config.log_level
+		level <= self.config.log_level
 	}
 	
 	fn add_secs(&self, secs: f64) -> Time
@@ -512,12 +512,12 @@ impl Simulation
 		}
 	}
 
-	fn get_log_lines(&self, path: &glob::Pattern, limit: usize, level: &str) -> VecDeque<&LogLine>
+	fn get_log_lines(&self, path: &glob::Pattern, limit: usize, level: LogLevel) -> VecDeque<&LogLine>
 	{
 		let mut result = VecDeque::new();
 		
 		for line in self.log_lines.iter().rev() {
-			if line.level == level && path.matches(&line.path) {
+			if line.level <= level && path.matches(&line.path) {
 				result.push_front(line);
 				if result.len() >= limit {
 					break;
@@ -588,7 +588,7 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 
 enum RestCommand
 {
-	GetLog(glob::Pattern, usize, String),
+	GetLog(glob::Pattern, usize, LogLevel),
 	GetTime,
 	GetTimePrecision,
 	SetTime(f64),
@@ -605,7 +605,7 @@ struct LogLine
 {
 	time: f64,
 	path: String,
-	level: String,
+	level: LogLevel,
 	message: String,
 }
 
@@ -625,8 +625,8 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 		rouille::start_server(&addr, move |request| {
 		router!(request,
 			(GET) (/log/{path: String}/{limit: usize}/{level: String}) => {
-				if let Some(level) = LogLevel::sanitize(&level) {
-					if let Ok(path) = glob::Pattern::new(&path) {
+				if let Ok(path) = glob::Pattern::new(&path) {
+					if let Some(level) = LogLevel::with_str(&level) {
 						handle_endpoint(RestCommand::GetLog(path, limit, level), &tx_command, &rx_reply)
 					} else {
 						rouille::Response::empty_400()
