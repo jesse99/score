@@ -3,6 +3,7 @@ use components::*;
 use config::*;
 use effector::*;
 use event::*;
+use glob;
 use logging::*;
 use rand::{Rng, SeedableRng, XorShiftRng};
 use rouille;
@@ -14,6 +15,7 @@ use thread_data::*;
 use std::cmp::{max, min, Ordering};
 use std::collections::BinaryHeap;
 use std::collections::BTreeMap;
+use std::collections::VecDeque;
 use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::{mpsc, Mutex};
@@ -172,8 +174,9 @@ impl Simulation
 		let mut exiting = self.init_components();
 		for command in rx_command.iter() {
 			let reply = match command {
-				RestCommand::GetLog => {
-					let data = rustc_serialize::json::encode(&self.log_lines).unwrap();
+				RestCommand::GetLog(path, limit, level) => {
+					let lines = self.get_log_lines(&path, limit, &level);
+					let data = rustc_serialize::json::encode(&lines).unwrap();
 					RestReply{data, code:200}
 				},
 				RestCommand::GetTime => {
@@ -449,11 +452,11 @@ impl Simulation
 				print!("{0}{1:.2$}   {3} {4}{5}\n", begin_escape, t, self.precision, path, message, end_escape());
 			} else {
 				let prefix = match level {
-					&LogLevel::Error	=> "Error",
-					&LogLevel::Warning	=> "Warn ",
-					&LogLevel::Info		=> "Info ",
-					&LogLevel::Debug	=> "Debug",
-					&LogLevel::Excessive=> "Exces",
+					&LogLevel::Error	=> "error",
+					&LogLevel::Warning	=> "warn ",
+					&LogLevel::Info		=> "info ",
+					&LogLevel::Debug	=> "debug",
+					&LogLevel::Excessive=> "exces",
 				};
 				print!("{0:.1$}  {2} {3}  {4}\n", t, self.precision, prefix, path, message);
 			}
@@ -462,7 +465,7 @@ impl Simulation
 		if !self.config.address.is_empty() {
 			let time = (self.current_time.0 as f64)/self.config.time_units;
 			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
-			let level = format!("{:?}", level);
+			let level = format!("{}", level);
 			let message = message.to_string();
 			let line = LogLine{time, path, level, message};
 			self.log_lines.push(line);
@@ -507,6 +510,22 @@ impl Simulation
 			let delta = secs*self.config.time_units;
 			Time(self.current_time.0 + (delta as i64))
 		}
+	}
+
+	fn get_log_lines(&self, path: &glob::Pattern, limit: usize, level: &str) -> VecDeque<&LogLine>
+	{
+		let mut result = VecDeque::new();
+		
+		for line in self.log_lines.iter().rev() {
+			if line.level == level && path.matches(&line.path) {
+				result.push_front(line);
+				if result.len() >= limit {
+					break;
+				}
+			}
+		}
+		
+		result
 	}
 }
 
@@ -569,7 +588,7 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 
 enum RestCommand
 {
-	GetLog,
+	GetLog(glob::Pattern, usize, String),
 	GetTime,
 	GetTimePrecision,
 	SetTime(f64),
@@ -592,7 +611,7 @@ struct LogLine
 
 // For debugging can do stuff like:
 //    curl http://127.0.0.1:9000/log/all
-//    curl -X PUT http://127.0.0.1:9000/set/time/10
+//    curl -X POST http://127.0.0.1:9000/time/10
 fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: mpsc::Receiver<RestReply>)
 {
 	let addr = address.to_string();
@@ -605,8 +624,16 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 	thread::spawn(move|| {
 		rouille::start_server(&addr, move |request| {
 		router!(request,
-			(GET) (/log/all) => {
-				handle_endpoint(RestCommand::GetLog, &tx_command, &rx_reply)
+			(GET) (/log/{path: String}/{limit: usize}/{level: String}) => {
+				if let Some(level) = LogLevel::sanitize(&level) {
+					if let Ok(path) = glob::Pattern::new(&path) {
+						handle_endpoint(RestCommand::GetLog(path, limit, level), &tx_command, &rx_reply)
+					} else {
+						rouille::Response::empty_400()
+					}
+				} else {
+					rouille::Response::empty_400()
+				}
 			},
 			
 			(GET) (/time) => {

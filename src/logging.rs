@@ -1,5 +1,7 @@
 #![macro_use]
 
+use std::fmt;
+
 #[derive(Debug, PartialEq, PartialOrd)]
 pub enum LogLevel
 {
@@ -14,6 +16,39 @@ pub enum LogLevel
 pub fn log_levels() -> &'static str
 {
 	"error, warning, info, debug, or excessive"
+}
+
+impl LogLevel
+{
+	pub fn sanitize(text: &str) -> Option<String>
+	{
+		let text = text.to_lowercase();
+		match text.to_lowercase().as_ref() {
+			"error" => Some(text),
+			"warning" => Some(text),
+			"info" => Some(text),
+			"debug" => Some(text),
+			"excessive" => Some(text),
+			_ => None,
+		}
+	}
+}
+
+impl fmt::Display for LogLevel {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		// Write strictly the first element into the supplied output
+		// stream: `f`. Returns `fmt::Result` which indicates whether the
+		// operation succeeded or failed. Note that `write!` uses syntax which
+		// is very similar to `println!`.
+		
+		match self {
+		&LogLevel::Error => write!(f, "{}", "error"),
+		&LogLevel::Warning => write!(f, "{}", "warning"),
+		&LogLevel::Info => write!(f, "{}", "info"),
+		&LogLevel::Debug => write!(f, "{}", "debug"),
+		&LogLevel::Excessive => write!(f, "{}", "excessive"),
+	}
+	}
 }
 
 /// Generic macro that calls the `Effector` log method. More often you'll use one of
