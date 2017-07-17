@@ -49,6 +49,11 @@ fn compute_error(text: &str) -> f64
 	100.0*(errors as f64)/(count as f64)
 }
 
+struct StatsComponent
+{
+	err_percent: FloatValue,
+}
+
 fn sender_thread(data: ThreadData, next_component: ComponentID)
 {
 	thread::spawn(move || {
@@ -122,7 +127,7 @@ fn mangler_thread(mut data: ThreadData, error_rate: u32, next_component: Compone
 	});
 }
 
-fn stats_thread(data: ThreadData, next_component: ComponentID)
+fn stats_thread(data: ThreadData, this: StatsComponent, next_component: ComponentID)
 {
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
@@ -136,7 +141,7 @@ fn stats_thread(data: ThreadData, next_component: ComponentID)
 				let text = event.expect_payload::<String>("text should have a String payload");
 				let err = compute_error(text);
 				log_info!(effector, "found {:.1}% error rate", err);
-				effector.set_float_data("error (%)", err);
+				set_value!(effector, this.err_percent = err);
 
 				let event = Event::with_payload("text", text.to_string());
 				effector.schedule_immediately(event, next_component);
@@ -221,8 +226,10 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	// TODO: these should be grouped within some sort of locatable component
 	// Sender just sends messages down.
 	// Manglers mangle inbound messages and send them up. Manglers send downward messages to outbound.
+	let stats = StatsComponent{err_percent: FloatValue{}};
+
 	let receiver_id = sim.add_active_component("receiver", world_id, receiver_thread);
-	let stats_id = sim.add_active_component("stats", world_id, |data| stats_thread(data, receiver_id));
+	let stats_id = sim.add_active_component("stats", world_id, |data| stats_thread(data, stats, receiver_id));
 	let mangler_id = sim.add_active_component("mangler", world_id, |data| mangler_thread(data, local.error_rate, stats_id));
 	let _ = sim.add_active_component("sender", world_id, |data| sender_thread(data, mangler_id));
 	
