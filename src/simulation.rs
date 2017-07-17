@@ -549,9 +549,9 @@ impl Simulation
 	{
 		assert!(secs >= 0.0);
 		
-		let delta = secs*self.config.time_units;
-		if delta > 0.0 {
-			Time(self.current_time.0 + (delta as i64))
+		let delta = (secs*self.config.time_units) as i64;
+		if delta > 0 {
+			Time(self.current_time.0 + delta)
 		} else {
 			Time(self.current_time.0 + 1)	// event dispatch should always take a bit of time so that all the effects at a time can be applied all at once
 		}
