@@ -28,23 +28,23 @@ pub struct Store
 
 pub trait ReadableStore
 {
-	fn has_data(&self, key: &str) -> bool;
+	fn contains(&self, key: &str) -> bool;
 
-	fn get_int_data(&self, key: &str) -> i64;
-	fn get_float_data(&self, key: &str) -> f64;
-	fn get_string_data(&self, key: &str) -> String;
+	fn get_int(&self, key: &str) -> i64;
+	fn get_float(&self, key: &str) -> f64;
+	fn get_string(&self, key: &str) -> String;
 }
 
 pub trait WriteableStore
 {
-	fn set_int_data(&mut self, key: &str, value: i64, time: Time);
-	fn set_float_data(&mut self, key: &str, value: f64, time: Time);
-	fn set_string_data(&mut self, key: &str, value: &str, time: Time);
+	fn set_int(&mut self, key: &str, value: i64, time: Time);
+	fn set_float(&mut self, key: &str, value: f64, time: Time);
+	fn set_string(&mut self, key: &str, value: &str, time: Time);
 }
 
 impl ReadableStore for Store
 {
-	fn has_data(&self, key: &str) -> bool
+	fn contains(&self, key: &str) -> bool
 	{
 		if let Some(_) = self.int_data.get(key) {
 			return true
@@ -58,7 +58,7 @@ impl ReadableStore for Store
 		false
 	}
 
-	fn get_int_data(&self, key: &str) -> i64
+	fn get_int(&self, key: &str) -> i64
 	{
 		match self.int_data.get(key) {
 			Some(ref value) => return value.1,
@@ -66,7 +66,7 @@ impl ReadableStore for Store
 		}
 	}
 
-	fn get_float_data(&self, key: &str) -> f64
+	fn get_float(&self, key: &str) -> f64
 	{
 		match self.float_data.get(key) {
 			Some(ref value) => return value.1,
@@ -74,7 +74,7 @@ impl ReadableStore for Store
 		}
 	}
 
-	fn get_string_data(&self, key: &str) -> String
+	fn get_string(&self, key: &str) -> String
 	{
 		match self.string_data.get(key) {
 			Some(ref value) => return value.1.clone(),
@@ -85,7 +85,7 @@ impl ReadableStore for Store
 
 impl WriteableStore for Store
 {
-	fn set_int_data(&mut self, key: &str, value: i64, time: Time)
+	fn set_int(&mut self, key: &str, value: i64, time: Time)
 	{
 		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.int_data.insert(key.to_string(), (time, value)) {
@@ -95,7 +95,7 @@ impl WriteableStore for Store
 		}
 	}
 	
-	fn set_float_data(&mut self, key: &str, value: f64, time: Time)
+	fn set_float(&mut self, key: &str, value: f64, time: Time)
 	{
 		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.float_data.insert(key.to_string(), (time, value)) {
@@ -105,7 +105,7 @@ impl WriteableStore for Store
 		}
 	}
 		
-	fn set_string_data(&mut self, key: &str, value: &str, time: Time)
+	fn set_string(&mut self, key: &str, value: &str, time: Time)
 	{
 		assert!(!key.is_empty(), "key should not be empty");
 		if let Some(old) = self.string_data.insert(key.to_string(), (time, value.to_string())) {
@@ -145,15 +145,15 @@ mod tests
 	fn mising_key()
 	{
 		let store = Store::new();
-		store.get_int_data("foo");
+		store.get_int("foo");
 	}
 	
 	#[test]
 	fn has_value()
 	{
 		let mut store = Store::new();
-		store.set_int_data("weight", 120, Time(0));
-		let weight = store.get_int_data("weight");
+		store.set_int("weight", 120, Time(0));
+		let weight = store.get_int("weight");
 		assert_eq!(weight, 120);
 	}
 	
@@ -161,9 +161,9 @@ mod tests
 	fn has_new_value()
 	{
 		let mut store = Store::new();
-		store.set_int_data("weight", 120, Time(0));
-		store.set_int_data("weight", 130, Time(1));
-		let weight = store.get_int_data("weight");
+		store.set_int("weight", 120, Time(0));
+		store.set_int("weight", 130, Time(1));
+		let weight = store.get_int("weight");
 		assert_eq!(weight, 130);
 	}
 	
@@ -172,7 +172,7 @@ mod tests
 	fn changing_value()
 	{
 		let mut store = Store::new();
-		store.set_int_data("weight", 120, Time(1));
-		store.set_int_data("weight", 130, Time(1));
+		store.set_int("weight", 120, Time(1));
+		store.set_int("weight", 130, Time(1));
 	}
 }

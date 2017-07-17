@@ -72,18 +72,18 @@ pub fn handle_location_event(id: ComponentID, state: &SimState, event: &Event, e
 	if ename == "set-location" {
 		let loc = event.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
 		log_info!(effector, "setting location to {:.1}, {:.1}", loc.0, loc.1);
-		effector.set_float_data("display-location-x", loc.0);
-		effector.set_float_data("display-location-y", loc.1);
+		effector.set_float("display-location-x", loc.0);
+		effector.set_float("display-location-y", loc.1);
 		
 	} else if ename == "offset-location" {
 		let path = state.components.path(id);
-		let x = state.store.get_float_data(&(path.clone() + ".display-location-x"));
-		let y = state.store.get_float_data(&(path + ".display-location-y"));
+		let x = state.store.get_float(&(path.clone() + ".display-location-x"));
+		let y = state.store.get_float(&(path + ".display-location-y"));
 
 		let loc = event.expect_payload::<(f64, f64)>(&format!("component {} offset-location should have an (f64, f64) payload", cname));
 		log_info!(effector, "setting location to {:.1}, {:.1}", x+loc.0, y+loc.1);
-		effector.set_float_data("display-location-x", x+loc.0);
-		effector.set_float_data("display-location-y", y+loc.1);
+		effector.set_float("display-location-x", x+loc.0);
+		effector.set_float("display-location-y", y+loc.1);
 		
 	} else {
 		panic!("handle_location_event doesn't know how to handle {}", ename);

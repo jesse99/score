@@ -211,8 +211,8 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let world_id = sim.add_component("world", NO_COMPONENT);
 	{
 	let store = Arc::get_mut(&mut sim.store).unwrap();
-		store.set_float_data("world.display-size-x", WIDTH*(2.0 + local.num_repeaters as f64), Time(0));
-		store.set_float_data("world.display-size-y", HEIGHT, Time(0));
+		store.set_float("world.display-size-x", WIDTH*(2.0 + local.num_repeaters as f64), Time(0));
+		store.set_float("world.display-size-y", HEIGHT, Time(0));
 	}
 
 	// TODO: these should be grouped within some sort of locatable component

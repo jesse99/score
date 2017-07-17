@@ -195,19 +195,19 @@ impl Simulation
 				},
 				RestCommand::SetFloatState(path, value) => {
 					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
-					store.set_float_data(&path, value, self.current_time);
+					store.set_float(&path, value, self.current_time);
 					let data = "\"ok\"".to_string();
 					RestReply{data, code:200}
 				}
 				RestCommand::SetIntState(path, value) => {
 					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
-					store.set_int_data(&path, value, self.current_time);
+					store.set_int(&path, value, self.current_time);
 					let data = "\"ok\"".to_string();
 					RestReply{data, code:200}
 				}
 				RestCommand::SetStringState(path, value) => {
 					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
-					store.set_string_data(&path, &value, self.current_time);
+					store.set_string(&path, &value, self.current_time);
 					let data = "\"ok\"".to_string();
 					RestReply{data, code:200}
 				}
@@ -364,7 +364,7 @@ impl Simulation
 		
 		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 		let key = self.components.path(id) + ".removed";
-		store.set_int_data(&key, 1, self.current_time);
+		store.set_int(&key, 1, self.current_time);
 		}
 		
 		let children = self.components.get(id).children.clone();
@@ -432,19 +432,19 @@ impl Simulation
 		store.int_data.reserve(effects.store.int_data.len());
 		for (key, value) in effects.store.int_data.iter() {
 			let key = format!("{}.{}", path, key);
-			store.set_int_data(&key, value.1, self.current_time);
+			store.set_int(&key, value.1, self.current_time);
 		}
 		
 		store.float_data.reserve(effects.store.float_data.len());
 		for (key, value) in effects.store.float_data.iter() {
 			let key = format!("{}.{}", path, key);
-			store.set_float_data(&key, value.1, self.current_time);
+			store.set_float(&key, value.1, self.current_time);
 		}
 		
 		store.string_data.reserve(effects.store.string_data.len());
 		for (key, value) in effects.store.string_data.iter() {
 			let key = format!("{}.{}", path, key);
-			store.set_string_data(&key, &value.1, self.current_time);
+			store.set_string(&key, &value.1, self.current_time);
 		}
 	}
 

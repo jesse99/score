@@ -22,7 +22,7 @@ impl IntValue
 	/// This is normally called via the set_value! macro.
 	pub fn set_value(&self, effector: &mut Effector, name: &str, value: i64)
 	{
-		effector.set_int_data(name, value);
+		effector.set_int(name, value);
 	}
 }
 
@@ -31,7 +31,7 @@ impl FloatValue
 	/// This is normally called via the set_value! macro.
 	pub fn set_value(&self, effector: &mut Effector, name: &str, value: f64)
 	{
-		effector.set_float_data(name, value);
+		effector.set_float(name, value);
 	}
 }
 
@@ -40,7 +40,7 @@ impl StringValue
 	/// This is normally called via the set_value! macro.
 	pub fn set_value(&self, effector: &mut Effector, name: &str, value: &str)
 	{
-		effector.set_string_data(name, value);
+		effector.set_string(name, value);
 	}
 }
 

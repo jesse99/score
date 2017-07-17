@@ -23,6 +23,6 @@ impl SimState
 	{
 		let store:&Store = self.store.borrow();
 		let key = self.components.path(id) + ".removed";
-		store.has_data(&key)
+		store.contains(&key)
 	}
 }

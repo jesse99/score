@@ -77,22 +77,22 @@ impl Effector
 	/// Use these methods to write out new values for data associated with the component.
 	/// Note that when the data is written to the main store the name will be appended
 	/// onto the component's path.
-	pub fn set_int_data(&mut self, name: &str, value: i64)
+	pub fn set_int(&mut self, name: &str, value: i64)
 	{
 		assert!(!name.is_empty(), "name should not be empty");
-		self.store.set_int_data(name, value, Time(0));
+		self.store.set_int(name, value, Time(0));
 	}
 	
-	pub fn set_float_data(&mut self, name: &str, value: f64)
+	pub fn set_float(&mut self, name: &str, value: f64)
 	{
 		assert!(!name.is_empty(), "name should not be empty");
-		self.store.set_float_data(name, value, Time(0));
+		self.store.set_float(name, value, Time(0));
 	}
 		
-	pub fn set_string_data(&mut self, name: &str, value: &str)
+	pub fn set_string(&mut self, name: &str, value: &str)
 	{
 		assert!(!name.is_empty(), "name should not be empty");
-		self.store.set_string_data(name, value, Time(0));
+		self.store.set_string(name, value, Time(0));
 	}
 }
 
