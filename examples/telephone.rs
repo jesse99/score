@@ -4,7 +4,6 @@
 //! It's a simple simulation but structured similarly to many more complex simulations.
 #[macro_use]
 extern crate clap;
-//extern crate glob;
 extern crate rand;
 #[macro_use]
 extern crate score;
@@ -13,8 +12,6 @@ use clap::{App, ArgMatches};
 use rand::Rng;
 use score::*;
 use std::sync::Arc;
-//use std::collections::HashMap;
-//use std::f64::INFINITY;
 use std::fmt::Display;
 use std::io::{Write, stderr};
 use std::process;
@@ -43,6 +40,13 @@ impl LocalConfig
 			error_rate: 100,
 		}
 	}
+}
+
+fn compute_error(text: &str) -> f64
+{
+	let count = text.chars().count();
+	let errors = text.chars().fold(0, |sum, c| if c == '-' {sum+1} else {sum});
+	100.0*(errors as f64)/(count as f64)
 }
 
 fn sender_thread(data: ThreadData, next_component: ComponentID)
@@ -118,6 +122,35 @@ fn mangler_thread(mut data: ThreadData, error_rate: u32, next_component: Compone
 	});
 }
 
+fn stats_thread(data: ThreadData, next_component: ComponentID)
+{
+	thread::spawn(move || {
+		process_events!(data, event, state, effector,
+			"init 0" => {
+				handle_location_event(data.id, &state, &event, &mut effector);
+				let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));	// TODO: this isn't right
+				effector.schedule_immediately(event, data.id);
+				effector.set_description("error (%)", "Percentage of the text that has errors.");
+			},
+			"text" => {
+				let text = event.expect_payload::<String>("text should have a String payload");
+				let err = compute_error(text);
+				log_info!(effector, "found {:.1}% error rate", err);
+				effector.set_float_data("error (%)", err);
+
+				let event = Event::with_payload("text", text.to_string());
+				effector.schedule_immediately(event, next_component);
+			},
+			"set-location" => {
+				handle_location_event(data.id, &state, &event, &mut effector);
+			},
+			"offset-location" => {
+				handle_location_event(data.id, &state, &event, &mut effector);
+			}
+		);
+	});
+}
+
 fn receiver_thread(data: ThreadData)
 {
 	thread::spawn(move || {
@@ -129,11 +162,9 @@ fn receiver_thread(data: ThreadData)
 			},
 			"text" => {
 				let text = event.expect_payload::<String>("text should have a String payload");
-				
-				let count = text.chars().count();
-				let errors = text.chars().fold(0, |sum, c| if c == '-' {sum+1} else {sum});
-				log_info!(effector, "{:.1}% error rate", 100.0*(errors as f64)/(count as f64));
-				if errors == count {
+				let err = compute_error(&text);
+				log_info!(effector, "{:.1}% error rate", err);
+				if err > 99.0 {
 					effector.exit();
 				}
 			},
@@ -187,10 +218,12 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 		store.set_float_data("world.display-size-y", HEIGHT, Time(0));
 	}
 
+	// TODO: these should be grouped within some sort of locatable component
 	// Sender just sends messages down.
 	// Manglers mangle inbound messages and send them up. Manglers send downward messages to outbound.
 	let receiver_id = sim.add_active_component("receiver", world_id, receiver_thread);
-	let mangler_id = sim.add_active_component("mangler", world_id, |data| mangler_thread(data, local.error_rate, receiver_id));
+	let stats_id = sim.add_active_component("stats", world_id, |data| stats_thread(data, receiver_id));
+	let mangler_id = sim.add_active_component("mangler", world_id, |data| mangler_thread(data, local.error_rate, stats_id));
 	let _ = sim.add_active_component("sender", world_id, |data| sender_thread(data, mangler_id));
 	
 	sim
