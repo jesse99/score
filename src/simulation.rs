@@ -94,9 +94,6 @@ impl Simulation
 		self.max_path_len = max(path.len(), self.max_path_len);
 		self.event_senders.push(None);
 		self.effector_receivers.push(None);
-		if parent == NO_COMPONENT {
-			self.init_root();
-		}
 		id
 	}
 	
@@ -130,9 +127,6 @@ impl Simulation
 		
 		let rng = new_rng(self.config.seed, id.0 as u32);
 		thread(ThreadData::new(id, rxd, txe, rng));
-		if parent == NO_COMPONENT {
-			self.init_root();
-		}
 		id
 	}
 	
@@ -254,16 +248,6 @@ impl Simulation
 		exiting
 	}
 	
-	fn init_root(&mut self)
-	{
-		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
-		store.set_description("display-origin-x", "The minimum x coordinate of components. Defaults to 0.");
-		store.set_description("display-origin-y", "The minimum y coordinate of components. Defaults to 0.");
-		store.set_description("display-size-x", "Number of units in the x direction. Defaults to 1.");
-		store.set_description("display-size-y", "Number of units in the y direction. Defaults to 1.");
-		store.set_description("display-size-units", "Length units. Defaults to meters.");
-	}
-	
 	fn run_time_slice(&mut self) -> &'static str
 	{
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
@@ -291,11 +275,6 @@ impl Simulation
 			
 		let finger_print = self.finger_print.clone();
 		self.log(LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", finger_print));
-
-		let errors = self.store.check_descriptions();
-		for err in errors {
-			self.log(LogLevel::Error, NO_COMPONENT, &err);
-		}
 	}
 	
 	fn dispatch_events(&mut self) -> bool
@@ -450,13 +429,6 @@ impl Simulation
 		let path = self.components.path(id);
 		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 
-		// descriptions
-		for (key, value) in effects.store.descriptions.iter() {
-			let key = format!("{}.{}", path, key);
-			store.set_description(&key, value);
-		}
-		
-		// data
 		store.int_data.reserve(effects.store.int_data.len());
 		for (key, value) in effects.store.int_data.iter() {
 			let key = format!("{}.{}", path, key);

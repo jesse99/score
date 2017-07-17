@@ -59,28 +59,17 @@ macro_rules! process_events
 
 /// Helper for components that want to maintain an (x, y) position. This will handle the
 /// following events:
-/// * "init 0" - Set the description for optional "display-color" and "display-description" and
-/// "display-short-name" strings, and "display-location-x" and "display-location-y" float data.
 /// * "set-location" - Sets the data using an (f64, f64) event payload.
 /// * "offset-location" - Add values to the data using an (f64, f64) event payload.
 /// Note that this will panic if sent an event not listed above.
 ///
-/// Note that `Simulation` will add "display-origin-x", "display-size-x", "display-origin-y"
-/// "display-size-y", and "display-size-units" descriptions to the root component. If origin
-/// is missing GUIs should assume zero, if size is missing GUIs should assume 1.0, if units
-/// are missing then GUIs should assume meters.
+/// If origin is missing GUIs should assume zero, if size is missing GUIs should assume
+/// 1.0, if units are missing then GUIs should assume meters.
 pub fn handle_location_event(id: ComponentID, state: &SimState, event: &Event, effector: &mut Effector)
 {
 	let cname = &(*state.components).get(id).name;
 	let ename = &event.name;
-	if ename == "init 0" {
-		effector.set_description("display-color", "Optional X11 color name from CSS3.");
-		effector.set_description("display-description", "Optional text to tag the component with.");
-		effector.set_description("display-location-x", "The x coordinate of the component.");
-		effector.set_description("display-location-y", "The y coordinate of the component.");
-		effector.set_description("display-short-name", "Optional abbreviated component name.");
-		
-	} else if ename == "set-location" {
+	if ename == "set-location" {
 		let loc = event.expect_payload::<(f64, f64)>(&format!("component {} set-location should have an (f64, f64) payload", cname));
 		log_info!(effector, "setting location to {:.1}, {:.1}", loc.0, loc.1);
 		effector.set_float_data("display-location-x", loc.0);

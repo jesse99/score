@@ -74,12 +74,6 @@ impl Effector
 		self.removed = true;
 	}
 	
-	/// This needs to be called for all the data components persist.
-	pub fn set_description(&mut self, name: &str, description: &str)
-	{
-		self.store.set_description(name, description);
-	}
-	
 	/// Use these methods to write out new values for data associated with the component.
 	/// Note that when the data is written to the main store the name will be appended
 	/// onto the component's path.

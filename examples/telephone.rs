@@ -67,7 +67,6 @@ fn sender_thread(data: ThreadData, next_component: ComponentID)
 				// Effector. This prevents spooky action at a distance and also allows
 				// component threads to execute in parallel.
 				log_info!(effector, "init");
-				handle_location_event(data.id, &state, &event, &mut effector);
 				let event = Event::with_payload("set-location", (WIDTH/2.0, HEIGHT/2.0));
 				effector.schedule_immediately(event, data.id);
 			
@@ -98,7 +97,6 @@ fn mangler_thread(mut data: ThreadData, error_rate: u32, next_component: Compone
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
 			"init 0" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
 				let event = Event::with_payload("set-location", (WIDTH + WIDTH/2.0, HEIGHT/2.0));
 				effector.schedule_immediately(event, data.id);
 			},
@@ -132,10 +130,8 @@ fn stats_thread(data: ThreadData, this: StatsComponent, next_component: Componen
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
 			"init 0" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
 				let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));	// TODO: this isn't right
 				effector.schedule_immediately(event, data.id);
-				effector.set_description("error (%)", "Percentage of the text that has errors.");
 			},
 			"text" => {
 				let text = event.expect_payload::<String>("text should have a String payload");
@@ -161,7 +157,6 @@ fn receiver_thread(data: ThreadData)
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
 			"init 0" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
 				let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));
 				effector.schedule_immediately(event, data.id);
 			},
@@ -216,9 +211,6 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let world_id = sim.add_component("world", NO_COMPONENT);
 	{
 	let store = Arc::get_mut(&mut sim.store).unwrap();
-		store.set_description("world.display-size-x", "Display width used by GUIs.");
-		store.set_description("world.display-size-y", "Display height used by GUIs.");
-
 		store.set_float_data("world.display-size-x", WIDTH*(2.0 + local.num_repeaters as f64), Time(0));
 		store.set_float_data("world.display-size-y", HEIGHT, Time(0));
 	}

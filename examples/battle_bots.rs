@@ -153,8 +153,6 @@ fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut Box<Rng + Send>, sta
 	// The only way components can affect the simulation state is through an
 	// Effector. This prevents spooky action at a distance and also allows
 	// component threads to execute in parallel.
-	effector.set_description("energy", "Amount of health the bot has.");	// all data in the store needs a description
-	handle_location_event(id, state, event, effector);
 	randomize_location(&local, rng, id, effector);
 
 	let event = Event::new("timer");
