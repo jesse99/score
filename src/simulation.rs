@@ -14,9 +14,7 @@ use store::*;
 use thread_data::*;
 use std::cmp::{max, min, Ordering};
 use std::collections::BinaryHeap;
-use std::collections::BTreeMap;
 use std::collections::VecDeque;
-use std::f64::EPSILON;
 use std::sync::Arc;
 use std::sync::{mpsc, Mutex};
 use std::thread;
@@ -27,7 +25,7 @@ use time;
 /// or there are no events left to process.
 pub struct Simulation
 {
-	store: Arc<Store>,
+	pub store: Arc<Store>,				// TODO: can we make this private?
 	components: Arc<Components>,	// Components and vectors are indexed by ComponentID
 	event_senders: Vec<Option<mpsc::Sender<(Event, SimState)>>>,
 	effector_receivers: Vec<Option<mpsc::Receiver<Effector>>>,
@@ -92,9 +90,13 @@ impl Simulation
 		let components = Arc::get_mut(&mut self.components).unwrap();
 		components.append(id, component, parent);
 		}
-		self.max_path_len = max(self.components.path(id).len(), self.max_path_len);
+		let path = self.components.path(id);
+		self.max_path_len = max(path.len(), self.max_path_len);
 		self.event_senders.push(None);
 		self.effector_receivers.push(None);
+		if parent == NO_COMPONENT {
+			self.init_root();
+		}
 		id
 	}
 	
@@ -121,12 +123,16 @@ impl Simulation
 		let components = Arc::get_mut(&mut self.components).unwrap();
 		components.append(id, component, parent);
 		}
-		self.max_path_len = max(self.components.path(id).len(), self.max_path_len);
+		let path = self.components.path(id);
+		self.max_path_len = max(path.len(), self.max_path_len);
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
 		let rng = new_rng(self.config.seed, id.0 as u32);
 		thread(ThreadData::new(id, rxd, txe, rng));
+		if parent == NO_COMPONENT {
+			self.init_root();
+		}
 		id
 	}
 	
@@ -248,6 +254,16 @@ impl Simulation
 		exiting
 	}
 	
+	fn init_root(&mut self)
+	{
+		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
+		store.set_description("display-origin-x", "The minimum x coordinate of components. Defaults to 0.");
+		store.set_description("display-origin-y", "The minimum y coordinate of components. Defaults to 0.");
+		store.set_description("display-size-x", "Number of units in the x direction. Defaults to 1.");
+		store.set_description("display-size-y", "Number of units in the y direction. Defaults to 1.");
+		store.set_description("display-size-units", "Length units. Defaults to meters.");
+	}
+	
 	fn run_time_slice(&mut self) -> &'static str
 	{
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
@@ -317,11 +333,11 @@ impl Simulation
 		// before we apply them. That way components executing at t do not affect each other.
 		// It's less important to sort the side effects by component id but it does make stdout
 		// logging look a lot nicer.
-		let mut effects = BTreeMap::new();
+		let mut effects = Vec::with_capacity(ids.len());
 		for id in ids {
 			if let Some(ref rx) = self.effector_receivers[id.0] {
 				let e = rx.recv().expect(&format!("rx failed for id {}", id.0));	// TODO: use the timeout version and panic if it takes too long
-				effects.insert(id, e);
+				effects.push((id, e));
 			} else {
 				let c = self.components.get(id);
 				panic!("Failed to receive an effector from component {}", c.name);
@@ -329,16 +345,16 @@ impl Simulation
 		}
 		
 		let mut exit = false;
-		for (id, e) in effects.iter_mut() {
-			self.apply_logs(*id, e);
-			self.apply_events(e);
-			self.apply_stores(e, *id);
+		for (id, mut e) in effects.drain(..) {
+			self.apply_logs(id, &e);
+			self.apply_events(&mut e);
+			self.apply_stores(&e, id);
 			
 			if e.exit {
 				exit = true;
 			}
 			if e.removed {
-				self.remove_components(*id);
+				self.remove_components(id);
 			}
 		}
 		exit
@@ -404,6 +420,10 @@ impl Simulation
 	
 	fn schedule(&mut self, event: Event, to: ComponentID, time: Time)
 	{
+//		let path = self.components.path(to);
+//		let t = (time.0 as f64)/self.config.time_units;
+//		self.log(LogLevel::Debug, NO_COMPONENT, &format!("scheduling {} for {} to {:.3}", event.name, path, t));
+		
 		self.scheduled.push(ScheduledEvent{event, to, time});
 	}
 
@@ -417,7 +437,7 @@ impl Simulation
 
 	fn apply_events(&mut self, effects: &mut Effector)
 	{
-		for (to, event, secs) in effects.events.drain(..) {
+		for (to, event, secs) in effects.events.drain(..) {	// we drain because we want to move the event into our list of scheduled events
 			let time = self.add_secs(secs);
 //			let path = self.components.path(to);
 //			self.log(LogLevel::Info, NO_COMPONENT, &format!("scheduling {} to {} at {:.3}", event.name, path, secs));
@@ -527,11 +547,13 @@ impl Simulation
 	
 	fn add_secs(&self, secs: f64) -> Time
 	{
-		if secs == EPSILON {
-			Time(self.current_time.0 + 1)
-		} else {
-			let delta = secs*self.config.time_units;
+		assert!(secs >= 0.0);
+		
+		let delta = secs*self.config.time_units;
+		if delta > 0.0 {
 			Time(self.current_time.0 + (delta as i64))
+		} else {
+			Time(self.current_time.0 + 1)	// event dispatch should always take a bit of time so that all the effects at a time can be applied all at once
 		}
 	}
 
