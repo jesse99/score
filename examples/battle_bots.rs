@@ -1,6 +1,7 @@
 //! This example simulates a collection of battle bots with different behaviors, e.g.
 //! some of the bots flee from other bots and some are aggressive and attempt to attack
-//! other bots.
+//! other bots. This is a neat example but it's a bit atypical in that components have
+//! no structure and 
 #[macro_use]
 extern crate clap;
 extern crate glob;
@@ -42,7 +43,7 @@ impl LocalConfig
 	}
 }
 
-type ComponentThread = fn (LocalConfig, ThreadData) -> ();
+type ComponentThread = fn (LocalConfig, ThreadData, i32) -> ();
 
 // These events are handled by score's handle_location_event function.
 fn move_bot(id: ComponentID, effector: &mut Effector, x: f64, y: f64)
@@ -67,12 +68,12 @@ fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, id: Compon
 fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
 {
 	let p1 = state.components.path(id1);
-	let x1 = state.store.get_float_data(&(p1.clone() + ".location-x"));
-	let y1 = state.store.get_float_data(&(p1 + ".location-y"));
+	let x1 = state.store.get_float_data(&(p1.clone() + ".display-location-x"));
+	let y1 = state.store.get_float_data(&(p1 + ".display-location-y"));
 	
 	let p2 = state.components.path(id2);
-	let x2 = state.store.get_float_data(&(p2.clone() + ".location-x")) + delta.0;
-	let y2 = state.store.get_float_data(&(p2 + ".location-y")) + delta.1;
+	let x2 = state.store.get_float_data(&(p2.clone() + ".display-location-x")) + delta.0;
+	let y2 = state.store.get_float_data(&(p2 + ".display-location-y")) + delta.1;
 	
 	let x2 = x2.max(0.0).min(local.width);
 	let y2 = y2.max(0.0).min(local.height);
@@ -87,7 +88,7 @@ fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2
 fn is_bot(state: &SimState, id: ComponentID) -> bool
 {
 	let path = state.components.path(id);
-	let lpath = path.clone() + ".location-x";
+	let lpath = path.clone() + ".display-location-x";
 	let epath = path + ".energy";
 	state.store.has_data(&lpath) && state.store.get_int_data(&epath) > 0 && !state.was_removed(id)
 }
@@ -160,10 +161,11 @@ fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut Box<Rng + Send>, sta
 	let delay = 0.1 + 0.9*rng.next_f64();
 	effector.schedule_after_secs(event, id, delay);
 	effector.set_int_data("energy", 100);
+	effector.set_string_data("display-description", format!("({})", 100));
 }
 
 // This bot will run from all the other bots and will never initiate an attack.
-fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
+fn cowardly_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
 {
 	thread::spawn(move || {
 		// "init N" events are scheduled by the simulation. All other events are scheduled
@@ -173,6 +175,8 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 		process_events!(data, event, state, effector,
 			"init 0" => {
 				init_bot(&local, data.id, &mut data.rng, &state, &event, &mut effector);
+				let short = ('a' as i8) + bot_num;
+				effector.set_string_data("display-short-name", short.to_string());
 			},
 			"timer" => {
 				let path = state.components.path(data.id);
@@ -187,12 +191,16 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 						log_excessive!(effector, "moving by {:?}", best_delta);
 						offset_bot(data.id, &mut effector, best_delta.0, best_delta.1);
 						effector.set_int_data("energy", energy - 1);
+						effector.set_string_data("display-description", format!("({})", energy-1));
+						effector.set_string_data("display-color", "SandyBrown");
 						MOVE_DELAY
 					} else {
 						log_excessive!(effector, "no others bots are nearby");
+						effector.set_string_data("display-color", "Black");
 						MOVE_DELAY/2.0
 					}
 				} else {
+					effector.set_string_data("display-color", "DarkGray");
 					MOVE_DELAY
 				};
 		
@@ -208,6 +216,7 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData)
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int_data("energy", energy + *bonus);
+				effector.set_string_data("display-description", format!("({})", energy + *bonus));
 			},
 			"lost-attack" => {
 				effector.set_int_data("energy", 0);
@@ -243,6 +252,7 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 		let event = Event::with_payload("lost-attack", their_energy/2);
 		effector.schedule_immediately(event, their_id);
 		effector.set_int_data("energy", my_energy + gained);
+		effector.set_string_data("display-description", format!("({})", my_energy + gained));
 		
 	} else {
 		log_info!(effector, "{} won ({} < {})", their_path, my_energy, their_energy);
@@ -268,15 +278,18 @@ fn handle_chase(effector: &mut Effector, state: &SimState, dx: f64, dy: f64, my_
 	};
 	offset_bot(my_id, effector, delta.0, delta.1);
 	effector.set_int_data("energy", my_energy - 1);
+	effector.set_string_data("display-description", format!("({})", my_energy - 1));
 }
 
 // This bot will chase the closest bot to it and attack bots that are nearby.
-fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
+fn aggresive_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
 {
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
 			"init 0" => {
 				init_bot(&local, data.id, &mut data.rng, &state, &event, &mut effector);
+				let short = ('A' as i8) + bot_num;
+				effector.set_string_data("display-short-name", short.to_string());
 			},
 			"timer" => {
 				let path = state.components.path(data.id);
@@ -291,14 +304,17 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 						} else {
 							handle_chase(&mut effector, &state, dx, dy, data.id, closest);
 						}
+						effector.set_string_data("display-color", "Crimson");
 				
 					} else {
 						log_debug!(effector, "didn't find a bot to chase");
+						effector.set_string_data("display-color", "Black");
 					}
 
 				} else {
 					// If we are very low health then just wait for someone to get close
 					// and hope we still win.
+					effector.set_string_data("display-color", "DarkGray");
 					log_debug!(effector, "energy is to low to chase after anyone");
 				}
 		
@@ -311,6 +327,7 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData)
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int_data("energy", energy + *bonus);
+				effector.set_string_data("display-description", format!("({})", energy + *bonus));
 			},
 			"lost-attack" => {
 				effector.set_int_data("energy", 0);
@@ -428,9 +445,13 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 {
 	let mut sim = Simulation::new(config);
 	let world = sim.add_active_component("world", NO_COMPONENT, |data| world_thread(local.clone(), data));
+	let store = Arc::get_mut(&mut sim.store).unwrap();
+	store.set_float_data("world.display-size-x", local.width, Time(0));
+	store.set_float_data("world.display-size-y", local.height, Time(0));
+
 	for i in 0..local.num_bots {
 		let (name, thread) = new_random_thread(sim.rng(), i);
-		let _ = sim.add_active_component(&name, world, |data| thread(local.clone(), data));
+		let _ = sim.add_active_component(&name, world, |data| thread(local.clone(), data, i));
 	}
 	let _ = sim.add_active_component("watch-dog", world, watchdog_thread);
 	sim
@@ -470,7 +491,7 @@ fn parse_options() -> (LocalConfig, Config)
 		local.height = match_num(&matches, "height", 10, 1_000) as f64;
 	}
 	if matches.is_present("width") {
-		local.width = match_num(&matches, "height", 10, 1_000) as f64;
+		local.width = match_num(&matches, "width", 10, 1_000) as f64;
 	}
 	if matches.is_present("num-bots") {
 		local.num_bots = match_num(&matches, "num-bots", 1, 100);
