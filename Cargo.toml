@@ -11,6 +11,8 @@ license = "GPL-3.0"
 
 [[example]]
 	name = "battle_bots"
+[[example]]
+	name = "telephone"
 
 [dependencies]
 clap = "2.24.0"			# pretty nifty command line parser
