@@ -11,11 +11,13 @@ extern crate score;
 use clap::{App, ArgMatches};
 use rand::Rng;
 use score::*;
-use std::sync::Arc;
+use std::any::Any;
 use std::fmt::Display;
 use std::io::{Write, stderr};
+use std::marker::PhantomData;
 use std::process;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::thread;
 
 const WIDTH: f64 = 32.0;
@@ -49,132 +51,71 @@ fn compute_error(text: &str) -> f64
 	100.0*(errors as f64)/(count as f64)
 }
 
-struct StatsComponent
+#[derive(Clone)]
+pub struct InPort<T: Any + Send>
 {
-	err_percent: FloatValue,
+	dummy: PhantomData<T>,
 }
 
-fn sender_thread(data: ThreadData, next_component: ComponentID)
+impl<T: Any + Send> InPort<T>
 {
-	thread::spawn(move || {
-		// "init N" events are scheduled by the simulation. All other events are scheduled
-		// by component threads. Components may send an event to a different component.
-		// SimState encapsulates the state of the simulation at the time the event was
-		// dispatched. TODO: talk about what each of these args are
-		process_events!(data, event, state, effector,
-			"init 0" => {
-				// The only way components can affect the simulation state is through an
-				// Effector. This prevents spooky action at a distance and also allows
-				// component threads to execute in parallel.
-				log_info!(effector, "init");
-				let event = Event::with_payload("set-location", (WIDTH/2.0, HEIGHT/2.0));
-				effector.schedule_immediately(event, data.id);
-			
-				let event = Event::new("timer");
-				effector.schedule_immediately(event, data.id);
-			},
-			"timer" => {
-				let event = Event::with_payload("text", POEM.to_string());
-				effector.schedule_immediately(event, next_component);
-
-				let event = Event::new("timer");
-				effector.schedule_after_secs(event, data.id, 1.0);
-			},
-			"set-location" => {	// TODO: for now can't do "xxx" | "xxx" which is part of https://github.com/rust-lang/rust/issues/30450
-				log_info!(effector, "set-location");
-				handle_location_event(data.id, &state, &event, &mut effector);
-			},
-			"offset-location" => {
-				log_info!(effector, "offset-location");
-				handle_location_event(data.id, &state, &event, &mut effector);
-			}
-		);
-	});
+	pub fn new() -> InPort<T>
+	{
+		InPort {
+			dummy: PhantomData,
+		}
+	}
 }
 
-fn mangler_thread(mut data: ThreadData, error_rate: u32, next_component: ComponentID)
+#[derive(Clone)]
+pub struct OutPort<T: Any + Send>
 {
-	thread::spawn(move || {
-		process_events!(data, event, state, effector,
-			"init 0" => {
-				let event = Event::with_payload("set-location", (WIDTH + WIDTH/2.0, HEIGHT/2.0));
-				effector.schedule_immediately(event, data.id);
-			},
-			"text" => {
-				let old = event.expect_payload::<String>("text should have a String payload");
-				
-				let mut new = "".to_string();
-				for ch in old.chars() {
-					if data.rng.gen_weighted_bool(error_rate) {
-						new.push('-');
-					} else {
-						new.push(ch);
-					}
-				}
-
-				let event = Event::with_payload("text", new);
-				effector.schedule_immediately(event, next_component);
-			},
-			"set-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
-			},
-			"offset-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
-			}
-		);
-	});
+	pub remote_id: ComponentID,
+	pub remote_port: String,	// set when connected
+	dummy: PhantomData<T>,
 }
 
-fn stats_thread(data: ThreadData, this: StatsComponent, next_component: ComponentID)
+impl<T: Any + Send> OutPort<T>
 {
-	thread::spawn(move || {
-		process_events!(data, event, state, effector,
-			"init 0" => {
-				let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));	// TODO: this isn't right
-				effector.schedule_immediately(event, data.id);
-			},
-			"text" => {
-				let text = event.expect_payload::<String>("text should have a String payload");
-				let err = compute_error(text);
-				log_info!(effector, "found {:.1}% error rate", err);
-				set_value!(effector, this.err_percent = err);
-
-				let event = Event::with_payload("text", text.to_string());
-				effector.schedule_immediately(event, next_component);
-			},
-			"set-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
-			},
-			"offset-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
-			}
-		);
-	});
+	pub fn new() -> OutPort<T>
+	{
+		OutPort {
+			remote_id: NO_COMPONENT,
+			remote_port: "".to_string(),
+			dummy: PhantomData,
+		}
+	}
 }
 
-fn receiver_thread(data: ThreadData)
+// TODO: will this work if T is ()?
+impl<T: Any + Send> OutPort<T>
 {
-	thread::spawn(move || {
-		process_events!(data, event, state, effector,
-			"init 0" => {
-				let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));
-				effector.schedule_immediately(event, data.id);
-			},
-			"text" => {
-				let text = event.expect_payload::<String>("text should have a String payload");
-				let err = compute_error(&text);
-				log_info!(effector, "{:.1}% error rate", err);
-				if err > 99.0 {
-					effector.exit();
-				}
-			},
-			"set-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
-			},
-			"offset-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
-			}
-		);
+	pub fn send(&self, effector: &mut Effector, name: &str, payload: T)
+	{
+		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
+		effector.schedule_immediately(event, self.remote_id);
+	}
+	
+	pub fn send_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: T)
+	{
+		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
+		effector.schedule_after_secs(event, self.remote_id, secs);
+	}
+
+	/// This is normally called using the [`connect!`] macro.
+	pub fn connect(&mut self, _in_port: &InPort<T>, in_port_name: &str, target: ComponentID)
+	{
+		// _in_port is present for type checking
+		self.remote_id = target;
+		self.remote_port = in_port_name.to_string();
+	}
+}
+
+//#[macro_export]
+macro_rules! connect
+{
+	($out_instance:expr,$out_port_name:ident -> $in_instance:expr,$in_port_name:ident) => ({
+		$out_instance.$out_port_name.connect(&$in_instance.$in_port_name, stringify!($in_port_name), $in_instance.id);
 	});
 }
 
@@ -193,6 +134,217 @@ fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
 		Ok(value) if value > max => fatal_err(&format!("--{} should be less than {}", name, max)),
 		Ok(value) => value,
 		_ => fatal_err(&format!("--{} should be a number", name)),
+	}
+}
+
+// TODO: group these into devices
+struct SenderComponent
+{
+	id: ComponentID,
+	data: ThreadData,
+	send_down: OutPort<String>,
+}
+
+impl SenderComponent
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID) -> SenderComponent
+	{
+		let (id, data) = sim.add_active_component("sender", parent_id);
+		SenderComponent {
+			id: id,
+			data: data,
+			send_down: OutPort::new(),
+		}
+	}
+	
+	pub fn start(self)
+	{
+		thread::spawn(move || {
+			// "init N" events are scheduled by the simulation. All other events are scheduled
+			// by component threads. Components may send an event to a different component.
+			// SimState encapsulates the state of the simulation at the time the event was
+			// dispatched. TODO: talk about what each of these args are 
+			process_events!(self.data, event, state, effector,
+				"init 0" => {
+					// The only way components can affect the simulation state is through an
+					// Effector. This prevents spooky action at a distance and also allows
+					// component threads to execute in parallel.
+					log_info!(effector, "init");
+					let event = Event::with_payload("set-location", (WIDTH/2.0, HEIGHT/2.0));
+					effector.schedule_immediately(event, self.id);
+				
+					let event = Event::new("timer");
+					effector.schedule_immediately(event, self.id);
+				},
+				"timer" => {
+					self.send_down.send(&mut effector, "text", POEM.to_string());
+	
+					let event = Event::new("timer");
+					effector.schedule_after_secs(event, self.id, 1.0);
+				},
+				"set-location" => {	// TODO: for now can't do "xxx" | "xxx" which is part of https://github.com/rust-lang/rust/issues/30450
+					log_info!(effector, "set-location");
+					handle_location_event(self.id, &state, &event, &mut effector);
+				},
+				"offset-location" => {
+					log_info!(effector, "offset-location");
+					handle_location_event(self.id, &state, &event, &mut effector);
+				}
+			);
+		});
+	}
+}
+
+struct ManglerComponent
+{
+	id: ComponentID,
+	data: ThreadData,
+	error_rate: u32,
+	sent_down: InPort<String>,
+	send_down: OutPort<String>,
+}
+
+impl ManglerComponent
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID, error_rate: u32) -> ManglerComponent
+	{
+		let (id, data) = sim.add_active_component("mangler", parent_id);
+		ManglerComponent {
+			id: id,
+			data: data,
+			error_rate: error_rate,
+			sent_down: InPort::new(),
+			send_down: OutPort::new(),
+		}
+	}
+	
+	pub fn start(mut self)
+	{
+		thread::spawn(move || {
+			process_events!(self.data, event, state, effector,
+				"init 0" => {
+					let event = Event::with_payload("set-location", (WIDTH + WIDTH/2.0, HEIGHT/2.0));
+					effector.schedule_immediately(event, self.id);
+				},
+				"text" => {
+					let old = event.expect_payload::<String>("text should have a String payload");
+					
+					let mut new = "".to_string();
+					for ch in old.chars() {
+						if self.data.rng.gen_weighted_bool(self.error_rate) {
+							new.push('-');
+						} else {
+							new.push(ch);
+						}
+					}
+					
+					self.send_down.send(&mut effector, "text", new);
+				},
+				"set-location" => {
+					handle_location_event(self.id, &state, &event, &mut effector);
+				},
+				"offset-location" => {
+					handle_location_event(self.id, &state, &event, &mut effector);
+				}
+			);
+		});
+	}
+}
+
+struct StatsComponent
+{
+	id: ComponentID,
+	data: ThreadData,
+	sent_down: InPort<String>,
+	send_down: OutPort<String>,
+
+	err_percent: FloatValue,
+}
+
+impl StatsComponent
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID) -> StatsComponent
+	{
+		let (id, data) = sim.add_active_component("stats", parent_id);
+		StatsComponent {
+			id: id,
+			data: data,
+			sent_down: InPort::new(),
+			send_down: OutPort::new(),
+			err_percent: FloatValue{},
+		}
+	}
+	
+	pub fn start(self)
+	{
+		thread::spawn(move || {
+			process_events!(self.data, event, state, effector,
+				"init 0" => {
+					let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));	// TODO: this isn't right
+					effector.schedule_immediately(event, self.id);
+				},
+				"text" => {
+					let text = event.expect_payload::<String>("text should have a String payload");
+					let err = compute_error(text);
+					log_info!(effector, "found {:.1}% error rate", err);
+					set_value!(effector, self.err_percent = err);
+	
+					self.send_down.send(&mut effector, "text", text.to_string());
+				},
+				"set-location" => {
+					handle_location_event(self.id, &state, &event, &mut effector);
+				},
+				"offset-location" => {
+					handle_location_event(self.id, &state, &event, &mut effector);
+				}
+			);
+		});
+	}
+}
+
+struct ReceiverComponent
+{
+	id: ComponentID,
+	data: ThreadData,
+	sent_down: InPort<String>,
+}
+
+impl ReceiverComponent
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID) -> ReceiverComponent
+	{
+		let (id, data) = sim.add_active_component("receiver", parent_id);
+		ReceiverComponent {
+			id: id,
+			data: data,
+			sent_down: InPort::new(),
+		}
+	}
+	
+	pub fn start(self)
+	{
+		thread::spawn(move || {
+			process_events!(self.data, event, state, effector,
+				"init 0" => {
+					let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));
+					effector.schedule_immediately(event, self.id);
+				},
+				"text" => {
+					let text = event.expect_payload::<String>("text should have a String payload");
+					let err = compute_error(&text);
+					log_info!(effector, "{:.1}% error rate", err);
+					if err > 99.0 {
+						effector.exit();
+					}
+				},
+				"set-location" => {
+					handle_location_event(self.id, &state, &event, &mut effector);
+				},
+				"offset-location" => {
+					handle_location_event(self.id, &state, &event, &mut effector);
+				}
+			);
+		});
 	}
 }
 
@@ -218,13 +370,20 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	// TODO: these should be grouped within some sort of locatable component
 	// Sender just sends messages down.
 	// Manglers mangle inbound messages and send them up. Manglers send downward messages to outbound.
-	let stats = StatsComponent{err_percent: FloatValue{}};
-
-	let receiver_id = sim.add_active_component("receiver", world_id, receiver_thread);
-	let stats_id = sim.add_active_component("stats", world_id, |data| stats_thread(data, stats, receiver_id));
-	let mangler_id = sim.add_active_component("mangler", world_id, |data| mangler_thread(data, local.error_rate, stats_id));
-	let _ = sim.add_active_component("sender", world_id, |data| sender_thread(data, mangler_id));
+	let mut sender = SenderComponent::new(&mut sim, world_id);
+	let mut mangler = ManglerComponent::new(&mut sim, world_id, local.error_rate);
+	let mut stats = StatsComponent::new(&mut sim, world_id);
+	let receiver = ReceiverComponent::new(&mut sim, world_id);
 	
+	connect!(sender,send_down -> mangler,sent_down);
+	connect!(mangler,send_down -> stats,sent_down);
+	connect!(stats,send_down -> receiver,sent_down);
+	
+	sender.start();
+	mangler.start();
+	stats.start();
+	receiver.start();
+		
 	sim
 }
 

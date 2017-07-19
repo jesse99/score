@@ -5,14 +5,17 @@ use std::fmt;
 /// `IntValue` and `FloatValue` and `StringValue` are simple wrappers around an
 /// [`Effector`]. They don't do very much but they assist in creating type safe
 /// [`Component`] structs. See the [`set_value`] macro for an example.
+#[derive(Copy, Clone)]
 pub struct IntValue
 {
 }
 
+#[derive(Copy, Clone)]
 pub struct FloatValue
 {
 }
 
+#[derive(Copy, Clone)]
 pub struct StringValue
 {
 }

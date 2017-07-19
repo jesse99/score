@@ -97,10 +97,8 @@ impl Simulation
 		id
 	}
 	
-	/// Adds a component with a thread that can be sent an (`Event`, `SimState`)
-	/// which processes the event and sends back an `Effector` .
-	pub fn add_active_component<T>(&mut self, name: &str, parent: ComponentID, thread: T) -> ComponentID
-		where T: FnOnce (ThreadData) -> ()
+	/// Adds a component that is expected to spin up a thread taking [`ThreadData`].
+	pub fn add_active_component(&mut self, name: &str, parent: ComponentID) -> (ComponentID, ThreadData)
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
@@ -126,10 +124,9 @@ impl Simulation
 		self.effector_receivers.push(Some(rxe));
 		
 		let rng = new_rng(self.config.seed, id.0 as u32);
-		thread(ThreadData::new(id, rxd, txe, rng));
-		id
+		(id, ThreadData::new(id, rxd, txe, rng))
 	}
-	
+		
 	/// Use this if you want to do something random when initializing components.
 	pub fn rng(&mut self) -> &mut Box<Rng + Send>
 	{
