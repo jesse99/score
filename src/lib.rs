@@ -18,6 +18,7 @@ pub mod sim_time;
 pub mod store;
 pub mod threads;
 pub mod thread_data;
+pub mod values;
 
 pub use component::*;
 pub use components::*;
@@ -31,4 +32,5 @@ pub use sim_time::*;
 pub use store::*;
 pub use threads::*;
 pub use thread_data::*;
+pub use values::*;
 

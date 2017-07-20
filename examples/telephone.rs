@@ -51,9 +51,15 @@ fn compute_error(text: &str) -> f64
 	100.0*(errors as f64)/(count as f64)
 }
 
-#[derive(Clone)]
 pub struct InPort<T: Any + Send>
 {
+	dummy: PhantomData<T>,
+}
+
+pub struct OutPort<T: Any + Send>
+{
+	pub remote_id: ComponentID,
+	pub remote_port: String,	// set when connected
 	dummy: PhantomData<T>,
 }
 
@@ -67,14 +73,6 @@ impl<T: Any + Send> InPort<T>
 	}
 }
 
-#[derive(Clone)]
-pub struct OutPort<T: Any + Send>
-{
-	pub remote_id: ComponentID,
-	pub remote_port: String,	// set when connected
-	dummy: PhantomData<T>,
-}
-
 impl<T: Any + Send> OutPort<T>
 {
 	pub fn new() -> OutPort<T>
@@ -85,10 +83,7 @@ impl<T: Any + Send> OutPort<T>
 			dummy: PhantomData,
 		}
 	}
-}
 
-impl<T: Any + Send> OutPort<T>
-{
 	pub fn send_payload(&self, effector: &mut Effector, name: &str, payload: T)
 	{
 		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
