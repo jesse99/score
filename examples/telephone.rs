@@ -100,8 +100,8 @@ impl SenderComponent
 					// Effector. This prevents spooky action at a distance and also allows
 					// component threads to execute in parallel.
 					log_info!(effector, "init");
-					let event = Event::with_payload("set-location", (WIDTH/2.0, HEIGHT/2.0));
-					effector.schedule_immediately(event, self.id);
+					effector.set_float("display-location-x", WIDTH/2.0);
+					effector.set_float("display-location-y", HEIGHT/2.0);
 				
 					let event = Event::new("timer");
 					effector.schedule_immediately(event, self.id);
@@ -111,14 +111,6 @@ impl SenderComponent
 	
 					let event = Event::new("timer");
 					effector.schedule_after_secs(event, self.id, 1.0);
-				},
-				"set-location" => {	// TODO: for now can't do "xxx" | "xxx" which is part of https://github.com/rust-lang/rust/issues/30450
-					log_info!(effector, "set-location");
-					handle_location_event(self.id, &state, &event, &mut effector);
-				},
-				"offset-location" => {
-					log_info!(effector, "offset-location");
-					handle_location_event(self.id, &state, &event, &mut effector);
 				}
 			);
 		});
@@ -153,8 +145,8 @@ impl ManglerComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					let event = Event::with_payload("set-location", (WIDTH + WIDTH/2.0, HEIGHT/2.0));
-					effector.schedule_immediately(event, self.id);
+					effector.set_float("display-location-x", WIDTH + WIDTH/2.0);
+					effector.set_float("display-location-y", HEIGHT/2.0);
 				},
 				"text" => {
 					let old = event.expect_payload::<String>("text should have a String payload");
@@ -172,12 +164,6 @@ impl ManglerComponent
 				},
 				"poke" => {
 					log_info!(effector, "poked");
-				},
-				"set-location" => {
-					handle_location_event(self.id, &state, &event, &mut effector);
-				},
-				"offset-location" => {
-					handle_location_event(self.id, &state, &event, &mut effector);
 				}
 			);
 		});
@@ -213,8 +199,8 @@ impl StatsComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));	// TODO: this isn't right
-					effector.schedule_immediately(event, self.id);
+					effector.set_float("display-location-x", 2.0*WIDTH + WIDTH/2.0);	// TODO: this isn't right
+					effector.set_float("display-location-y", HEIGHT/2.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");
@@ -223,12 +209,6 @@ impl StatsComponent
 					set_value!(effector, self.err_percent = err);
 	
 					self.send_down.send_payload(&mut effector, "text", text.to_string());
-				},
-				"set-location" => {
-					handle_location_event(self.id, &state, &event, &mut effector);
-				},
-				"offset-location" => {
-					handle_location_event(self.id, &state, &event, &mut effector);
 				}
 			);
 		});
@@ -259,8 +239,8 @@ impl ReceiverComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					let event = Event::with_payload("set-location", (2.0*WIDTH + WIDTH/2.0, HEIGHT/2.0));
-					effector.schedule_immediately(event, self.id);
+					effector.set_float("display-location-x", 2.0*WIDTH);
+					effector.set_float("display-location-y", HEIGHT/2.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");
@@ -269,12 +249,6 @@ impl ReceiverComponent
 					if err > 99.0 {
 						effector.exit();
 					}
-				},
-				"set-location" => {
-					handle_location_event(self.id, &state, &event, &mut effector);
-				},
-				"offset-location" => {
-					handle_location_event(self.id, &state, &event, &mut effector);
 				}
 			);
 		});

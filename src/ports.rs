@@ -119,6 +119,7 @@ impl OutPort<()>
 #[macro_export]
 macro_rules! connect
 {
+	// TODO: Probably want an arm to handle vectors of ports.
 	($out_instance:ident.$out_port_name:ident -> $in_instance:ident.$in_port_name:ident) => ({
 		$out_instance.$out_port_name.connect(&$in_instance.$in_port_name, stringify!($in_port_name), $in_instance.id);
 	});
