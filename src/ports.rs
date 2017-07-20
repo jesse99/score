@@ -13,8 +13,9 @@ pub struct OutPort<T: Any + Send>
 	pub remote_id: ComponentID,
 	
 	/// The field name of the InPort, e.g. an ethernet switch could use this
-	/// to send the event back out all but the port a packet came in on.
-	pub remote_port: String,	// TODO: say how this is sent
+	/// to send the event back out all but the port a packet came in on. This
+	/// is assigned to the port_name field of [`Event`].
+	pub remote_port: String,
 	
 	// We only use the T parameter for type checking but the compiler will
 	// whine at us if we don't use it somewhere so we include this zero-sized
@@ -52,14 +53,14 @@ impl<T: Any + Send> OutPort<T>
 	/// Queue up an event to be processed ASAP.
 	pub fn send_payload(&self, effector: &mut Effector, name: &str, payload: T)
 	{
-		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
+		let event = Event::with_port_payload(name, &self.remote_port, payload);
 		effector.schedule_immediately(event, self.remote_id);
 	}
 	
 	/// Queue up an event to be processed after secs time elapses.
 	pub fn send_payload_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: T)
 	{
-		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
+		let event = Event::with_port_payload(name, &self.remote_port, payload);
 		effector.schedule_after_secs(event, self.remote_id, secs);
 	}
 
@@ -76,14 +77,14 @@ impl OutPort<()>
 	/// Queue up an event with no payload to be processed ASAP.
 	pub fn send(&self, effector: &mut Effector, name: &str)
 	{
-		let event = Event::new(name);	// TODO: need to include the remote_port
+		let event = Event::with_port(name, &self.remote_port);
 		effector.schedule_immediately(event, self.remote_id);
 	}
 	
 	/// Queue up an event with no payload to be processed after secs time elapses.
 	pub fn send_after_secs(&self, effector: &mut Effector, name: &str, secs: f64)
 	{
-		let event = Event::new(name);	// TODO: need to include the remote_port
+		let event = Event::with_port(name, &self.remote_port);
 		effector.schedule_after_secs(event, self.remote_id, secs);
 	}
 }

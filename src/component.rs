@@ -7,6 +7,9 @@ use std::fmt;
 /// stored in the `Store`. This makes it possible to use GUI tools to see what is
 /// happening within components and even more importantly allows the Simulation to
 /// perform speculative execution of components.
+///
+/// Typically type safe structs are defined for components with the aid of [`OutPort`],
+/// [`InPort`], [`IntValue`], etc.
 pub struct Component
 {
 	/// The name of the component. Note that, in general, these are not unique.
