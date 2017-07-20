@@ -87,16 +87,15 @@ impl<T: Any + Send> OutPort<T>
 	}
 }
 
-// TODO: will this work if T is ()?
 impl<T: Any + Send> OutPort<T>
 {
-	pub fn send(&self, effector: &mut Effector, name: &str, payload: T)
+	pub fn send_payload(&self, effector: &mut Effector, name: &str, payload: T)
 	{
 		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
 		effector.schedule_immediately(event, self.remote_id);
 	}
 	
-	pub fn send_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: T)
+	pub fn send_payload_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: T)
 	{
 		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
 		effector.schedule_after_secs(event, self.remote_id, secs);
@@ -108,6 +107,21 @@ impl<T: Any + Send> OutPort<T>
 		// _in_port is present for type checking
 		self.remote_id = target;
 		self.remote_port = in_port_name.to_string();
+	}
+}
+
+impl OutPort<()>
+{
+	pub fn send(&self, effector: &mut Effector, name: &str)
+	{
+		let event = Event::new(name);	// TODO: need to include the remote_port
+		effector.schedule_immediately(event, self.remote_id);
+	}
+	
+	pub fn send_after_secs(&self, effector: &mut Effector, name: &str, secs: f64)
+	{
+		let event = Event::new(name);	// TODO: need to include the remote_port
+		effector.schedule_after_secs(event, self.remote_id, secs);
 	}
 }
 
@@ -177,7 +191,7 @@ impl SenderComponent
 					effector.schedule_immediately(event, self.id);
 				},
 				"timer" => {
-					self.send_down.send(&mut effector, "text", POEM.to_string());
+					self.send_down.send_payload(&mut effector, "text", POEM.to_string());
 	
 					let event = Event::new("timer");
 					effector.schedule_after_secs(event, self.id, 1.0);
@@ -238,7 +252,10 @@ impl ManglerComponent
 						}
 					}
 					
-					self.send_down.send(&mut effector, "text", new);
+					self.send_down.send_payload(&mut effector, "text", new);
+				},
+				"poke" => {
+					log_info!(effector, "poked");
 				},
 				"set-location" => {
 					handle_location_event(self.id, &state, &event, &mut effector);
@@ -289,7 +306,7 @@ impl StatsComponent
 					log_info!(effector, "found {:.1}% error rate", err);
 					set_value!(effector, self.err_percent = err);
 	
-					self.send_down.send(&mut effector, "text", text.to_string());
+					self.send_down.send_payload(&mut effector, "text", text.to_string());
 				},
 				"set-location" => {
 					handle_location_event(self.id, &state, &event, &mut effector);

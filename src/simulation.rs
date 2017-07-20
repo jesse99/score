@@ -100,6 +100,7 @@ impl Simulation
 	/// Adds a component that is expected to spin up a thread taking [`ThreadData`].
 	pub fn add_active_component(&mut self, name: &str, parent: ComponentID) -> (ComponentID, ThreadData)
 	{
+		// TODO: probably should have an usage example
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
 		assert!(name.chars().nth(0).unwrap().is_alphabetic());
