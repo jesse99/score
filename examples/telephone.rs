@@ -11,10 +11,8 @@ extern crate score;
 use clap::{App, ArgMatches};
 use rand::Rng;
 use score::*;
-use std::any::Any;
 use std::fmt::Display;
 use std::io::{Write, stderr};
-use std::marker::PhantomData;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -49,83 +47,6 @@ fn compute_error(text: &str) -> f64
 	let count = text.chars().count();
 	let errors = text.chars().fold(0, |sum, c| if c == '-' {sum+1} else {sum});
 	100.0*(errors as f64)/(count as f64)
-}
-
-pub struct InPort<T: Any + Send>
-{
-	dummy: PhantomData<T>,
-}
-
-pub struct OutPort<T: Any + Send>
-{
-	pub remote_id: ComponentID,
-	pub remote_port: String,	// set when connected
-	dummy: PhantomData<T>,
-}
-
-impl<T: Any + Send> InPort<T>
-{
-	pub fn new() -> InPort<T>
-	{
-		InPort {
-			dummy: PhantomData,
-		}
-	}
-}
-
-impl<T: Any + Send> OutPort<T>
-{
-	pub fn new() -> OutPort<T>
-	{
-		OutPort {
-			remote_id: NO_COMPONENT,
-			remote_port: "".to_string(),
-			dummy: PhantomData,
-		}
-	}
-
-	pub fn send_payload(&self, effector: &mut Effector, name: &str, payload: T)
-	{
-		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
-		effector.schedule_immediately(event, self.remote_id);
-	}
-	
-	pub fn send_payload_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: T)
-	{
-		let event = Event::with_payload(name, payload);	// TODO: need to include the remote_port
-		effector.schedule_after_secs(event, self.remote_id, secs);
-	}
-
-	/// This is normally called using the [`connect!`] macro.
-	pub fn connect(&mut self, _in_port: &InPort<T>, in_port_name: &str, target: ComponentID)
-	{
-		// _in_port is present for type checking
-		self.remote_id = target;
-		self.remote_port = in_port_name.to_string();
-	}
-}
-
-impl OutPort<()>
-{
-	pub fn send(&self, effector: &mut Effector, name: &str)
-	{
-		let event = Event::new(name);	// TODO: need to include the remote_port
-		effector.schedule_immediately(event, self.remote_id);
-	}
-	
-	pub fn send_after_secs(&self, effector: &mut Effector, name: &str, secs: f64)
-	{
-		let event = Event::new(name);	// TODO: need to include the remote_port
-		effector.schedule_after_secs(event, self.remote_id, secs);
-	}
-}
-
-//#[macro_export]
-macro_rules! connect
-{
-	($out_instance:expr,$out_port_name:ident -> $in_instance:expr,$in_port_name:ident) => ({
-		$out_instance.$out_port_name.connect(&$in_instance.$in_port_name, stringify!($in_port_name), $in_instance.id);
-	});
 }
 
 fn fatal_err(message: &str) -> !
@@ -387,9 +308,9 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let mut stats = StatsComponent::new(&mut sim, world_id);
 	let receiver = ReceiverComponent::new(&mut sim, world_id);
 	
-	connect!(sender,send_down -> mangler,sent_down);
-	connect!(mangler,send_down -> stats,sent_down);
-	connect!(stats,send_down -> receiver,sent_down);
+	connect!(sender.send_down -> mangler.sent_down);
+	connect!(mangler.send_down -> stats.sent_down);
+	connect!(stats.send_down -> receiver.sent_down);
 	
 	sender.start();
 	mangler.start();
