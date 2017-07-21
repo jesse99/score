@@ -67,7 +67,57 @@ fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
 	}
 }
 
-// TODO: group these into devices
+// Contains a SenderComponent and a ManglerComponent.
+struct SenderDevice
+{
+	id: ComponentID,
+	data: ThreadData,
+	error_rate: u32,
+	outbound: OutPort<String>,
+}
+
+impl SenderDevice
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID, error_rate: u32) -> SenderDevice
+	{
+		let (id, data) = sim.add_active_component("sender", parent_id);
+		SenderDevice {
+			id: id,
+			data: data,
+			error_rate: error_rate,
+			outbound: OutPort::new(),
+		}
+	}
+	
+	pub fn start(self, sim: &mut Simulation)
+	{
+		let mut sender = SenderComponent::new(sim, self.id);
+		let mut mangler = ManglerComponent::new(sim, self.id, self.error_rate);
+		
+		connect!(sender.send_down -> mangler.sent_down);
+		mangler.send_down = self.outbound.clone();
+		
+		sender.start();
+		mangler.start();
+	
+		thread::spawn(move || {
+			// "init N" events are scheduled by the simulation. All other events are scheduled
+			// by component threads. Components may send an event to a different component.
+			// SimState encapsulates the state of the simulation at the time the event was
+			// dispatched. TODO: talk about what each of these args are
+			process_events!(self.data, event, state, effector,
+				"init 0" => {
+					// The only way components can affect the simulation state is through an
+					// Effector. This prevents spooky action at a distance and also allows
+					// component threads to execute in parallel.
+					effector.set_float("display-location-x", WIDTH/2.0);
+					effector.set_float("display-location-y", HEIGHT/2.0);	// TODO: can we exit the thread?
+				}
+			);
+		});
+	}
+}
+
 struct SenderComponent
 {
 	id: ComponentID,
@@ -277,17 +327,14 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	// TODO: these should be grouped within some sort of locatable component
 	// Sender just sends messages down.
 	// Manglers mangle inbound messages and send them up. Manglers send downward messages to outbound.
-	let mut sender = SenderComponent::new(&mut sim, world_id);
-	let mut mangler = ManglerComponent::new(&mut sim, world_id, local.error_rate);
+	let mut sender = SenderDevice::new(&mut sim, world_id, local.error_rate);
 	let mut stats = StatsComponent::new(&mut sim, world_id);
 	let receiver = ReceiverComponent::new(&mut sim, world_id);
 	
-	connect!(sender.send_down -> mangler.sent_down);
-	connect!(mangler.send_down -> stats.sent_down);
+	connect!(sender.outbound -> stats.sent_down);
 	connect!(stats.send_down -> receiver.sent_down);
 	
-	sender.start();
-	mangler.start();
+	sender.start(&mut sim);
 	stats.start();
 	receiver.start();
 		

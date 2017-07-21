@@ -7,6 +7,7 @@ use std::any::Any;
 use std::marker::PhantomData;
 
 /// Use the connect! macro to bind this to an InPort.
+#[derive(Clone)]
 pub struct OutPort<T: Any + Send>
 {
 	/// The ID of the component the InPort is part of.
@@ -24,6 +25,7 @@ pub struct OutPort<T: Any + Send>
 }
 
 /// Use the connect! macro to bind this to an OutPort.
+#[derive(Clone)]
 pub struct InPort<T: Any + Send>
 {
 	dummy: PhantomData<T>,

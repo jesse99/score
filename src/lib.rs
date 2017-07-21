@@ -17,7 +17,6 @@ pub mod simulation;
 pub mod sim_state;
 pub mod sim_time;
 pub mod store;
-pub mod threads;
 pub mod thread_data;
 pub mod values;
 
@@ -32,7 +31,6 @@ pub use simulation::*;
 pub use sim_state::*;
 pub use sim_time::*;
 pub use store::*;
-pub use threads::*;
 pub use thread_data::*;
 pub use values::*;
 
