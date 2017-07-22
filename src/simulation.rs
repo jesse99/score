@@ -314,8 +314,6 @@ impl Simulation
 		
 		// Note that it is important that we collect all of the side effects for a time t
 		// before we apply them. That way components executing at t do not affect each other.
-		// It's less important to sort the side effects by component id but it does make stdout
-		// logging look a lot nicer.
 		let mut effects = Vec::with_capacity(ids.len());
 		for id in ids {
 			if let Some(ref rx) = self.effector_receivers[id.0] {
@@ -326,6 +324,10 @@ impl Simulation
 				panic!("Failed to receive an effector from component {}", c.name);
 			}
 		}
+		
+		// This isn't terribly important but does keep the log ordering at a time
+		// consistent which is kind of nice.
+		effects.sort_by(|a, b| a.0.cmp(&b.0));
 		
 		let mut exit = false;
 		for (id, mut e) in effects.drain(..) {
@@ -412,7 +414,6 @@ impl Simulation
 
 	fn apply_logs(&mut self, id: ComponentID, effects: &Effector)
 	{
-		// TODO: also need to persist these
 		for record in effects.logs.iter() {
 			self.log(record.level, id, &record.message);
 		}
@@ -452,8 +453,6 @@ impl Simulation
 		}
 	}
 
-	// TODO: We'll need a logger to write to a file or something (the store doesn't seem
-	// like a great place because we need to record stuff with a fair amount of structure).
 	fn log(&mut self, level: LogLevel, id: ComponentID, message: &str)
 	{
 		if self.should_log(level, id) {
