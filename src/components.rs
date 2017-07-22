@@ -20,6 +20,19 @@ impl Components
 		Components {components: Vec::new()}
 	}
 	
+	pub fn print(&self)
+	{
+		for (index, comp) in self.components.iter().enumerate() {
+			let id = ComponentID(index);
+			if comp.parent != NO_COMPONENT {
+				let parent = self.get(comp.parent);
+				println!("{}: {} ({})", comp.name, parent.name, id);
+			} else {
+				println!("{}: <none> ({})", comp.name, id);
+			}
+		}
+	}
+	
 	/// Note that this, and related methods, can return a reference to
 	/// a removed `Component`. This is not a problem in general but if
 	/// you are regularly sending events to a component that may have
@@ -157,11 +170,25 @@ impl Components
 
 		// TODO: should check for cycles, maybe only in debug
 		if parent != NO_COMPONENT {
+			self.check_for_dupes(parent, &component);
+		}
+
+		if parent != NO_COMPONENT {
 			let mut p = self.components.get_mut(parent.0).unwrap();
 			p.children.push(id);
 		}
 		
 		self.components.push(component);
+	}
+	
+	#[cfg(debug_assertions)]
+	fn check_for_dupes(&self, parent_id: ComponentID, child: &Component)
+	{
+		let parent = self.get(parent_id);
+		for &existing_id in parent.children.iter() {
+			let existing = self.get(existing_id);
+			assert!(existing.name != child.name, "{} is already a child of {}", child.name, parent.name);
+		}
 	}
 }
 

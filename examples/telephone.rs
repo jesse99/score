@@ -36,7 +36,7 @@ impl LocalConfig
 	{
 		// These are the defaults: all of them can be overriden using command line options.
 		LocalConfig {
-			num_repeaters: 10,
+			num_repeaters: 5,
 			error_rate: 100,
 		}
 	}
@@ -90,7 +90,7 @@ impl SenderDevice
 	
 	pub fn start(mut self)
 	{
-		self.sender.output.connect_to(&self.mangler.sent_down);
+		self.sender.output.connect_to(&self.mangler.upper_in);
 		self.mangler.output = self.outbound.clone();
 		
 		self.sender.start();
@@ -115,7 +115,64 @@ impl SenderDevice
 	}
 }
 
-// Contains mangler, stats, and receiver components.
+struct RepeaterDevice
+{
+	data: ThreadData,
+	repeater: RepeaterComponent,
+	stats: StatsComponent,
+	mangler: ManglerComponent,
+	
+	inbound: InPort<String>,
+	outbound: OutPort<String>,
+}
+
+impl RepeaterDevice
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID, error_rate: u32, i: i32) -> RepeaterDevice
+	{
+		let name = format!("repeater{}", i);
+		let (id, data) = sim.add_active_component(&name, parent_id);
+		let mut device = RepeaterDevice {
+			data: data,
+			repeater: RepeaterComponent::new(sim, id),
+			stats: StatsComponent::new(sim, id),
+			mangler: ManglerComponent::new(sim, id, error_rate),
+			inbound: InPort::new(id),
+			outbound: OutPort::new(),
+		};
+		device.inbound = device.mangler.input.clone();
+		device
+	}
+	
+	pub fn start(mut self)
+	{
+		// Wire together the repeater and stats.
+		self.repeater.lower_out.connect_to(&self.stats.upper_in);
+		self.stats.upper_out.connect_to(&self.repeater.lower_in);
+		
+		// Write together stats and mangler.
+		self.stats.lower_out.connect_to(&self.mangler.upper_in);
+		self.mangler.upper_out.connect_to(&self.stats.lower_in);
+	
+		// Mangler output goes where ever the device was connected to.
+		self.mangler.output = self.outbound.clone();
+		
+		self.repeater.start();
+		self.stats.start();
+		self.mangler.start();
+	
+		let data = self.data;	// need this to avoid partially moved errors
+		thread::spawn(move || {
+			process_events!(data, event, state, effector,
+				"init 0" => {
+					effector.set_float("display-location-x", WIDTH/2.0);
+					effector.set_float("display-location-y", HEIGHT/2.0);	// TODO: can we exit the thread?
+				}
+			);
+		});
+	}
+}
+
 struct ReceiverDevice
 {
 	data: ThreadData,
@@ -147,8 +204,8 @@ impl ReceiverDevice
 	
 	pub fn start(mut self, num_repeaters: i32)
 	{
-		self.mangler.send_up.connect_to(&self.stats.sent_up);
-		self.stats.send_up.connect_to(&self.receiver.sent_up);
+		self.mangler.upper_out.connect_to(&self.stats.lower_in);
+		self.stats.upper_out.connect_to(&self.receiver.lower_in);
 		
 		self.receiver.start();
 		self.stats.start();
@@ -221,9 +278,10 @@ struct ManglerComponent
 	error_rate: u32,
 
 	input: InPort<String>,
-	send_up: OutPort<String>,
-	sent_down: InPort<String>,
 	output: OutPort<String>,
+	
+	upper_in: InPort<String>,
+	upper_out: OutPort<String>,
 }
 
 impl ManglerComponent
@@ -234,10 +292,12 @@ impl ManglerComponent
 		ManglerComponent {
 			data: data,
 			error_rate: error_rate,
+
 			input: InPort::with_port_name(id, "input"),
-			send_up: OutPort::new(),
-			sent_down: InPort::with_port_name(id, "sent_down"),
 			output: OutPort::new(),
+
+			upper_in: InPort::with_port_name(id, "upper_in"),
+			upper_out: OutPort::new(),
 		}
 	}
 	
@@ -253,8 +313,8 @@ impl ManglerComponent
 				"text" => {
 					let old = event.expect_payload::<String>("text should have a String payload");
 					let new;
-					if event.port_name == "sent_down" {
-						if self.send_up.is_connected() {
+					if event.port_name == "upper_in" {
+						if self.upper_out.is_connected() {
 							new = old.to_string();				// we're on the downward path of repeater
 						} else {
 							new = self.mangle(&mut rng, old);	// we're on the sender
@@ -262,11 +322,8 @@ impl ManglerComponent
 						self.output.send_payload(&mut effector, "text", new);
 					} else {
 						new = self.mangle(&mut rng, old);		// we're on the inbound path of a repeater
-						self.send_up.send_payload(&mut effector, "text", new);
+						self.upper_out.send_payload(&mut effector, "text", new);
 					}
-				},
-				"poke" => {
-					log_info!(effector, "poked");
 				}
 			);
 		});
@@ -291,8 +348,11 @@ struct StatsComponent
 	data: ThreadData,
 	err_percent: FloatValue,
 
-	sent_up: InPort<String>,
-	send_up: OutPort<String>,
+	upper_in: InPort<String>,
+	upper_out: OutPort<String>,
+
+	lower_in: InPort<String>,
+	lower_out: OutPort<String>,
 }
 
 impl StatsComponent
@@ -302,9 +362,13 @@ impl StatsComponent
 		let (id, data) = sim.add_active_component("stats", parent_id);
 		StatsComponent {
 			data: data,
-			sent_up: InPort::new(id),
-			send_up: OutPort::new(),
 			err_percent: FloatValue{},
+
+			upper_in: InPort::new(id),
+			upper_out: OutPort::new(),
+
+			lower_in: InPort::with_port_name(id, "lower_in"),
+			lower_out: OutPort::new(),
 		}
 	}
 	
@@ -318,11 +382,50 @@ impl StatsComponent
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");
-					let err = compute_error(text);
-					log_info!(effector, "found {:.1}% error rate", err);
-					set_value!(effector, self.err_percent = err);
+					if event.port_name == "lower_in" {
+						let err = compute_error(text);
+						log_debug!(effector, "{:.1}% error", err);
+						set_value!(effector, self.err_percent = err);
+						self.upper_out.send_payload(&mut effector, "text", text.to_string());
+					} else {
+						self.lower_out.send_payload(&mut effector, "text", text.to_string());
+					}
+				}
+			);
+		});
+	}
+}
+
+struct RepeaterComponent
+{
+	data: ThreadData,
+	lower_in: InPort<String>,
+	lower_out: OutPort<String>,
+}
+
+impl RepeaterComponent
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID) -> RepeaterComponent
+	{
+		let (id, data) = sim.add_active_component("repeater", parent_id);
+		RepeaterComponent {
+			data: data,
+			lower_in: InPort::new(id),
+			lower_out: OutPort::new(),
+		}
+	}
 	
-					self.send_up.send_payload(&mut effector, "text", text.to_string());
+	pub fn start(self)
+	{
+		thread::spawn(move || {
+			process_events!(self.data, event, state, effector,
+				"init 0" => {
+					effector.set_float("display-location-x", WIDTH + WIDTH/2.0);	// TODO: component locations need to be reviewed
+					effector.set_float("display-location-y", HEIGHT/2.0);
+				},
+				"text" => {
+					let text = event.expect_payload::<String>("text should have a String payload").clone();
+					self.lower_out.send_payload(&mut effector, "text", text);
 				}
 			);
 		});
@@ -332,7 +435,7 @@ impl StatsComponent
 struct ReceiverComponent
 {
 	data: ThreadData,
-	sent_up: InPort<String>,
+	lower_in: InPort<String>,
 }
 
 impl ReceiverComponent
@@ -342,7 +445,7 @@ impl ReceiverComponent
 		let (id, data) = sim.add_active_component("receiver", parent_id);
 		ReceiverComponent {
 			data: data,
-			sent_up: InPort::new(id),
+			lower_in: InPort::new(id),
 		}
 	}
 	
@@ -357,7 +460,8 @@ impl ReceiverComponent
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");
 					let err = compute_error(&text);
-					log_info!(effector, "{:.1}% error rate", err);
+					log_info!(effector, "{:.1}% total error", err);
+					log_excessive!(effector, "{}", text);
 					if err > 99.0 {
 						effector.exit();
 					}
@@ -386,17 +490,36 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 		store.set_float("world.display-size-y", HEIGHT, Time(0));
 	}
 
-	// TODO: these should be grouped within some sort of locatable component
-	// Sender just sends messages down.
-	// Manglers mangle inbound messages and send them up. Manglers send downward messages to outbound.
+	// Create the devices,
 	let mut sender = SenderDevice::new(&mut sim, world_id, local.error_rate);
+	
+	let mut repeaters = Vec::new();
+	for i in 0..local.num_repeaters {
+		let repeater = RepeaterDevice::new(&mut sim, world_id, local.error_rate, i);
+		repeaters.push(repeater);
+	}
+	
 	let receiver = ReceiverDevice::new(&mut sim, world_id, local.error_rate);
+
+	{
+	// wire them together,
+	let mut last_port = &mut sender.outbound;
+	for r in repeaters.iter_mut() {
+		last_port.connect_to(&r.inbound);
+		last_port = &mut r.outbound;
+	}
+	last_port.connect_to(&receiver.inbound);
+	}
 	
-	sender.outbound.connect_to(&receiver.inbound);
+	//sim.print();
 	
+	// and spin up their threads.
 	sender.start();
+	for r in repeaters.drain(..) {
+		r.start();
+	}
 	receiver.start(local.num_repeaters);
-		
+	
 	sim
 }
 

@@ -71,6 +71,12 @@ impl Simulation
 		}
 	}
 	
+	pub fn print(&self)
+	{
+		// TODO: add some more stuff
+		self.components.print();
+	}
+	
 	/// Adds a `Component` that is not intended to receive `Event`s.
 	/// These can be used to organize related components together which
 	/// can make navigation nicer within GUIs.
