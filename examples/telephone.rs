@@ -1,5 +1,5 @@
 //! This example is a fairly crude simulation of the telephone game, aka chinese whispers.
-//! Instead of garbling a message at each step we randomly replace letters with a dashes.
+//! Instead of garbling a message at each step we randomly replace letters with dashes.
 //! When a message is received that contains all dashes we terminate the simulation.
 //! It's a simple simulation but structured similarly to many more complex simulations.
 #[macro_use]
@@ -18,15 +18,20 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
 
+// Dimensions of a device, used by GUIs.
 const WIDTH: f64 = 32.0;
 const HEIGHT: f64 = 32.0;
 
+// This is the message we send.
 const POEM: &str = "Tyger Tyger, burning bright,\nIn the forests of the night;\nWhat immortal hand or eye,\nCould frame thy fearful symmetry?\n\nIn what distant deeps or skies.\nBurnt the fire of thine eyes?\nOn what wings dare he aspire?\nWhat the hand, dare seize the fire?\n\nAnd what shoulder, & what art,\nCould twist the sinews of thy heart?\nAnd when thy heart began to beat,\nWhat dread hand? & what dread feet?\n\nWhat the hammer? what the chain,\nIn what furnace was thy brain?\nWhat the anvil? what dread grasp,\nDare its deadly terrors clasp!\n\nWhen the stars threw down their spears\nAnd water'd heaven with their tears:\nDid he smile his work to see?\nDid he who made the Lamb make thee?\n\nTyger Tyger burning bright,\nIn the forests of the night:\nWhat immortal hand or eye,\nDare frame thy fearful symmetry?";
 
 #[derive(Clone)]
 struct LocalConfig
 {
+	// Repeaters garble the message and forward it along.
 	num_repeaters: i32,
+	
+	// Each letter is replaced with a dash with probability of 1 in error_rate.
 	error_rate: u32,
 }
 
@@ -42,6 +47,7 @@ impl LocalConfig
 	}
 }
 
+// Returns the error percentage of the text, i.e. how many letters were replaced by dashes.
 fn compute_error(text: &str) -> f64
 {
 	let count = text.chars().count();
@@ -67,6 +73,10 @@ fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
 	}
 }
 
+// This is typical of more elaborate simulations: components are organized into hierarchies that act
+// as black boxes where the ports on the outer component are connected to the inner components. It's
+// not required that structs be set up this way (or that you use a struct like this at all) but doing
+// so makes the device's inputs, outputs, and parts clear.
 struct SenderDevice
 {
 	data: ThreadData,
@@ -98,15 +108,21 @@ impl SenderDevice
 	
 		let data = self.data;
 		thread::spawn(move || {
-			// "init N" events are scheduled by the simulation. All other events are scheduled
-			// by component threads. Components may send an event to a different component.
-			// SimState encapsulates the state of the simulation at the time the event was
-			// dispatched. TODO: talk about what each of these args are
+			// data is ThreadData and contains the component's id, mpsc channels to communicate
+			// with the Simulator, and a random number seed specific to the component.
+			// event is an Event dispatched to the component. It contains the name of the event,
+			// an optional InPort name, and an optional arbitrary payload.
+			// state is a SimState and contains a read-only snapshot of the simulator state:
+			// components and the store.
+			// effector is an Effector. process_events creates a new one each time an event is
+			// delivered. It's used to capture side effects so that they can be applied after all
+			// the events scheduled for the current time have had a chance to run.
 			process_events!(data, event, state, effector,
+				// "init N" events are scheduled by the simulation. All other events are scheduled
+				// by component threads. Components may send an event to a different component.
+				// SimState encapsulates the state of the simulation at the time the event was
+				// dispatched.
 				"init 0" => {
-					// The only way components can affect the simulation state is through an
-					// Effector. This prevents spooky action at a distance and also allows
-					// component threads to execute in parallel.
 					effector.set_float("display-location-x", WIDTH/2.0);
 					effector.set_float("display-location-y", HEIGHT/2.0);	// TODO: can we exit the thread?
 				}
@@ -219,6 +235,7 @@ impl ReceiverDevice
 	}
 }
 
+// These are the components that are nested within devices.
 struct SenderComponent
 {
 	id: ComponentID,
@@ -241,15 +258,8 @@ impl SenderComponent
 	pub fn start(self)
 	{
 		thread::spawn(move || {
-			// "init N" events are scheduled by the simulation. All other events are scheduled
-			// by component threads. Components may send an event to a different component.
-			// SimState encapsulates the state of the simulation at the time the event was
-			// dispatched. TODO: talk about what each of these args are 
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					// The only way components can affect the simulation state is through an
-					// Effector. This prevents spooky action at a distance and also allows
-					// component threads to execute in parallel.
 					log_info!(effector, "init");
 					effector.set_float("display-location-x", WIDTH/2.0);
 					effector.set_float("display-location-y", HEIGHT/2.0);
@@ -258,6 +268,9 @@ impl SenderComponent
 					effector.schedule_immediately(event, self.id);
 				},
 				"timer" => {
+					// This is where the action begins: the sender sends a poem to a
+					// repeater, which sends it to another repeater, and so on until
+					// the last repeater sends it to the receiver.
 					self.output.send_payload(&mut effector, "text", POEM.to_string());
 	
 					let event = Event::new("timer");
@@ -299,7 +312,11 @@ impl ManglerComponent
 	
 	pub fn start(self)
 	{
+		// Note that it is important that components use the seed given to them by the simulation.
+		// If they use other sources of randomness then simulations won't be deterministic which
+		// makes bugs much harder to reproduce.
 		let mut rng = XorShiftRng::from_seed([self.data.seed; 4]);
+		
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
@@ -469,15 +486,15 @@ impl ReceiverComponent
 
 fn create_sim(local: LocalConfig, config: Config) -> Simulation
 {
-	// These components are arranged very much like a network stack with messages sent
-	// down the stack, transmitted to a different device, sent up the network stack and
-	// then back down to be forwarded to yet another device:
+	// The components are setup very much like a computer network: there are devices
+	// connected to one another and each device contains a stack of components with
+	// messages traveling up and down the stack:
 	//
-	// sender  repeater0  repeater1  receiver
-	//   |        ||         ||         |
-	//   |      stats      stats        |
-	//   |        ||         ||         |
-	// mangle - mangle --- mangle --- mangle
+	// sender   repeater0   repeater1  receiver
+	//   |         ||         ||          |
+	//   |       stats       stats        |
+	//   |         ||         ||          |
+	// mangler - mangler --- mangler --- mangler
 	let mut sim = Simulation::new(config);
 	let world_id = sim.add_component("world", NO_COMPONENT);
 	{
@@ -506,9 +523,7 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	}
 	last_port.connect_to(&receiver.inbound);
 	}
-	
-//	sim.print();
-	
+		
 	// and spin up their threads.
 	sender.start();
 	for r in repeaters.drain(..) {
@@ -590,7 +605,7 @@ fn parse_options() -> (LocalConfig, Config)
 fn main()
 {
 	let (local, mut config) = parse_options();
-	config.time_units = 10.0;	// tenths of seconds
+	config.time_units = 10.0;	// tenths of seconds (1000 would be ms)
 	
 	let mut sim = create_sim(local, config);
 	sim.run();

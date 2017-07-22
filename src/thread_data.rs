@@ -24,6 +24,7 @@ pub struct ThreadData
 	///
 	/// ```
 	/// use rand::{SeedableRng, XorShiftRng};
+	/// use score::*;
 	///
 	/// fn component_thread(data: ThreadData)
 	/// {
