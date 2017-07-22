@@ -3,7 +3,6 @@ use effector::*;
 use event::*;
 use sim_state::*;
 use std::sync::mpsc;
-use rand::{Rng, XorShiftRng};
 
 /// This is moved into each thread of an active `Component`.
 pub struct ThreadData
@@ -17,15 +16,38 @@ pub struct ThreadData
 	#[doc(hidden)]
 	pub tx: mpsc::Sender<Effector>,
 	
-	/// This should be the only source of randomness used within a `Component`s
-	/// thread.
-	pub rng: Box<Rng + Send>,	// TODO: document stuff to be careful of, eg HashMap iteration
+	/// In order to have deterministic simuluations randomness has to be carefully
+	/// controlled. Each component thread is given its own random number generator
+	/// seed which should be the only source of randomness used by the thread.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use rand::{SeedableRng, XorShiftRng};
+	///
+	/// fn component_thread(data: ThreadData)
+	/// {
+	/// 	let mut rng = XorShiftRng::from_seed([data.seed; 4]);
+	/// 	thread::spawn(move || {
+	/// 		process_events!(data, event, state, effector,
+	/// 			"init 0" => {
+	/// 				if rng.gen::<bool>() {
+	/// 					log_info!(effector, "heads");
+	/// 				} else {
+	/// 					log_info!(effector, "tails");
+	/// 				}
+	/// 			}
+	/// 		);
+	/// 	});
+	/// }
+	/// ```
+	pub seed: u32,	// TODO: document stuff to be careful of, eg HashMap iteration
 }
 
 impl ThreadData
 {
-	pub fn new(id: ComponentID, rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector>, rng: XorShiftRng) -> ThreadData
+	pub fn new(id: ComponentID, rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector>, seed: u32) -> ThreadData
 	{
-		ThreadData{id, rx, tx, rng: Box::new(rng)}
+		ThreadData{id, rx, tx, seed: seed}
 	}
 }

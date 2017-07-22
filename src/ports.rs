@@ -168,6 +168,11 @@ impl<T: Any + Send> OutPort<T>
 		self.remote_id = port.target_id;
 		self.remote_port = port.target_port.to_string();	// can be empty
 	}
+
+	pub fn is_connected(&self) -> bool
+	{
+		self.remote_id != NO_COMPONENT
+	}
 }
 
 impl OutPort<()>

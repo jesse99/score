@@ -9,7 +9,7 @@ extern crate rand;
 extern crate score;
 
 use clap::{App, ArgMatches};
-use rand::Rng;
+use rand::{Rng, SeedableRng, XorShiftRng};
 use score::*;
 use std::fmt::Display;
 use std::io::{Write, stderr};
@@ -90,7 +90,7 @@ impl SenderDevice
 	
 	pub fn start(mut self)
 	{
-		self.sender.output.connect_to(&self.mangler.input);
+		self.sender.output.connect_to(&self.mangler.sent_down);
 		self.mangler.output = self.outbound.clone();
 		
 		self.sender.start();
@@ -147,7 +147,7 @@ impl ReceiverDevice
 	
 	pub fn start(mut self, num_repeaters: i32)
 	{
-		self.mangler.output.connect_to(&self.stats.sent_up);
+		self.mangler.send_up.connect_to(&self.stats.sent_up);
 		self.stats.send_up.connect_to(&self.receiver.sent_up);
 		
 		self.receiver.start();
@@ -219,7 +219,10 @@ struct ManglerComponent
 {
 	data: ThreadData,
 	error_rate: u32,
+
 	input: InPort<String>,
+	send_up: OutPort<String>,
+	sent_down: InPort<String>,
 	output: OutPort<String>,
 }
 
@@ -231,13 +234,16 @@ impl ManglerComponent
 		ManglerComponent {
 			data: data,
 			error_rate: error_rate,
-			input: InPort::new(id),
+			input: InPort::with_port_name(id, "input"),
+			send_up: OutPort::new(),
+			sent_down: InPort::with_port_name(id, "sent_down"),
 			output: OutPort::new(),
 		}
 	}
 	
-	pub fn start(mut self)
+	pub fn start(self)
 	{
+		let mut rng = XorShiftRng::from_seed([self.data.seed; 4]);
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
@@ -246,17 +252,18 @@ impl ManglerComponent
 				},
 				"text" => {
 					let old = event.expect_payload::<String>("text should have a String payload");
-					
-					let mut new = "".to_string();
-					for ch in old.chars() {
-						if self.data.rng.gen_weighted_bool(self.error_rate) {
-							new.push('-');
+					let new;
+					if event.port_name == "sent_down" {
+						if self.send_up.is_connected() {
+							new = old.to_string();				// we're on the downward path of repeater
 						} else {
-							new.push(ch);
+							new = self.mangle(&mut rng, old);	// we're on the sender
 						}
+						self.output.send_payload(&mut effector, "text", new);
+					} else {
+						new = self.mangle(&mut rng, old);		// we're on the inbound path of a repeater
+						self.send_up.send_payload(&mut effector, "text", new);
 					}
-					
-					self.output.send_payload(&mut effector, "text", new);
 				},
 				"poke" => {
 					log_info!(effector, "poked");
@@ -264,15 +271,28 @@ impl ManglerComponent
 			);
 		});
 	}
+	
+	fn mangle(&self, rng: &mut XorShiftRng, old: &str) -> String
+	{
+		let mut new = "".to_string();
+		for ch in old.chars() {
+			if rng.gen_weighted_bool(self.error_rate) {
+				new.push('-');
+			} else {
+				new.push(ch);
+			}
+		}
+		new
+	}
 }
 
 struct StatsComponent
 {
 	data: ThreadData,
+	err_percent: FloatValue,
+
 	sent_up: InPort<String>,
 	send_up: OutPort<String>,
-
-	err_percent: FloatValue,
 }
 
 impl StatsComponent
