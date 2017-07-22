@@ -507,7 +507,7 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	last_port.connect_to(&receiver.inbound);
 	}
 	
-	//sim.print();
+//	sim.print();
 	
 	// and spin up their threads.
 	sender.start();

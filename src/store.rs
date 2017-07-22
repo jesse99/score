@@ -17,7 +17,7 @@ use std::collections::HashMap;
 pub struct Store
 {
 	#[doc(hidden)]
-	pub int_data: HashMap<String, (Time, i64)>,
+	pub int_data: HashMap<String, (Time, i64)>,	// TODO: probably want [(Time, i64)]
 	
 	#[doc(hidden)]
 	pub float_data: HashMap<String, (Time, f64)>,
@@ -126,7 +126,30 @@ impl Store
 			string_data: HashMap::new()
 		}
 	}
-		
+			
+	/// Dump state to stdout.
+	pub fn print(&self, time_units: f64, precision: usize)
+	{
+		for (key, value) in self.int_data.iter() {
+			if !key.contains("display-") {
+				let t = ((value.0).0 as f64)/time_units;
+				println!("   {} = {} @ {:.3$}s", key, value.1, t, precision);
+			}
+		}
+		for (key, value) in self.float_data.iter() {
+			if !key.contains("display-") {
+				let t = ((value.0).0 as f64)/time_units;
+				println!("   {} = {:.3} @ {:.3$}s", key, value.1, t, precision);
+			}
+		}
+		for (key, value) in self.string_data.iter() {
+			if !key.contains("display-") {
+				let t = ((value.0).0 as f64)/time_units;
+				println!("   {} = '{}' @ {:.3$}s", key, value.1, t, precision);
+			}
+		}
+	}
+
 	// TODO:
 	// persist old state
 	// flush all the state to a file on exit

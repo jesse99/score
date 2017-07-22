@@ -20,15 +20,16 @@ impl Components
 		Components {components: Vec::new()}
 	}
 	
+	/// Dump state to stdout.
 	pub fn print(&self)
 	{
 		for (index, comp) in self.components.iter().enumerate() {
 			let id = ComponentID(index);
 			if comp.parent != NO_COMPONENT {
 				let parent = self.get(comp.parent);
-				println!("{}: {} ({})", comp.name, parent.name, id);
+				println!("   {}: {} ({})", comp.name, parent.name, id);
 			} else {
-				println!("{}: <none> ({})", comp.name, id);
+				println!("   {}: <none> ({})", comp.name, id);
 			}
 		}
 	}

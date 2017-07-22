@@ -71,10 +71,25 @@ impl Simulation
 		}
 	}
 	
+	/// Dump simulation state to stdout.
 	pub fn print(&self)
 	{
-		// TODO: add some more stuff
+		println!("Components:");
 		self.components.print();
+
+		println!("Store:");
+		self.store.print(self.config.time_units, self.precision);
+
+		let t = (self.current_time.0 as f64)/self.config.time_units;
+		println!("Current Time:");
+		println!("   {:.1$}s", t, self.precision);
+
+		println!("Scheduled:");
+		for s in self.scheduled.iter() {
+			let t = (s.time.0 as f64)/self.config.time_units;
+			let path = self.components.path(s.to);
+			println!("   {:.1$}s {2} -> {3}", t, self.precision, s.event.name, path);
+		}
 	}
 	
 	/// Adds a `Component` that is not intended to receive `Event`s.
@@ -163,6 +178,7 @@ impl Simulation
 			exiting = self.run_time_slice()
 		}
 		
+		//self.print();
 		self.exit(exiting);
 	}
 	
