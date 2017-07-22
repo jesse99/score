@@ -94,8 +94,8 @@ impl SenderDevice
 		let mut sender = SenderComponent::new(sim, self.id);
 		let mut mangler = ManglerComponent::new(sim, self.id, self.error_rate);
 		
-		connect!(sender.send_down -> mangler.sent_down);
-		mangler.send_down = self.outbound.clone();
+		sender.output.connect_to(&mangler.input);
+		mangler.output = self.outbound.clone();
 		
 		sender.start();
 		mangler.start();
@@ -118,11 +118,62 @@ impl SenderDevice
 	}
 }
 
+// Contains mangler, stats, and receiver components.
+struct ReceiverDevice
+{
+	data: ThreadData,
+	
+	receiver: ReceiverComponent,
+	stats: StatsComponent,
+	mangler: ManglerComponent,
+
+	inbound: InPort<String>,
+}
+
+impl ReceiverDevice
+{
+	pub fn new(sim: &mut Simulation, parent_id: ComponentID, error_rate: u32) -> ReceiverDevice
+	{
+		let (id, data) = sim.add_active_component("receiver", parent_id);
+		let mut device = ReceiverDevice {
+			data: data,
+			
+			receiver: ReceiverComponent::new(sim, id),
+			stats: StatsComponent::new(sim, id),
+			mangler: ManglerComponent::new(sim, id, error_rate),
+
+			inbound: InPort::empty(),
+		};
+		device.inbound = device.mangler.input.clone();
+		device
+	}
+	
+	pub fn start(mut self, num_repeaters: i32)
+	{
+		self.mangler.output.connect_to(&self.stats.sent_up);
+		self.stats.send_up.connect_to(&self.receiver.sent_up);
+		
+		self.receiver.start();
+		self.stats.start();
+		self.mangler.start();
+		
+		let data = self.data;
+		thread::spawn(move || {
+			process_events!(data, event, state, effector,
+				"init 0" => {
+					effector.set_float("display-location-x", (2.0 + num_repeaters as f64)*WIDTH + WIDTH/2.0);
+					effector.set_float("display-location-y", HEIGHT/2.0);	// TODO: can we exit the thread?
+				}
+			);
+		});
+	}
+}
+
 struct SenderComponent
 {
 	id: ComponentID,
 	data: ThreadData,
-	send_down: OutPort<String>,
+	output: OutPort<String>,
 }
 
 impl SenderComponent
@@ -133,7 +184,7 @@ impl SenderComponent
 		SenderComponent {
 			id: id,
 			data: data,
-			send_down: OutPort::new(),
+			output: OutPort::new(),
 		}
 	}
 	
@@ -157,7 +208,7 @@ impl SenderComponent
 					effector.schedule_immediately(event, self.id);
 				},
 				"timer" => {
-					self.send_down.send_payload(&mut effector, "text", POEM.to_string());
+					self.output.send_payload(&mut effector, "text", POEM.to_string());
 	
 					let event = Event::new("timer");
 					effector.schedule_after_secs(event, self.id, 1.0);
@@ -169,11 +220,10 @@ impl SenderComponent
 
 struct ManglerComponent
 {
-	id: ComponentID,
 	data: ThreadData,
 	error_rate: u32,
-	sent_down: InPort<String>,
-	send_down: OutPort<String>,
+	input: InPort<String>,
+	output: OutPort<String>,
 }
 
 impl ManglerComponent
@@ -182,11 +232,10 @@ impl ManglerComponent
 	{
 		let (id, data) = sim.add_active_component("mangler", parent_id);
 		ManglerComponent {
-			id: id,
 			data: data,
 			error_rate: error_rate,
-			sent_down: InPort::new(),
-			send_down: OutPort::new(),
+			input: InPort::new(id),
+			output: OutPort::new(),
 		}
 	}
 	
@@ -195,7 +244,7 @@ impl ManglerComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", WIDTH + WIDTH/2.0);
+					effector.set_float("display-location-x", WIDTH + WIDTH/2.0);	// TODO: component locations need to be reviewed
 					effector.set_float("display-location-y", HEIGHT/2.0);
 				},
 				"text" => {
@@ -210,7 +259,7 @@ impl ManglerComponent
 						}
 					}
 					
-					self.send_down.send_payload(&mut effector, "text", new);
+					self.output.send_payload(&mut effector, "text", new);
 				},
 				"poke" => {
 					log_info!(effector, "poked");
@@ -222,10 +271,9 @@ impl ManglerComponent
 
 struct StatsComponent
 {
-	id: ComponentID,
 	data: ThreadData,
-	sent_down: InPort<String>,
-	send_down: OutPort<String>,
+	sent_up: InPort<String>,
+	send_up: OutPort<String>,
 
 	err_percent: FloatValue,
 }
@@ -236,10 +284,9 @@ impl StatsComponent
 	{
 		let (id, data) = sim.add_active_component("stats", parent_id);
 		StatsComponent {
-			id: id,
 			data: data,
-			sent_down: InPort::new(),
-			send_down: OutPort::new(),
+			sent_up: InPort::new(id),
+			send_up: OutPort::new(),
 			err_percent: FloatValue{},
 		}
 	}
@@ -258,7 +305,7 @@ impl StatsComponent
 					log_info!(effector, "found {:.1}% error rate", err);
 					set_value!(effector, self.err_percent = err);
 	
-					self.send_down.send_payload(&mut effector, "text", text.to_string());
+					self.send_up.send_payload(&mut effector, "text", text.to_string());
 				}
 			);
 		});
@@ -267,9 +314,8 @@ impl StatsComponent
 
 struct ReceiverComponent
 {
-	id: ComponentID,
 	data: ThreadData,
-	sent_down: InPort<String>,
+	sent_up: InPort<String>,
 }
 
 impl ReceiverComponent
@@ -278,9 +324,8 @@ impl ReceiverComponent
 	{
 		let (id, data) = sim.add_active_component("receiver", parent_id);
 		ReceiverComponent {
-			id: id,
 			data: data,
-			sent_down: InPort::new(),
+			sent_up: InPort::new(id),
 		}
 	}
 	
@@ -328,15 +373,12 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	// Sender just sends messages down.
 	// Manglers mangle inbound messages and send them up. Manglers send downward messages to outbound.
 	let mut sender = SenderDevice::new(&mut sim, world_id, local.error_rate);
-	let mut stats = StatsComponent::new(&mut sim, world_id);
-	let receiver = ReceiverComponent::new(&mut sim, world_id);
+	let receiver = ReceiverDevice::new(&mut sim, world_id, local.error_rate);
 	
-	connect!(sender.outbound -> stats.sent_down);
-	connect!(stats.send_down -> receiver.sent_down);
+	sender.outbound.connect_to(&receiver.inbound);
 	
 	sender.start(&mut sim);
-	stats.start();
-	receiver.start();
+	receiver.start(local.num_repeaters);
 		
 	sim
 }

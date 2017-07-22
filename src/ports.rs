@@ -6,14 +6,14 @@ use event::*;
 use std::any::Any;
 use std::marker::PhantomData;
 
-/// Use the connect! macro to bind this to an InPort.
+/// OutPort's are connected to InPort's.
 #[derive(Clone)]
 pub struct OutPort<T: Any + Send>
 {
 	/// The ID of the component the InPort is part of.
 	pub remote_id: ComponentID,
 	
-	/// The field name of the InPort, e.g. an ethernet switch could use this
+	/// Optionl name of the InPort, e.g. an ethernet switch could use this
 	/// to send the event back out all but the port a packet came in on. This
 	/// is assigned to the port_name field of [`Event`].
 	pub remote_port: String,
@@ -24,18 +24,112 @@ pub struct OutPort<T: Any + Send>
 	dummy: PhantomData<T>,
 }
 
-/// Use the connect! macro to bind this to an OutPort.
+/// Use OutPort's connect_to method to connect up ports.
 #[derive(Clone)]
 pub struct InPort<T: Any + Send>
 {
+	target_id: ComponentID,
+	target_port: String,
 	dummy: PhantomData<T>,
 }
 
 impl<T: Any + Send> InPort<T>
 {
-	pub fn new() -> InPort<T>
+	/// Creates an InPort with no component or port name. This is useful for components that
+	/// wrap nested components, for example:
+	/// ```
+	/// use score::*;
+	///
+	/// struct BlackBox
+	/// {
+	/// 	data: ThreadData,
+	/// 	nested: Nested,
+	/// 	pub inbound: InPort<String>,	// connecting to this connects to nested's InPort
+	/// }
+	///
+	/// impl BlackBox
+	/// {
+	/// 	pub fn new(sim: &mut Simulation, parent_id: ComponentID) -> BlackBox
+	/// 	{
+	/// 		let (id, data) = sim.add_active_component("black-box", parent_id);
+	/// 		let mut device = BlackBox {
+	/// 			data: data,
+	/// 			nested: Nested::new(sim, id),
+	/// 			inbound: InPort::empty(),
+	/// 		};
+	/// 		device.inbound = device.nested.input.clone();
+	/// 		device
+	/// 	}
+	///
+	/// 	pub fn start(mut self)
+	/// 	{
+	/// 		self.nested.start();	// nested is moved out
+	///
+	/// 		let data = self.data;	// so to avoid using a partially moved struct we move out the fields our thread needs
+	/// 		thread::spawn(move || {
+	/// 			process_events!(data, event, state, effector,
+	/// 				"init 0" => {
+	/// 					log_info!(effector, "initing!");
+	/// 				}
+	/// 			);
+	/// 		});
+	/// 	}
+	/// }
+	///
+	/// struct Nested
+	/// {
+	/// 	data: ThreadData,
+	/// 	input: InPort<String>,
+	/// }
+	///
+	/// impl Nested
+	/// {
+	/// 	pub fn new(sim: &mut Simulation, parent_id: ComponentID) -> Nested
+	/// 	{
+	/// 		let (id, data) = sim.add_active_component("nested", parent_id);
+	/// 		Nested {
+	/// 			data: data,
+	/// 			input: InPort::new(id),
+	/// 		}
+	/// 	}
+	///
+	/// 	pub fn start(self)
+	/// 	{
+	/// 		thread::spawn(move || {
+	/// 			process_events!(self.data, event, state, effector,
+	/// 				"init 0" => {
+	/// 					log_info!(effector, "initing!");
+	/// 				}
+	/// 			);
+	/// 		});
+	/// 	}
+	/// }
+	/// ```
+	pub fn empty() -> InPort<T>
 	{
 		InPort {
+			target_id: NO_COMPONENT,
+			target_port: "".to_string(),
+			dummy: PhantomData,
+		}
+	}
+
+	pub fn new(id: ComponentID) -> InPort<T>
+	{
+		InPort {
+			target_id: id,
+			target_port: "".to_string(),
+			dummy: PhantomData,
+		}
+	}
+
+	/// When this is used the [`Event`]'sport_name will be set which allows components
+	/// to take different actions depending upon how the event arrived.
+	pub fn with_port_name(id: ComponentID, port: &str) -> InPort<T>
+	{
+		InPort {
+			target_id: id,
+			target_port: port.to_string(),
 			dummy: PhantomData,
 		}
 	}
@@ -55,6 +149,7 @@ impl<T: Any + Send> OutPort<T>
 	/// Queue up an event to be processed ASAP.
 	pub fn send_payload(&self, effector: &mut Effector, name: &str, payload: T)
 	{
+		assert!(self.remote_id != NO_COMPONENT);
 		let event = Event::with_port_payload(name, &self.remote_port, payload);
 		effector.schedule_immediately(event, self.remote_id);
 	}
@@ -62,15 +157,16 @@ impl<T: Any + Send> OutPort<T>
 	/// Queue up an event to be processed after secs time elapses.
 	pub fn send_payload_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: T)
 	{
+		assert!(self.remote_id != NO_COMPONENT);
 		let event = Event::with_port_payload(name, &self.remote_port, payload);
 		effector.schedule_after_secs(event, self.remote_id, secs);
 	}
 
-	/// This is normally called using the [`connect!`] macro.
-	pub fn connect(&mut self, _in_port: &InPort<T>, in_port_name: &str, target: ComponentID)
+	pub fn connect_to(&mut self, port: &InPort<T>)
 	{
-		self.remote_id = target;
-		self.remote_port = in_port_name.to_string();
+		assert!(port.target_id != NO_COMPONENT);
+		self.remote_id = port.target_id;
+		self.remote_port = port.target_port.to_string();	// can be empty
 	}
 }
 
@@ -79,6 +175,7 @@ impl OutPort<()>
 	/// Queue up an event with no payload to be processed ASAP.
 	pub fn send(&self, effector: &mut Effector, name: &str)
 	{
+		assert!(self.remote_id != NO_COMPONENT);
 		let event = Event::with_port(name, &self.remote_port);
 		effector.schedule_immediately(event, self.remote_id);
 	}
@@ -86,43 +183,8 @@ impl OutPort<()>
 	/// Queue up an event with no payload to be processed after secs time elapses.
 	pub fn send_after_secs(&self, effector: &mut Effector, name: &str, secs: f64)
 	{
+		assert!(self.remote_id != NO_COMPONENT);
 		let event = Event::with_port(name, &self.remote_port);
 		effector.schedule_after_secs(event, self.remote_id, secs);
 	}
-}
-
-/// Type safe way to send [`Event`]s.
-///
-/// # Examples
-///
-/// ```
-/// use score::*;
-///
-/// struct Sender
-/// {
-/// 	output: OutPort<String>,
-/// }
-///
-/// struct Receiver
-/// {
-/// 	input: InPort<String>,
-/// }
-///
-/// fn wire_up(sender: &Sender, receiver: &Receiver)
-/// {
-/// 	connect!(sender.output -> receiver.input);
-/// }
-///
-/// fn greeting(sender: &Sender, effector: &mut Effector)
-/// {
-/// 	sender.output.send_payload(effector, "text", "hello world".to_string());
-/// }
-/// ```
-#[macro_export]
-macro_rules! connect
-{
-	// TODO: Probably want an arm to handle vectors of ports.
-	($out_instance:ident.$out_port_name:ident -> $in_instance:ident.$in_port_name:ident) => ({
-		$out_instance.$out_port_name.connect(&$in_instance.$in_port_name, stringify!($in_port_name), $in_instance.id);
-	});
 }
