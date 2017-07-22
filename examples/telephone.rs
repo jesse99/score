@@ -178,7 +178,6 @@ struct ReceiverDevice
 	data: ThreadData,
 	
 	receiver: ReceiverComponent,
-	stats: StatsComponent,
 	mangler: ManglerComponent,
 
 	inbound: InPort<String>,
@@ -193,7 +192,6 @@ impl ReceiverDevice
 			data: data,
 			
 			receiver: ReceiverComponent::new(sim, id),
-			stats: StatsComponent::new(sim, id),
 			mangler: ManglerComponent::new(sim, id, error_rate),
 
 			inbound: InPort::empty(),
@@ -204,11 +202,9 @@ impl ReceiverDevice
 	
 	pub fn start(mut self, num_repeaters: i32)
 	{
-		self.mangler.upper_out.connect_to(&self.stats.lower_in);
-		self.stats.upper_out.connect_to(&self.receiver.lower_in);
+		self.mangler.upper_out.connect_to(&self.receiver.lower_in);
 		
 		self.receiver.start();
-		self.stats.start();
 		self.mangler.start();
 		
 		let data = self.data;
@@ -479,7 +475,7 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	//
 	// sender  repeater0  repeater1  receiver
 	//   |        ||         ||         |
-	//   |      stats      stats      stats
+	//   |      stats      stats        |
 	//   |        ||         ||         |
 	// mangle - mangle --- mangle --- mangle
 	let mut sim = Simulation::new(config);
