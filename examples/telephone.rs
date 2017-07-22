@@ -67,12 +67,11 @@ fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
 	}
 }
 
-// Contains a SenderComponent and a ManglerComponent.
 struct SenderDevice
 {
-	id: ComponentID,
 	data: ThreadData,
-	error_rate: u32,
+	sender: SenderComponent,
+	mangler: ManglerComponent,
 	outbound: OutPort<String>,
 }
 
@@ -82,30 +81,28 @@ impl SenderDevice
 	{
 		let (id, data) = sim.add_active_component("sender", parent_id);
 		SenderDevice {
-			id: id,
 			data: data,
-			error_rate: error_rate,
+			sender: SenderComponent::new(sim, id),
+			mangler: ManglerComponent::new(sim, id, error_rate),
 			outbound: OutPort::new(),
 		}
 	}
 	
-	pub fn start(self, sim: &mut Simulation)
+	pub fn start(mut self)
 	{
-		let mut sender = SenderComponent::new(sim, self.id);
-		let mut mangler = ManglerComponent::new(sim, self.id, self.error_rate);
+		self.sender.output.connect_to(&self.mangler.input);
+		self.mangler.output = self.outbound.clone();
 		
-		sender.output.connect_to(&mangler.input);
-		mangler.output = self.outbound.clone();
-		
-		sender.start();
-		mangler.start();
+		self.sender.start();
+		self.mangler.start();
 	
+		let data = self.data;
 		thread::spawn(move || {
 			// "init N" events are scheduled by the simulation. All other events are scheduled
 			// by component threads. Components may send an event to a different component.
 			// SimState encapsulates the state of the simulation at the time the event was
 			// dispatched. TODO: talk about what each of these args are
-			process_events!(self.data, event, state, effector,
+			process_events!(data, event, state, effector,
 				"init 0" => {
 					// The only way components can affect the simulation state is through an
 					// Effector. This prevents spooky action at a distance and also allows
@@ -377,7 +374,7 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	
 	sender.outbound.connect_to(&receiver.inbound);
 	
-	sender.start(&mut sim);
+	sender.start();
 	receiver.start(local.num_repeaters);
 		
 	sim
