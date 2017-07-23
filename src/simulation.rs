@@ -26,7 +26,7 @@ use time;
 pub struct Simulation
 {
 	pub store: Arc<Store>,				// TODO: can we make this private?
-	components: Arc<Components>,	// Components and vectors are indexed by ComponentID
+	pub components: Arc<Components>,	// Components and vectors are indexed by ComponentID
 	event_senders: Vec<Option<mpsc::Sender<(Event, SimState)>>>,
 	effector_receivers: Vec<Option<mpsc::Receiver<Effector>>>,
 	config: Config,
@@ -148,7 +148,15 @@ impl Simulation
 		let seed = get_seed(self.config.seed, id.0 as u32);
 		(id, ThreadData::new(id, rxd, txe, seed))
 	}
-		
+	
+	/// Use this if you want to update the store, or log, or schedule events when
+	/// initializing components. Often used to avoid spinning up a thread,
+	pub fn apply(&mut self, id: ComponentID, mut effects: Effector)
+	{
+		assert!(!effects.exit);
+		self.apply_effects(id, &mut effects);
+	}
+	
 	/// Use this if you want to do something random when initializing components.
 	pub fn rng(&mut self) -> &mut Box<Rng + Send>
 	{
@@ -178,7 +186,7 @@ impl Simulation
 			exiting = self.run_time_slice()
 		}
 		
-		//self.print();
+//		self.print();
 		self.exit(exiting);
 	}
 	
@@ -347,18 +355,24 @@ impl Simulation
 		
 		let mut exit = false;
 		for (id, mut e) in effects.drain(..) {
-			self.apply_logs(id, &e);
-			self.apply_events(&mut e);
-			self.apply_stores(&e, id);
+			self.apply_effects(id, &mut e);
 			
 			if e.exit {
 				exit = true;
 			}
-			if e.removed {
-				self.remove_components(id);
-			}
 		}
 		exit
+	}
+	
+	fn apply_effects(&mut self, id: ComponentID, effects: &mut Effector)
+	{
+		self.apply_logs(id, &effects);
+		self.apply_events(effects);
+		self.apply_stores(&effects, id);
+
+		if effects.removed {
+			self.remove_components(id);
+		}
 	}
 	
 	// The finger print is used to verify that the simulation is deterministic: things like

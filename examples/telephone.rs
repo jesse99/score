@@ -15,7 +15,6 @@ use std::fmt::Display;
 use std::io::{Write, stderr};
 use std::process;
 use std::str::FromStr;
-use std::sync::Arc;
 use std::thread;
 
 // Dimensions of a device, used by GUIs.
@@ -79,7 +78,7 @@ fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
 // so makes the device's inputs, outputs, and parts clear.
 struct SenderDevice
 {
-	data: ThreadData,
+	id: ComponentID,
 	sender: SenderComponent,
 	mangler: ManglerComponent,
 	outbound: OutPort<String>,
@@ -89,51 +88,34 @@ impl SenderDevice
 {
 	pub fn new(sim: &mut Simulation, parent_id: ComponentID, error_rate: u32) -> SenderDevice
 	{
-		let (id, data) = sim.add_active_component("sender", parent_id);
+		let id = sim.add_component("sender", parent_id);
 		SenderDevice {
-			data: data,
+			id: id,
 			sender: SenderComponent::new(sim, id),
 			mangler: ManglerComponent::new(sim, id, error_rate),
 			outbound: OutPort::new(),
 		}
 	}
 	
-	pub fn start(mut self)
+	pub fn start(mut self, sim: &mut Simulation)
 	{
 		self.sender.output.connect_to(&self.mangler.upper_in);
 		self.mangler.output = self.outbound.clone();
 		
 		self.sender.start();
 		self.mangler.start();
-	
-		let data = self.data;
-		thread::spawn(move || {
-			// data is ThreadData and contains the component's id, mpsc channels to communicate
-			// with the Simulator, and a random number seed specific to the component.
-			// event is an Event dispatched to the component. It contains the name of the event,
-			// an optional InPort name, and an optional arbitrary payload.
-			// state is a SimState and contains a read-only snapshot of the simulator state:
-			// components and the store.
-			// effector is an Effector. process_events creates a new one each time an event is
-			// delivered. It's used to capture side effects so that they can be applied after all
-			// the events scheduled for the current time have had a chance to run.
-			process_events!(data, event, state, effector,
-				// "init N" events are scheduled by the simulation. All other events are scheduled
-				// by component threads. Components may send an event to a different component.
-				// SimState encapsulates the state of the simulation at the time the event was
-				// dispatched.
-				"init 0" => {
-					effector.set_float("display-location-x", WIDTH/2.0);
-					effector.set_float("display-location-y", HEIGHT/2.0);	// TODO: can we exit the thread?
-				}
-			);
-		});
+		
+		let mut effector = Effector::new();
+		effector.set_float("display-location-x", WIDTH/2.0);
+		effector.set_float("display-location-y", HEIGHT/2.0);
+		sim.apply(self.id, effector);
 	}
 }
 
 struct RepeaterDevice
 {
-	data: ThreadData,
+	id: ComponentID,
+	index: i32,
 	repeater: RepeaterComponent,
 	stats: StatsComponent,
 	mangler: ManglerComponent,
@@ -147,9 +129,10 @@ impl RepeaterDevice
 	pub fn new(sim: &mut Simulation, parent_id: ComponentID, error_rate: u32, i: i32) -> RepeaterDevice
 	{
 		let name = format!("repeater{}", i);
-		let (id, data) = sim.add_active_component(&name, parent_id);
+		let id = sim.add_component(&name, parent_id);
 		let mut device = RepeaterDevice {
-			data: data,
+			id: id,
+			index: i,
 			repeater: RepeaterComponent::new(sim, id),
 			stats: StatsComponent::new(sim, id),
 			mangler: ManglerComponent::new(sim, id, error_rate),
@@ -160,7 +143,7 @@ impl RepeaterDevice
 		device
 	}
 	
-	pub fn start(mut self)
+	pub fn start(mut self, sim: &mut Simulation)
 	{
 		// Wire together the repeater and stats.
 		self.repeater.lower_out.connect_to(&self.stats.upper_in);
@@ -176,23 +159,17 @@ impl RepeaterDevice
 		self.repeater.start();
 		self.stats.start();
 		self.mangler.start();
-	
-		let data = self.data;	// need this to avoid partially moved errors
-		thread::spawn(move || {
-			process_events!(data, event, state, effector,
-				"init 0" => {
-					effector.set_float("display-location-x", WIDTH/2.0);
-					effector.set_float("display-location-y", HEIGHT/2.0);	// TODO: can we exit the thread?
-				}
-			);
-		});
+		
+		let mut effector = Effector::new();
+		effector.set_float("display-location-x", (self.index as f64)*WIDTH/2.0);
+		effector.set_float("display-location-y", HEIGHT/2.0);
+		sim.apply(self.id, effector);
 	}
 }
 
 struct ReceiverDevice
 {
-	data: ThreadData,
-	
+	id: ComponentID,
 	receiver: ReceiverComponent,
 	mangler: ManglerComponent,
 
@@ -203,10 +180,9 @@ impl ReceiverDevice
 {
 	pub fn new(sim: &mut Simulation, parent_id: ComponentID, error_rate: u32) -> ReceiverDevice
 	{
-		let (id, data) = sim.add_active_component("receiver", parent_id);
+		let id = sim.add_component("receiver", parent_id);
 		let mut device = ReceiverDevice {
-			data: data,
-			
+			id: id,
 			receiver: ReceiverComponent::new(sim, id),
 			mangler: ManglerComponent::new(sim, id, error_rate),
 
@@ -216,22 +192,17 @@ impl ReceiverDevice
 		device
 	}
 	
-	pub fn start(mut self, num_repeaters: i32)
+	pub fn start(mut self, sim: &mut Simulation, num_repeaters: i32)
 	{
 		self.mangler.upper_out.connect_to(&self.receiver.lower_in);
 		
 		self.receiver.start();
 		self.mangler.start();
 		
-		let data = self.data;
-		thread::spawn(move || {
-			process_events!(data, event, state, effector,
-				"init 0" => {
-					effector.set_float("display-location-x", (2.0 + num_repeaters as f64)*WIDTH + WIDTH/2.0);
-					effector.set_float("display-location-y", HEIGHT/2.0);	// TODO: can we exit the thread?
-				}
-			);
-		});
+		let mut effector = Effector::new();
+		effector.set_float("display-location-x", (num_repeaters as f64)*WIDTH/2.0);
+		effector.set_float("display-location-y", HEIGHT/2.0);
+		sim.apply(self.id, effector);
 	}
 }
 
@@ -258,7 +229,20 @@ impl SenderComponent
 	pub fn start(self)
 	{
 		thread::spawn(move || {
+			// data is ThreadData and contains the component's id, mpsc channels to communicate
+			// with the Simulator, and a random number seed specific to the component.
+			// event is an Event dispatched to the component. It contains the name of the event,
+			// an optional InPort name, and an optional arbitrary payload.
+			// state is a SimState and contains a read-only snapshot of the simulator state:
+			// components and the store.
+			// effector is an Effector. process_events creates a new one each time an event is
+			// delivered. It's used to capture side effects so that they can be applied after all
+			// the events scheduled for the current time have had a chance to run.
 			process_events!(self.data, event, state, effector,
+				// "init N" events are scheduled by the simulation. All other events are scheduled
+				// by component threads. Components may send an event to a different component.
+				// SimState encapsulates the state of the simulation at the time the event was
+				// dispatched.
 				"init 0" => {
 					log_info!(effector, "init");
 					effector.set_float("display-location-x", WIDTH/2.0);
@@ -497,11 +481,6 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	// mangler - mangler --- mangler --- mangler
 	let mut sim = Simulation::new(config);
 	let world_id = sim.add_component("world", NO_COMPONENT);
-	{
-	let store = Arc::get_mut(&mut sim.store).unwrap();
-		store.set_float("world.display-size-x", WIDTH*(2.0 + local.num_repeaters as f64), Time(0));
-		store.set_float("world.display-size-y", HEIGHT, Time(0));
-	}
 
 	// Create the devices,
 	let mut sender = SenderDevice::new(&mut sim, world_id, local.error_rate);
@@ -525,11 +504,11 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	}
 		
 	// and spin up their threads.
-	sender.start();
+	sender.start(&mut sim);
 	for r in repeaters.drain(..) {
-		r.start();
+		r.start(&mut sim);
 	}
-	receiver.start(local.num_repeaters);
+	receiver.start(&mut sim, local.num_repeaters);
 	
 	sim
 }
