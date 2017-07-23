@@ -50,28 +50,10 @@ fn compute_error(text: &str) -> f64
 	100.0*(errors as f64)/(count as f64)
 }
 
-fn fatal_err(message: &str) -> !
-{
-	let _ = writeln!(&mut stderr(), "{}", message);
-	process::exit(1);
-}
-
-// Min and max are inclusive.
-fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
-		where T: Copy + Display + FromStr + PartialOrd
-{
-	match value_t!(matches.value_of(name), T) {
-		Ok(value) if value < min => fatal_err(&format!("--{} should be greater than {}", name, min)),
-		Ok(value) if value > max => fatal_err(&format!("--{} should be less than {}", name, max)),
-		Ok(value) => value,
-		_ => fatal_err(&format!("--{} should be a number", name)),
-	}
-}
-
 // This is typical of more elaborate simulations: components are organized into hierarchies that act
 // as black boxes where the ports on the outer component are connected to the inner components. It's
 // not required that structs be set up this way (or that you use a struct like this at all) but doing
-// so makes the device's inputs, outputs, and parts clear.
+// so makes the device's inputs, outputs, and structure clearer.
 struct SenderDevice
 {
 	id: ComponentID,
@@ -95,12 +77,16 @@ impl SenderDevice
 	
 	pub fn start(mut self, sim: &mut Simulation)
 	{
+		// Wire together the sender and the mangler.
 		self.sender.output.connect_to(&self.mangler.upper_in);
 		self.mangler.output = self.outbound.clone();
 		
+		// Spin up the sender and mangler threads.
 		self.sender.start();
 		self.mangler.start();
 		
+		// Set some state for the device. We could use a thread to do this but it's simpler
+		// to just use an Effector.
 		let mut effector = Effector::new();
 		effector.set_float("display-location-x", 0.0);
 		effector.set_float("display-location-y", 0.0);
@@ -152,10 +138,12 @@ impl RepeaterDevice
 		// Mangler output goes where ever the device was connected to.
 		self.mangler.output = self.outbound.clone();
 		
+		// Spin up the threads.
 		self.repeater.start();
 		self.stats.start();
 		self.mangler.start();
 		
+		// Set our state.
 		let mut effector = Effector::new();
 		effector.set_float("display-location-x", (self.index + 1) as f64);
 		effector.set_float("display-location-y", 0.0);
@@ -181,7 +169,6 @@ impl ReceiverDevice
 			id: id,
 			receiver: ReceiverComponent::new(sim, id),
 			mangler: ManglerComponent::new(sim, id, error_rate),
-
 			inbound: InPort::empty(),
 		};
 		device.inbound = device.mangler.input.clone();
@@ -214,6 +201,7 @@ impl SenderComponent
 {
 	pub fn new(sim: &mut Simulation, parent_id: ComponentID) -> SenderComponent
 	{
+		// Active components have a thread that wakes up when an Event is sent to them.
 		let (id, data) = sim.add_active_component("sender", parent_id);
 		SenderComponent {
 			id: id,
@@ -227,18 +215,20 @@ impl SenderComponent
 		thread::spawn(move || {
 			// data is ThreadData and contains the component's id, mpsc channels to communicate
 			// with the Simulator, and a random number seed specific to the component.
-			// event is an Event dispatched to the component. It contains the name of the event,
+			//
+			// event is the Event dispatched to the component. It contains the name of the event,
 			// an optional InPort name, and an optional arbitrary payload.
+			//
 			// state is a SimState and contains a read-only snapshot of the simulator state:
-			// components and the store.
+			// namely components and the store.
+			//
 			// effector is an Effector. process_events creates a new one each time an event is
 			// delivered. It's used to capture side effects so that they can be applied after all
 			// the events scheduled for the current time have had a chance to run.
 			process_events!(self.data, event, state, effector,
 				// "init N" events are scheduled by the simulation. All other events are scheduled
-				// by component threads. Components may send an event to a different component.
-				// SimState encapsulates the state of the simulation at the time the event was
-				// dispatched.
+				// by component threads. Components may send an event directly to a component or
+				// more typically to one of their OutPorts.
 				"init 0" => {
 					log_info!(effector, "init");
 					effector.set_float("display-location-x", 0.0);
@@ -305,16 +295,15 @@ impl ManglerComponent
 				},
 				"text" => {
 					let old = event.expect_payload::<String>("text should have a String payload");
-					let new;
 					if event.port_name == "upper_in" {
-						if self.upper_out.is_connected() {
-							new = old.to_string();				// we're on the downward path of repeater
+						let new = if self.upper_out.is_connected() {
+							old.to_string()						// we're on the downward path of repeater
 						} else {
-							new = self.mangle(&mut rng, old);	// we're on the sender
-						}
+							self.mangle(&mut rng, old)			// we're on the sender
+						};
 						self.output.send_payload(&mut effector, "text", new);
 					} else {
-						new = self.mangle(&mut rng, old);		// we're on the inbound path of a repeater
+						let new = self.mangle(&mut rng, old);	// we're on the inbound path of a repeater
 						self.upper_out.send_payload(&mut effector, "text", new);
 					}
 				}
@@ -507,6 +496,24 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	receiver.start(&mut sim, local.num_repeaters);
 	
 	sim
+}
+
+fn fatal_err(message: &str) -> !
+{
+	let _ = writeln!(&mut stderr(), "{}", message);
+	process::exit(1);
+}
+
+// Min and max are inclusive.
+fn match_num<T>(matches: &ArgMatches, name: &str, min: T, max: T) -> T
+		where T: Copy + Display + FromStr + PartialOrd
+{
+	match value_t!(matches.value_of(name), T) {
+		Ok(value) if value < min => fatal_err(&format!("--{} should be greater than {}", name, min)),
+		Ok(value) if value > max => fatal_err(&format!("--{} should be less than {}", name, max)),
+		Ok(value) => value,
+		_ => fatal_err(&format!("--{} should be a number", name)),
+	}
 }
 
 fn parse_options() -> (LocalConfig, Config)

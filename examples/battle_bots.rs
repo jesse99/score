@@ -168,18 +168,20 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
 	thread::spawn(move || {
 		// data is ThreadData and contains the component's id, mpsc channels to communicate
 		// with the Simulator, and a random number seed specific to the component.
-		// event is an Event dispatched to the component. It contains the name of the event,
+		//
+		// event is the Event dispatched to the component. It contains the name of the event,
 		// an optional InPort name, and an optional arbitrary payload.
+		//
 		// state is a SimState and contains a read-only snapshot of the simulator state:
-		// components and the store.
+		// namely components and the store.
+		//
 		// effector is an Effector. process_events creates a new one each time an event is
 		// delivered. It's used to capture side effects so that they can be applied after all
 		// the events scheduled for the current time have had a chance to run.
 		process_events!(data, event, state, effector,
 			// "init N" events are scheduled by the simulation. All other events are scheduled
-			// by component threads. Components may send an event to a different component.
-			// SimState encapsulates the state of the simulation at the time the event was
-			// dispatched.
+			// by component threads. Components may send an event directly to a component or
+			// more typically to one of their OutPorts.
 			"init 0" => {
 				init_bot(&local, data.id, &mut data.rng, &state, &event, &mut effector);
 				let short = ('a' as i8) + bot_num;
