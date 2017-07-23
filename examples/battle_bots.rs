@@ -15,7 +15,6 @@ use score::*;
 use std::collections::HashMap;
 use std::f64::INFINITY;
 use std::fmt::Display;
-use std::io::{Write, stderr};
 use std::process;
 use std::str::FromStr;
 use std::thread;
@@ -404,7 +403,7 @@ fn world_thread(local: LocalConfig, data: ThreadData)
 
 fn fatal_err(message: &str) -> !
 {
-	let _ = writeln!(&mut stderr(), "{}", message);
+	eprintln!("{}", message);
 	process::exit(1);
 }
 

@@ -12,7 +12,6 @@ use clap::{App, ArgMatches};
 use rand::{Rng, SeedableRng, XorShiftRng};
 use score::*;
 use std::fmt::Display;
-use std::io::{Write, stderr};
 use std::process;
 use std::str::FromStr;
 use std::thread;
@@ -500,7 +499,7 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 
 fn fatal_err(message: &str) -> !
 {
-	let _ = writeln!(&mut stderr(), "{}", message);
+	eprintln!("{}", message);
 	process::exit(1);
 }
 
