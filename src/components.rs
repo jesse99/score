@@ -15,7 +15,7 @@ pub struct ComponentsIterator<'a>
 
 impl Components
 {
-	pub fn new() -> Components
+	pub(crate) fn new() -> Components
 	{
 		Components {components: Vec::new()}
 	}
@@ -158,14 +158,12 @@ impl Components
 		path.join(".")
 	}
 		
-	#[doc(hidden)]
 	pub fn is_empty(&self) -> bool
 	{
 		self.components.is_empty()
 	}
 	
-	#[doc(hidden)]
-	pub fn append(&mut self, id: ComponentID, component: Component, parent: ComponentID)
+	pub(crate) fn append(&mut self, id: ComponentID, component: Component, parent: ComponentID)
 	{
 		assert!(id != NO_COMPONENT);
 

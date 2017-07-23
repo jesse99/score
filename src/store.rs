@@ -16,14 +16,9 @@ use std::collections::HashMap;
 /// [`Component`]s recorded within an [`Effector`].
 pub struct Store
 {
-	#[doc(hidden)]
-	pub int_data: HashMap<String, (Time, i64)>,	// TODO: probably want [(Time, i64)]
-	
-	#[doc(hidden)]
-	pub float_data: HashMap<String, (Time, f64)>,
-	
-	#[doc(hidden)]
-	pub string_data: HashMap<String, (Time, String)>,
+	pub(crate) int_data: HashMap<String, (Time, i64)>,	// TODO: probably want [(Time, i64)]
+	pub(crate) float_data: HashMap<String, (Time, f64)>,
+	pub(crate) string_data: HashMap<String, (Time, String)>,
 }
 
 pub trait ReadableStore
@@ -118,7 +113,7 @@ impl WriteableStore for Store
 
 impl Store
 {
-	pub fn new() -> Store
+	pub(crate) fn new() -> Store
 	{
 		Store{
 			int_data: HashMap::new(),

@@ -9,20 +9,11 @@ use std::f64::EPSILON;
 /// The effector encapsulates the state changes the component wishes to make.
 pub struct Effector
 {
-	#[doc(hidden)]
-	pub logs: Vec<LogRecord>,
-	
-	#[doc(hidden)]
-	pub events: Vec<(ComponentID, Event, f64)>,
-	
-	#[doc(hidden)]
-	pub store: Store,
-	
-	#[doc(hidden)]
-	pub exit: bool,
-	
-	#[doc(hidden)]
-	pub removed: bool,
+	pub(crate) logs: Vec<LogRecord>,
+	pub(crate) events: Vec<(ComponentID, Event, f64)>,
+	pub(crate) store: Store,
+	pub(crate) exit: bool,
+	pub(crate) removed: bool,
 }
 
 // It'd be nice to wrap this up in a smart pointer so that we could do the send
@@ -96,13 +87,9 @@ impl Effector
 	}
 }
 
-#[doc(hidden)]
-pub struct LogRecord
+pub(crate) struct LogRecord
 {
-	#[doc(hidden)]
-	pub level: LogLevel,
-
-	#[doc(hidden)]
-	pub message: String,
+	pub(crate) level: LogLevel,
+	pub(crate) message: String,
 }
 
