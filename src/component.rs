@@ -45,6 +45,7 @@ impl fmt::Display for ComponentID
 ///
 /// ```
 /// use score::*;
+/// use std::thread;
 ///
 /// fn my_thread(data: ThreadData)
 /// {

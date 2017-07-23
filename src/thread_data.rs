@@ -23,8 +23,13 @@ pub struct ThreadData
 	/// # Examples
 	///
 	/// ```
-	/// use rand::{SeedableRng, XorShiftRng};
+	/// #[macro_use]
+	/// extern crate score;
+	/// extern crate rand;
+	///
+	/// use rand::{Rng, SeedableRng, XorShiftRng};
 	/// use score::*;
+	/// use std::thread;
 	///
 	/// fn component_thread(data: ThreadData)
 	/// {
@@ -41,6 +46,8 @@ pub struct ThreadData
 	/// 		);
 	/// 	});
 	/// }
+	/// # fn main() {
+	/// # }
 	/// ```
 	pub seed: u32,	// TODO: document stuff to be careful of, eg HashMap iteration
 }

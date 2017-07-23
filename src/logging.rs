@@ -81,13 +81,13 @@ macro_rules! log_warning
 
 /// # Examples
 ///
-/// ```rust
-/// #[macro_use]
-/// extern crate score;
+/// ```
+/// use score::*;
 ///
-/// log_info!(effector);						// logs an empty line
-/// log_info!(effector, "hello");			// logs a string
-/// log_info!(effector, "x = {:?}", x);	// logs using a format string
+/// let mut effector = Effector::new();
+/// log_info!(effector);				// logs an empty line
+/// log_info!(effector, "hello");		// logs a string
+/// log_info!(effector, "x = {:?}", 5);	// logs using a format string
 /// ```
 #[macro_export]
 macro_rules! log_info

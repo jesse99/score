@@ -37,8 +37,12 @@ impl<T: Any + Send> InPort<T>
 {
 	/// Creates an InPort with no component or port name. This is useful for components that
 	/// wrap nested components, for example:
+	///
+	/// # Examples
+	///
 	/// ```
 	/// use score::*;
+	/// use std::thread;
 	///
 	/// struct BlackBox
 	/// {

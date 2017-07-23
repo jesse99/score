@@ -54,7 +54,7 @@ impl StringValue
 /// 	tx_packets: IntValue,
 /// }
 ///
-/// fn reset(iface: InterfaceComponent, effector: &mut Effector)
+/// fn reset(iface: InterfaceComponent, mut effector: Effector)
 /// {
 /// 	// The effector is actually the object that is updated.
 /// 	// When the component finishes processing the current event

@@ -1,42 +1,53 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
-{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-BoldItalic;
+{\fonttbl\f0\fnil\fcharset0 Menlo-BoldItalic;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Helvetica;
 \f3\fnil\fcharset0 Menlo-Bold;\f4\fnil\fcharset0 Menlo-Italic;\f5\fswiss\fcharset0 ArialMT;
 }
-{\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red36\green38\blue41;
-\red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;\red161\green33\blue108;
-\red240\green0\blue31;\red0\green72\blue255;\red104\green0\blue254;\red140\green83\blue65;\red0\green0\blue0;
+{\colortbl;\red255\green255\blue255;\red240\green0\blue31;\red2\green2\blue2;\red9\green80\blue208;
+\red36\green38\blue41;\red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;
+\red161\green33\blue108;\red0\green72\blue255;\red104\green0\blue254;\red140\green83\blue65;\red0\green0\blue0;
 }
-{\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\cssrgb\c18824\c20000\c21176;
-\cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;\csgenericrgb\c63137\c12941\c42353;
-\csgenericrgb\c94118\c0\c12157;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c40784\c0\c99608;\csgenericrgb\c54902\c32549\c25490;\cssrgb\c0\c0\c0;
+{\*\expandedcolortbl;;\csgenericrgb\c94118\c0\c12157;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;
+\cssrgb\c18824\c20000\c21176;\cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;
+\csgenericrgb\c63137\c12941\c42353;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c40784\c0\c99608;\csgenericrgb\c54902\c32549\c25490;\cssrgb\c0\c0\c0;
 }
-\deftab720
+\deftab963
+\pard\pardeftab963\pardirnatural\partightenfactor0
+
+\f0\i\b\fs40 \cf2 /// #[macro_use]
+\f1\i0\b0 \cf0 \
+
+\f0\i\b \cf2 /// extern crate score;
+\f1\i0\b0 \cf0 \
 \pard\pardeftab720\partightenfactor0
 
-\f0\fs48 \cf2 publishing a new version\
+\f2\fs48 \cf3 \
+publishing a new version\
+	make sure tests work\
+	make sure examples work\
 	change the version number \
 		dependencies auto-update if the first non-zero number doesn\'92t change\
+	update categories\
 	cargo package\
 		optional, allows you to inspect the target/package/*.crate file\
 	cargo publish\
 \
 \pard\pardeftab720\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt \cf2 https://github.com/brson/rust-api-guidelines}}\
+{\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt \cf3 https://github.com/brson/rust-api-guidelines}}\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\cf2 \
+{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf3 https://deterministic.space/elegant-apis-in-rust.html}}\cf3 \
 https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
   \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://rust-lang.github.io/book/second-edition/index.html"}}{\fldrslt \cf2 https://rust-lang.github.io/book/second-edition/index.html}}\
+{\field{\*\fldinst{HYPERLINK "https://rust-lang.github.io/book/second-edition/index.html"}}{\fldrslt \cf3 https://rust-lang.github.io/book/second-edition/index.html}}\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/stable/nomicon/README.html"}}{\fldrslt \cf2 https://doc.rust-lang.org/stable/nomicon/README.html}}\
+{\field{\*\fldinst{HYPERLINK "https://doc.rust-lang.org/stable/nomicon/README.html"}}{\fldrslt \cf3 https://doc.rust-lang.org/stable/nomicon/README.html}}\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/"}}{\fldrslt \cf2 https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/}}\
+{\field{\*\fldinst{HYPERLINK "https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/"}}{\fldrslt \cf3 https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/}}\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/patterns"}}{\fldrslt \cf2 https://github.com/rust-unofficial/patterns}}\
+{\field{\*\fldinst{HYPERLINK "https://github.com/rust-unofficial/patterns"}}{\fldrslt \cf3 https://github.com/rust-unofficial/patterns}}\
  {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-cookbook"}}{\fldrslt 
-\fs36 \cf3 \expnd0\expndtw0\kerning0
-\ul \ulc3 https://github.com/brson/rust-cookbook}}
+\fs36 \cf4 \expnd0\expndtw0\kerning0
+\ul \ulc4 https://github.com/brson/rust-cookbook}}
 \fs36 \cf0 \expnd0\expndtw0\kerning0
 \
 \pard\pardeftab720\partightenfactor0
@@ -68,73 +79,60 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 \
 \pard\pardeftab720\sl300\partightenfactor0
 
-\fs32 \cf4 \expnd0\expndtw0\kerning0
-#[derive(\cf5 PartialEq\cf4 )]\
-\cf6 enum\cf4  \cf5 MyEnum\cf4  \{ ... \}\cf7 \cb8 \
+\fs32 \cf5 \expnd0\expndtw0\kerning0
+#[derive(\cf6 PartialEq\cf5 )]\
+\cf7 enum\cf5  \cf6 MyEnum\cf5  \{ ... \}\cf8 \cb9 \
 
-\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \
+\f2\fs48 \cf3 \cb1 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f1\fs40 \cf0 (cmd(\cf9 "follow log [level]"\cf0 ),              get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow log <path> [level]"\cf0 ),       get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow map"\cf0 ),                      get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow state"\cf0 ),                    get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow state <path>"\cf0 ),             get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
+\f1\fs40 \cf0 (cmd(\cf10 "follow log [level]"\cf0 ),              get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "follow log <path> [level]"\cf0 ),       get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "follow map"\cf0 ),                      get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "follow state"\cf0 ),                    get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "follow state <path>"\cf0 ),             get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
 \
-(cmd(\cf9 \'93get components\'93\cf0 ),                  get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 \'93get components <path>\'93\cf0 ),           get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 \'93get map\'94\cf0 ),                         get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 \'93get components\'93\cf0 ),                  get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 \'93get components <path>\'93\cf0 ),           get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 \'93get map\'94\cf0 ),                         get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
 \
-(cmd(\cf9 "run"\cf0 ),                             get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run log [level]"\cf0 ),                 get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run log <path> [level]"\cf0 ),          get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run map"\cf0 ),                         get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run state"\cf0 ),                       get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run state <path>"\cf0 ),                get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "run"\cf0 ),                             get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "run log [level]"\cf0 ),                 get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "run log <path> [level]"\cf0 ),          get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "run map"\cf0 ),                         get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "run state"\cf0 ),                       get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
+(cmd(\cf10 "run state <path>"\cf0 ),                get_log_all,    \cf10 "print the logs for all components"\cf0 ),\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 \
-\
-sender       repeater       repeater      receiver\
-   |                     ||                 | |                ||\
-   |                  stats            stats          stats\
-   |                     ||                  ||               | |\
-mangle   \'97 mangle \'97\'97 mangle \'97 mangle     should only mangle on incoming\
-\
-\
-     send_up    sent_down\
-                |     |\
-inbound 
-\b \cf2 mangle 
-\b0 \cf2 outbound\
+\f2\fs48 \cf3 \
 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
 \f1\fs40 \cf0 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f2\i\b \cf10 /// Helper for components that want to maintain an (x, y) position. This will handle the
+\f0\i\b \cf2 /// Helper for components that want to maintain an (x, y) position. This will handle the
 \f1\i0\b0 \cf0 \
 
-\f2\i\b \cf10 /// following events:
+\f0\i\b \cf2 /// following events:
 \f1\i0\b0 \cf0 \
 
-\f2\i\b \cf10 /// * "set-location" - Sets the data using an (f64, f64) event payload.
+\f0\i\b \cf2 /// * "set-location" - Sets the data using an (f64, f64) event payload.
 \f1\i0\b0 \cf0 \
 
-\f2\i\b \cf10 /// * "offset-location" - Add values to the data using an (f64, f64) event payload.
+\f0\i\b \cf2 /// * "offset-location" - Add values to the data using an (f64, f64) event payload.
 \f1\i0\b0 \cf0 \
 
-\f2\i\b \cf10 /// Note that this will panic if sent an event not listed above.
+\f0\i\b \cf2 /// Note that this will panic if sent an event not listed above.
 \f1\i0\b0 \cf0 \
 
-\f2\i\b \cf10 ///
+\f0\i\b \cf2 ///
 \f1\i0\b0 \cf0 \
 
-\f2\i\b \cf10 /// If origin is missing GUIs should assume zero, if size is missing GUIs should assume
+\f0\i\b \cf2 /// If origin is missing GUIs should assume zero, if size is missing GUIs should assume
 \f1\i0\b0 \cf0 \
 
-\f2\i\b \cf10 /// 1.0, if units are missing then GUIs should assume meters.
+\f0\i\b \cf2 /// 1.0, if units are missing then GUIs should assume meters.
 \f1\i0\b0 \cf0 \
 
 \f3\b \cf11 pub
@@ -162,60 +160,61 @@ inbound
 \f1\b0 \cf0  ename = &event.name;\
 	
 \f3\b \cf11 if
-\f1\b0 \cf0  ename == \cf9 "set-location"\cf0  \{\
+\f1\b0 \cf0  ename == \cf10 "set-location"\cf0  \{\
 		
 \f3\b \cf11 let
-\f1\b0 \cf0  loc = event.expect_payload::<(\cf11 f64\cf0 , \cf11 f64\cf0 )>(&\cf12 format!\cf0 (\cf9 "component \{\} set-location should have an (f64, f64) payload"\cf0 , cname));\
-		log_info!(effector, \cf9 "setting location to \{:.1\}, \{:.1\}"\cf0 , loc\cf13 .0\cf0 , loc\cf13 .1\cf0 );\
-		effector.set_float(\cf9 "display-location-x"\cf0 , loc\cf13 .0\cf0 );\
-		effector.set_float(\cf9 "display-location-y"\cf0 , loc\cf13 .1\cf0 );\
+\f1\b0 \cf0  loc = event.expect_payload::<(\cf11 f64\cf0 , \cf11 f64\cf0 )>(&\cf12 format!\cf0 (\cf10 "component \{\} set-location should have an (f64, f64) payload"\cf0 , cname));\
+		log_info!(effector, \cf10 "setting location to \{:.1\}, \{:.1\}"\cf0 , loc\cf13 .0\cf0 , loc\cf13 .1\cf0 );\
+		effector.set_float(\cf10 "display-location-x"\cf0 , loc\cf13 .0\cf0 );\
+		effector.set_float(\cf10 "display-location-y"\cf0 , loc\cf13 .1\cf0 );\
 		\
 	\} 
 \f3\b \cf11 else
 \f1\b0 \cf0  
 \f3\b \cf11 if
-\f1\b0 \cf0  ename == \cf9 "offset-location"\cf0  \{\
+\f1\b0 \cf0  ename == \cf10 "offset-location"\cf0  \{\
 		
 \f3\b \cf11 let
 \f1\b0 \cf0  path = state.components.path(id);\
 		
 \f3\b \cf11 let
-\f1\b0 \cf0  x = state.store.get_float(&(path.clone() + \cf9 ".display-location-x"\cf0 ));\
+\f1\b0 \cf0  x = state.store.get_float(&(path.clone() + \cf10 ".display-location-x"\cf0 ));\
 		
 \f3\b \cf11 let
-\f1\b0 \cf0  y = state.store.get_float(&(path + \cf9 ".display-location-y"\cf0 ));\
+\f1\b0 \cf0  y = state.store.get_float(&(path + \cf10 ".display-location-y"\cf0 ));\
 \
 		
 \f3\b \cf11 let
-\f1\b0 \cf0  loc = event.expect_payload::<(\cf11 f64\cf0 , \cf11 f64\cf0 )>(&\cf12 format!\cf0 (\cf9 "component \{\} offset-location should have an (f64, f64) payload"\cf0 , cname));\
-		log_info!(effector, \cf9 "setting location to \{:.1\}, \{:.1\}"\cf0 , x+loc\cf13 .0\cf0 , y+loc\cf13 .1\cf0 );\
-		effector.set_float(\cf9 "display-location-x"\cf0 , x+loc\cf13 .0\cf0 );\
-		effector.set_float(\cf9 "display-location-y"\cf0 , y+loc\cf13 .1\cf0 );\
+\f1\b0 \cf0  loc = event.expect_payload::<(\cf11 f64\cf0 , \cf11 f64\cf0 )>(&\cf12 format!\cf0 (\cf10 "component \{\} offset-location should have an (f64, f64) payload"\cf0 , cname));\
+		log_info!(effector, \cf10 "setting location to \{:.1\}, \{:.1\}"\cf0 , x+loc\cf13 .0\cf0 , y+loc\cf13 .1\cf0 );\
+		effector.set_float(\cf10 "display-location-x"\cf0 , x+loc\cf13 .0\cf0 );\
+		effector.set_float(\cf10 "display-location-y"\cf0 , y+loc\cf13 .1\cf0 );\
 		\
 	\} 
 \f3\b \cf11 else
 \f1\b0 \cf0  \{\
-		\cf12 panic!\cf0 (\cf9 "handle_location_event doesn't know how to handle \{\}"\cf0 , ename);\
+		\cf12 panic!\cf0 (\cf10 "handle_location_event doesn't know how to handle \{\}"\cf0 , ename);\
 	\}\
 \}\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 \
+\f2\fs48 \cf3 \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf2 Structure: (?<= trait) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
+\cf3 Structure: (?<= trait) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 \pard\pardeftab963\pardirnatural\partightenfactor0
-\cf2 \
+\cf3 \
 \
 \pard\pardeftab720\partightenfactor0
-\cf2 * AC\
-* Add a telephone example:\
-	- update battle bots (or at least add comments)\
-	- SimState should have a nicer way to get state\
-	- should state include units? make that part of the name?\
-		may be tricky to make it part of the name if it also has to be an ident\
+\cf3 * Submit a pull request for new slug\
+* AC\
+	{\field{\*\fldinst{HYPERLINK "https://www.amazon.com/s/ref=nb_sb_ss_c_1_22?url=search-alias%3Daps&field-keywords=air+conditioner+grille&sprefix=air+conditioner+grille%2Caps%2C200&crid=2U6YPEKYD4R0D"}}{\fldrslt https://www.amazon.com/s/ref=nb_sb_ss_c_1_22?url=search-alias%3Daps&field-keywords=air+conditioner+grille&sprefix=air+conditioner+grille%2Caps%2C200&crid=2U6YPEKYD4R0D}}\
 * Do another release\
 * Work on an sdebug tool:\
+	- archive existing in a branch\
+	- get back on master\
+	- score will have to take a directory to serve up files from\
+	- make sure relative paths all land within the directory\
 	- make sure that display state looks OK\
 	- get state shouldn\'92t show \'93.display-\'93 keys\
 	- support get map\
@@ -234,7 +233,7 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 	- can we fix doc comments so that `foo` has a link?\
 	- if we add a dependency upon score then sdebug will show up as a dependent crate\
 	- support tab completion:\
-		{\field{\*\fldinst{HYPERLINK "https://robots.thoughtbot.com/tab-completion-in-gnu-readline"}}{\fldrslt \cf2 https://robots.thoughtbot.com/tab-completion-in-gnu-readline}}\
+		{\field{\*\fldinst{HYPERLINK "https://robots.thoughtbot.com/tab-completion-in-gnu-readline"}}{\fldrslt \cf3 https://robots.thoughtbot.com/tab-completion-in-gnu-readline}}\
 	- readme should say how to setup toml file\
 	- readme should point to sdebug\
 	- publish a new version of score as well as sdebug\
@@ -274,7 +273,7 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 	- maybe with some simple viewer tools\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Start working on snet\
+\f2\fs48 \cf3 \kerning1\expnd0\expndtw0 * Start working on snet\
 * Check parallelism:\
 	- maintain a list of buckets where the bucket number is how many threads executed\
 	- log that at debug\
@@ -287,11 +286,11 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 	- waits for \'93run\'94 to be written to the web component\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Persist the store\
+\f2\fs48 \cf3 \kerning1\expnd0\expndtw0 * Persist the store\
 * Try 
 \fs36 \cf0 \expnd0\expndtw0\kerning0
 #[warn(unused_must_use)]
-\fs48 \cf2 \kerning1\expnd0\expndtw0 \
+\fs48 \cf3 \kerning1\expnd0\expndtw0 \
 * Try separate executioners\
 * goals: deterministic, extensible, parallel, off-line analysis, portable, fast\
 * use a write-once temporal store\
