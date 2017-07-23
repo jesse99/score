@@ -1,7 +1,7 @@
 //! This example simulates a collection of battle bots with different behaviors, e.g.
 //! some of the bots flee from other bots and some are aggressive and attempt to attack
 //! other bots. This is a neat example but it's a bit atypical in that components have
-//! no structure and 
+//! no structure and deliver event flow is willy nilly.
 #[macro_use]
 extern crate clap;
 extern crate glob;
@@ -10,7 +10,7 @@ extern crate rand;
 extern crate score;
 
 use clap::{App, ArgMatches};
-use rand::Rng;
+use rand::{Rng, SeedableRng, XorShiftRng};
 use score::*;
 use std::collections::HashMap;
 use std::f64::INFINITY;
@@ -45,24 +45,27 @@ impl LocalConfig
 
 type ComponentThread = fn (LocalConfig, ThreadData, i32) -> ();
 
-// These events are handled by score's handle_location_event function.
-fn move_bot(id: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn move_bot(effector: &mut Effector, x: f64, y: f64)
 {
-	let event = Event::with_payload("set-location", (x, y));
-	effector.schedule_immediately(event, id);
+	effector.set_float("display-location-x", x);
+	effector.set_float("display-location-y", y);
 }
 
-fn offset_bot(id: ComponentID, effector: &mut Effector, x: f64, y: f64)
+fn offset_bot(state: &SimState, id: ComponentID, effector: &mut Effector, dx: f64, dy: f64)
 {
-	let event = Event::with_payload("offset-location", (x, y));
-	effector.schedule_immediately(event, id);
+	let path = state.components.path(id);
+	let x = state.store.get_float(&(path.clone() + ".display-location-x"));
+	let y = state.store.get_float(&(path + ".display-location-y"));
+
+	effector.set_float("display-location-x", x + dx);
+	effector.set_float("display-location-y", y + dy);
 }
 
-fn randomize_location(local: &LocalConfig, rng: &mut Box<Rng + Send>, id: ComponentID, effector: &mut Effector)
+fn randomize_location(local: &LocalConfig, rng: &mut XorShiftRng, effector: &mut Effector)
 {
 	let x = rng.gen_range(0.0, local.width);
 	let y = rng.gen_range(0.0, local.height);
-	move_bot(id, effector, x, y);
+	move_bot(effector, x, y);
 }
 
 fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
@@ -148,23 +151,25 @@ fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &Th
 	result.0
 }
 
-fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut Box<Rng + Send>, state: &SimState, event: &Event, effector: &mut Effector)
+fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut XorShiftRng, effector: &mut Effector)
 {
 	// The only way components can affect the simulation state is through an
 	// Effector. This prevents spooky action at a distance and also allows
 	// component threads to execute in parallel.
-	randomize_location(&local, rng, id, effector);
+	randomize_location(&local, rng, effector);
 
 	let event = Event::new("timer");
 	let delay = 0.1 + 0.9*rng.next_f64();
 	effector.schedule_after_secs(event, id, delay);
 	effector.set_int("energy", 100);
-	effector.set_string("display-description", format!("({})", 100));
+	effector.set_string("display-description", &format!("({})", 100));
 }
 
 // This bot will run from all the other bots and will never initiate an attack.
-fn cowardly_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
+fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 {
+	let mut rng = XorShiftRng::from_seed([data.seed; 4]);
+
 	thread::spawn(move || {
 		// data is ThreadData and contains the component's id, mpsc channels to communicate
 		// with the Simulator, and a random number seed specific to the component.
@@ -183,9 +188,9 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
 			// by component threads. Components may send an event directly to a component or
 			// more typically to one of their OutPorts.
 			"init 0" => {
-				init_bot(&local, data.id, &mut data.rng, &state, &event, &mut effector);
-				let short = ('a' as i8) + bot_num;
-				effector.set_string("display-short-name", short.to_string());
+				init_bot(&local, data.id, &mut rng, &mut effector);
+				let short = ('a' as i8) + (bot_num as i8);
+				effector.set_string("display-short-name", &short.to_string());
 			},
 			"timer" => {
 				let path = state.components.path(data.id);
@@ -198,9 +203,9 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
 					let best_delta = dir_furthest_from_other_bots(&local, &state, &data);
 					if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
 						log_excessive!(effector, "moving by {:?}", best_delta);
-						offset_bot(data.id, &mut effector, best_delta.0, best_delta.1);
+						offset_bot(&state, data.id, &mut effector, best_delta.0, best_delta.1);
 						effector.set_int("energy", energy - 1);
-						effector.set_string("display-description", format!("({})", energy-1));
+						effector.set_string("display-description", &format!("({})", energy-1));
 						effector.set_string("display-color", "SandyBrown");
 						MOVE_DELAY
 					} else {
@@ -225,18 +230,11 @@ fn cowardly_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int("energy", energy + *bonus);
-				effector.set_string("display-description", format!("({})", energy + *bonus));
+				effector.set_string("display-description", &format!("({})", energy + *bonus));
 			},
 			"lost-attack" => {
 				effector.set_int("energy", 0);
 				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
-			},
-			"set-location" => {	// TODO: for now can't do "xxx" | "xxx" which is part of https://github.com/rust-lang/rust/issues/30450
-				// Don't need to fiddle with energy because it has already been accounted for.
-				handle_location_event(data.id, &state, &event, &mut effector);
-			},
-			"offset-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
 			}
 		);
 	});
@@ -261,7 +259,7 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 		let event = Event::with_payload("lost-attack", their_energy/2);
 		effector.schedule_immediately(event, their_id);
 		effector.set_int("energy", my_energy + gained);
-		effector.set_string("display-description", format!("({})", my_energy + gained));
+		effector.set_string("display-description", &format!("({})", my_energy + gained));
 		
 	} else {
 		log_info!(effector, "{} won ({} < {})", their_path, my_energy, their_energy);
@@ -285,20 +283,22 @@ fn handle_chase(effector: &mut Effector, state: &SimState, dx: f64, dy: f64, my_
 	} else {
 		if dy > 0.0 {(0.0, 1.0)} else {(0.0, -1.0)}
 	};
-	offset_bot(my_id, effector, delta.0, delta.1);
+	offset_bot(state, my_id, effector, delta.0, delta.1);
 	effector.set_int("energy", my_energy - 1);
-	effector.set_string("display-description", format!("({})", my_energy - 1));
+	effector.set_string("display-description", &format!("({})", my_energy - 1));
 }
 
 // This bot will chase the closest bot to it and attack bots that are nearby.
-fn aggresive_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
+fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 {
+	let mut rng = XorShiftRng::from_seed([data.seed; 4]);
+
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
 			"init 0" => {
-				init_bot(&local, data.id, &mut data.rng, &state, &event, &mut effector);
-				let short = ('A' as i8) + bot_num;
-				effector.set_string("display-short-name", short.to_string());
+				init_bot(&local, data.id, &mut rng, &mut effector);
+				let short = ('A' as i8) + (bot_num as i8);
+				effector.set_string("display-short-name", &short.to_string());
 			},
 			"timer" => {
 				let path = state.components.path(data.id);
@@ -336,18 +336,11 @@ fn aggresive_thread(local: LocalConfig, mut data: ThreadData, bot_num: i32)
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int("energy", energy + *bonus);
-				effector.set_string("display-description", format!("({})", energy + *bonus));
+				effector.set_string("display-description", &format!("({})", energy + *bonus));
 			},
 			"lost-attack" => {
 				effector.set_int("energy", 0);
 				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
-			},
-			"set-location" => {
-				// Don't need to fiddle with energy because it has already been accounted for.
-				handle_location_event(data.id, &state, &event, &mut effector);
-			},
-			"offset-location" => {
-				handle_location_event(data.id, &state, &event, &mut effector);
 			}
 		);
 	});
@@ -453,16 +446,22 @@ fn new_random_thread(rng: &mut Box<Rng + Send>, index: i32) -> (String, Componen
 fn create_sim(local: LocalConfig, config: Config) -> Simulation
 {
 	let mut sim = Simulation::new(config);
-	let world = sim.add_active_component("world", NO_COMPONENT, |data| world_thread(local.clone(), data));
-	let store = Arc::get_mut(&mut sim.store).unwrap();
-	store.set_float("world.display-size-x", local.width, Time(0));
-	store.set_float("world.display-size-y", local.height, Time(0));
+	let (world_id, world_data) = sim.add_active_component("world", NO_COMPONENT);
+	world_thread(local.clone(), world_data);
 
 	for i in 0..local.num_bots {
 		let (name, thread) = new_random_thread(sim.rng(), i);
-		let _ = sim.add_active_component(&name, world, |data| thread(local.clone(), data, i));
+		let (_, bot_data) = sim.add_active_component(&name, world_id);
+		thread(local.clone(), bot_data, i);
 	}
-	let _ = sim.add_active_component("watch-dog", world, watchdog_thread);
+	let (_, watch_data) = sim.add_active_component("watch-dog", world_id);
+	watchdog_thread(watch_data);
+		
+	let mut effector = Effector::new();
+	effector.set_float("display-size-x", local.width);
+	effector.set_float("display-size-y", local.height);
+	sim.apply(world_id, effector);
+
 	sim
 }
 

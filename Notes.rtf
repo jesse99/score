@@ -211,6 +211,7 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 \cf2 * AC\
 * Add a telephone example:\
 	- update battle bots (or at least add comments)\
+	- SimState should have a nicer way to get state\
 	- should state include units? make that part of the name?\
 		may be tricky to make it part of the name if it also has to be an ident\
 * Do another release\
@@ -221,6 +222,7 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 		support all the weird display options (using defaults where indicated)\
 		units should default to components, i.e. 0,0 for first item, 1,0 for second\
 		infer world size if it isnt set\
+		make sure all of the battle bots display state is actually used\
 	- support follow\
 	- support get components\
 		maybe include display-description\
