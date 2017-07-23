@@ -17,10 +17,6 @@ use std::process;
 use std::str::FromStr;
 use std::thread;
 
-// Dimensions of a device, used by GUIs.
-const WIDTH: f64 = 32.0;
-const HEIGHT: f64 = 32.0;
-
 // This is the message we send.
 const POEM: &str = "Tyger Tyger, burning bright,\nIn the forests of the night;\nWhat immortal hand or eye,\nCould frame thy fearful symmetry?\n\nIn what distant deeps or skies.\nBurnt the fire of thine eyes?\nOn what wings dare he aspire?\nWhat the hand, dare seize the fire?\n\nAnd what shoulder, & what art,\nCould twist the sinews of thy heart?\nAnd when thy heart began to beat,\nWhat dread hand? & what dread feet?\n\nWhat the hammer? what the chain,\nIn what furnace was thy brain?\nWhat the anvil? what dread grasp,\nDare its deadly terrors clasp!\n\nWhen the stars threw down their spears\nAnd water'd heaven with their tears:\nDid he smile his work to see?\nDid he who made the Lamb make thee?\n\nTyger Tyger burning bright,\nIn the forests of the night:\nWhat immortal hand or eye,\nDare frame thy fearful symmetry?";
 
@@ -106,8 +102,8 @@ impl SenderDevice
 		self.mangler.start();
 		
 		let mut effector = Effector::new();
-		effector.set_float("display-location-x", WIDTH/2.0);
-		effector.set_float("display-location-y", HEIGHT/2.0);
+		effector.set_float("display-location-x", 0.0);
+		effector.set_float("display-location-y", 0.0);
 		sim.apply(self.id, effector);
 	}
 }
@@ -161,8 +157,8 @@ impl RepeaterDevice
 		self.mangler.start();
 		
 		let mut effector = Effector::new();
-		effector.set_float("display-location-x", (self.index as f64)*WIDTH/2.0);
-		effector.set_float("display-location-y", HEIGHT/2.0);
+		effector.set_float("display-location-x", (self.index + 1) as f64);
+		effector.set_float("display-location-y", 0.0);
 		sim.apply(self.id, effector);
 	}
 }
@@ -200,8 +196,8 @@ impl ReceiverDevice
 		self.mangler.start();
 		
 		let mut effector = Effector::new();
-		effector.set_float("display-location-x", (num_repeaters as f64)*WIDTH/2.0);
-		effector.set_float("display-location-y", HEIGHT/2.0);
+		effector.set_float("display-location-x", (num_repeaters + 1) as f64);
+		effector.set_float("display-location-y", 0.0);
 		sim.apply(self.id, effector);
 	}
 }
@@ -245,8 +241,8 @@ impl SenderComponent
 				// dispatched.
 				"init 0" => {
 					log_info!(effector, "init");
-					effector.set_float("display-location-x", WIDTH/2.0);
-					effector.set_float("display-location-y", HEIGHT/2.0);
+					effector.set_float("display-location-x", 0.0);
+					effector.set_float("display-location-y", 0.0);
 				
 					let event = Event::new("timer");
 					effector.schedule_immediately(event, self.id);
@@ -304,8 +300,8 @@ impl ManglerComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", WIDTH + WIDTH/2.0);	// TODO: component locations need to be reviewed
-					effector.set_float("display-location-y", HEIGHT/2.0);
+					effector.set_float("display-location-x", 0.0);
+					effector.set_float("display-location-y", 2.0);
 				},
 				"text" => {
 					let old = event.expect_payload::<String>("text should have a String payload");
@@ -374,8 +370,8 @@ impl StatsComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", 2.0*WIDTH + WIDTH/2.0);	// TODO: this isn't right
-					effector.set_float("display-location-y", HEIGHT/2.0);
+					effector.set_float("display-location-x", 0.0);
+					effector.set_float("display-location-y", 1.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");
@@ -417,8 +413,8 @@ impl RepeaterComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", WIDTH + WIDTH/2.0);	// TODO: component locations need to be reviewed
-					effector.set_float("display-location-y", HEIGHT/2.0);
+					effector.set_float("display-location-x", 0.0);
+					effector.set_float("display-location-y", 0.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload").clone();
@@ -451,8 +447,8 @@ impl ReceiverComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", 2.0*WIDTH);
-					effector.set_float("display-location-y", HEIGHT/2.0);
+					effector.set_float("display-location-x", 0.0);
+					effector.set_float("display-location-y", 0.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");

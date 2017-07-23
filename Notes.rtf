@@ -210,8 +210,6 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 \pard\pardeftab720\partightenfactor0
 \cf2 * AC\
 * Add a telephone example:\
-	- devices should use an effector to initialize themselves\
-		maybe even use a single effector\
 	- coordinates should be in component units\
 		display-size should be inferable\
 	- update battle bots (or at least add comments)\
@@ -223,6 +221,8 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 	- get state shouldn\'92t show \'93.display-\'93 keys\
 	- support get map\
 		support all the weird display options (using defaults where indicated)\
+		units should default to components, i.e. 0,0 for first item, 1,0 for second\
+		infer world size if it isnt set\
 	- support follow\
 	- support get components\
 		maybe include display-description\
