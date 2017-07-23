@@ -53,9 +53,8 @@ fn move_bot(effector: &mut Effector, x: f64, y: f64)
 
 fn offset_bot(state: &SimState, id: ComponentID, effector: &mut Effector, dx: f64, dy: f64)
 {
-	let path = state.components.path(id);
-	let x = state.store.get_float(&(path.clone() + ".display-location-x"));
-	let y = state.store.get_float(&(path + ".display-location-y"));
+	let x = state.get_float(id, "display-location-x");
+	let y = state.get_float(id, "display-location-y");
 
 	effector.set_float("display-location-x", x + dx);
 	effector.set_float("display-location-y", y + dy);
@@ -70,13 +69,11 @@ fn randomize_location(local: &LocalConfig, rng: &mut XorShiftRng, effector: &mut
 
 fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2: ComponentID, delta: &(f64, f64)) -> (f64, f64, f64)
 {
-	let p1 = state.components.path(id1);
-	let x1 = state.store.get_float(&(p1.clone() + ".display-location-x"));
-	let y1 = state.store.get_float(&(p1 + ".display-location-y"));
+	let x1 = state.get_float(id1, "display-location-x");
+	let y1 = state.get_float(id1, "display-location-y");
 	
-	let p2 = state.components.path(id2);
-	let x2 = state.store.get_float(&(p2.clone() + ".display-location-x")) + delta.0;
-	let y2 = state.store.get_float(&(p2 + ".display-location-y")) + delta.1;
+	let x2 = state.get_float(id2, "display-location-x") + delta.0;
+	let y2 = state.get_float(id2, "display-location-y") + delta.1;
 	
 	let x2 = x2.max(0.0).min(local.width);
 	let y2 = y2.max(0.0).min(local.height);
@@ -90,10 +87,7 @@ fn bot_dist_squared(local: &LocalConfig, state: &SimState, id1: ComponentID, id2
 // do-nothing thread so that it stops responding to events and also adds a removed flag to the store).
 fn is_bot(state: &SimState, id: ComponentID) -> bool
 {
-	let path = state.components.path(id);
-	let lpath = path.clone() + ".display-location-x";
-	let epath = path + ".energy";
-	state.store.contains(&lpath) && state.store.get_int(&epath) > 0 && !state.was_removed(id)
+	state.contains(id, "display-location-x") && state.get_int(id, "energy") > 0 && !state.was_removed(id)
 }
 
 fn count_bots(state: &SimState, id: ComponentID) -> i64
@@ -193,8 +187,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				effector.set_string("display-short-name", &short.to_string());
 			},
 			"timer" => {
-				let path = state.components.path(data.id);
-				let energy = state.store.get_int(&(path + ".energy"));
+				let energy = state.get_int(data.id, "energy");
 				assert!(energy > 0, "energy was {}", energy);	// should be removed once energy hits zero
 
 				// If we have enough energy to move then see which direction would be furthest
@@ -225,8 +218,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				effector.schedule_after_secs(event, data.id, delay);
 			},
 			"won-attack" => {
-				let path = state.components.path(data.id);
-				let energy = state.store.get_int(&(path + ".energy"));
+				let energy = state.get_int(data.id, "energy");
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int("energy", energy + *bonus);
@@ -245,14 +237,13 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 // event to the other bot so that it can update its state.
 fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, their_id: ComponentID)
 {
-	let my_path = state.components.path(my_id);
-	let my_energy = state.store.get_int(&(my_path.clone() + ".energy"));
-
-	let their_path = state.components.path(their_id);
-	let their_energy = state.store.get_int(&(their_path.clone() + ".energy"));
+	let my_energy = state.get_int(my_id, "energy");
+	let their_energy = state.get_int(their_id, "energy");
 	
+	let their_path = state.components.path(their_id);
 	if my_energy >= their_energy {
 		log_info!(effector, "{} lost ({} >= {})", their_path, my_energy, their_energy);
+		
 		let gained = their_energy/2;
 		log_info!(effector, "energy is now {}", my_energy + gained);
 		log_info!(effector, "{} bots left", count_bots(state, my_id)-1);
@@ -272,8 +263,7 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 
 fn handle_chase(effector: &mut Effector, state: &SimState, dx: f64, dy: f64, my_id: ComponentID, their_id: ComponentID)
 {
-	let my_path = state.components.path(my_id);
-	let my_energy = state.store.get_int(&(my_path.clone() + ".energy"));
+	let my_energy = state.get_int(my_id, "energy");
 
 	let their_path = state.components.path(their_id);
 	log_info!(effector, "chasing {}", their_path);
@@ -301,8 +291,7 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				effector.set_string("display-short-name", &short.to_string());
 			},
 			"timer" => {
-				let path = state.components.path(data.id);
-				let energy = state.store.get_int(&(path + ".energy"));
+				let energy = state.get_int(data.id, "energy");
 				assert!(energy > 0, "energy was {}", energy);	// should be removed once energy hits zero
 
 				if energy > 10 {
@@ -331,8 +320,7 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				effector.schedule_after_secs(event, data.id, MOVE_DELAY);
 			},
 			"won-attack" => {
-				let path = state.components.path(data.id);
-				let energy = state.store.get_int(&(path + ".energy"));
+				let energy = state.get_int(data.id, "energy");
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int("energy", energy + *bonus);
@@ -354,10 +342,10 @@ fn bots_have_changed(locations: &mut HashMap<String, i64>, state: &SimState) -> 
 
 	for (id, _) in state.components.iter() {
 		let path = state.components.path(id);
-		let path = path + ".energy";
+		let path = path + "energy";
 		
-		if state.store.contains(&path) {
-			let new_energy = state.store.get_int(&path);
+		if state.contains(id, "energy") {
+			let new_energy = state.get_int(id, "energy");
 			//print!("{} = {}\n", path, new_energy);
 			if let Some(&old_energy) = locations.get(&path) {
 				if new_energy != old_energy {
