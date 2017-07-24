@@ -15,6 +15,10 @@ use thread_data::*;
 use std::cmp::{max, min, Ordering};
 use std::collections::BinaryHeap;
 use std::collections::VecDeque;
+use std::io;
+use std::fs::File;
+use std::path::Path;
+use std::process;
 use std::sync::Arc;
 use std::sync::{mpsc, Mutex};
 use std::thread;
@@ -171,10 +175,15 @@ impl Simulation
 	/// config.max_secs elapses, or `Effector`s exit method was called.
 	pub fn run(&mut self)
 	{
-		if self.config.address.is_empty() {
+		if self.config.root.is_empty() {
 			self.run_normally();
 		} else {
-			self.run_server();
+			if Path::new(&self.config.root).is_file() {
+				self.run_server();
+			} else {
+				eprintln!("'{}' is not a file", self.config.root);
+				process::exit(1);
+			}
 		}
 	}
 	
@@ -197,7 +206,7 @@ impl Simulation
 
 		let (tx_command, rx_command) = mpsc::channel();
 		let (tx_reply, rx_reply) = mpsc::channel();
-		spin_up_rest(&self.config.address, tx_command, rx_reply);
+		spin_up_rest(&self.config.address, &self.config.root, tx_command, rx_reply);
 
 		let mut exiting = self.init_components();
 		for command in rx_command.iter() {
@@ -510,7 +519,7 @@ impl Simulation
 			}
 		}
 
-		if !self.config.address.is_empty() {
+		if !self.config.root.is_empty() {
 			let time = (self.current_time.0 as f64)/self.config.time_units;
 			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
 //			let level = format!("{}", level);
@@ -705,21 +714,47 @@ struct LogLine
 	message: String,
 }
 
+fn file_response(request: &rouille::Request, path: &Path) -> rouille::Response
+{
+	match File::open(&path) {
+		Ok(file) => rouille::Response::from_file("text/html; charset=utf8", file),
+		Err(ref err) if err.kind() == io::ErrorKind::NotFound => {
+			eprintln!("Didn't find file for {} {}", request.method(), request.url());
+			rouille::Response::empty_404()
+		},
+		Err(ref err) => {
+			let mesg: &str = &format!("{:?}", err.kind());
+			eprintln!("Error reading file for {} {}: {}", request.method(), request.url(), mesg);
+			rouille::Response::text(mesg).with_status_code(403)
+		},
+	}
+}
+
 // For debugging can do stuff like:
 //    curl http://127.0.0.1:9000/log/all
 //    curl -X POST http://127.0.0.1:9000/time/10
-fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: mpsc::Receiver<RestReply>)
+fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: mpsc::Receiver<RestReply>)
 {
 	let addr = address.to_string();
+	let root = root.to_string();
 	
 	// rouille will spawn up a thread for each client that attaches and there's no good
 	// way to clone the channels into them so we need to use a mutex to serialize access.
 	let tx_command = Mutex::new(tx_command);
 	let rx_reply = Mutex::new(rx_reply);
 
-	thread::spawn(move|| {
-		rouille::start_server(&addr, move |request| {
+	thread::spawn(move|| {rouille::start_server(&addr, move |request| {
+		let path = Path::new(&root);
+		let root_dir = path.parent().unwrap();
+
+//		println!("{} {}", request.method(), request.url());
 		router!(request,
+			(GET) (/) => {
+				file_response(&request, path)
+			},
+			
+			// In theory REST endpoints can conflict with file names within root_dir but none of
+			// the REST endpoints have an extension so this shouldn't be a problem in practice.
 			(GET) (/log/{path: String}/{limit: usize}/{level: String}) => {
 				if let Ok(path) = glob::Pattern::new(&path) {
 					if let Some(level) = LogLevel::with_str(&level) {
@@ -765,19 +800,13 @@ fn spin_up_rest(address: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: 
 				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
 			},
 			
-	//			(GET) (/{id: String}) => {
-	//				// If the request's URL is for example `/foo`, we jump here.
-	//				//
-	//				// This route is similar to the previous one, but this time we have a `String`.
-	//				// Parsing into a `String` never fails.
-	//				println!("String {:?}", id);
-	//				
-	//				// Builds a `Response` object that contains "hello, " followed with the value
-	//				// of `id`.
-	//				rouille::Response::text(format!("hello, {}", id))
-	//			},
-			
-			_ => rouille::Response::empty_404()
+			_ => {
+				let response = rouille::match_assets(&request, &root_dir);
+				if !response.is_success() {
+					eprintln!("Failed to read file for {} {}", request.method(), request.url());
+				}
+				response.with_no_cache()	// TODO: might want to do this just in debug (altho the client and server are normally both local so it shouldn't matter much)
+			}
 			)
 		});
 	});

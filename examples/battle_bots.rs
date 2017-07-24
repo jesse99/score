@@ -459,15 +459,17 @@ fn parse_options() -> (LocalConfig, Config)
 	
 	// see https://docs.rs/clap/2.24.2/clap/struct.Arg.html#method.from_usage for syntax
 	let usage = format!(
-		"--height=[N] 'Max number of times bots can move up without running into a wall [{default_height}]'
+		"--address=[ADDR] 'Address for the web server to bind to [{default_address}]'
+		--height=[N] 'Max number of times bots can move up without running into a wall [{default_height}]'
 		--log=[LEVEL:GLOB]... 'Overrides --log-level, glob is used to match component names'
 		--log-level=[LEVEL] 'Default log level: {log_levels} [{default_level}]'
 		--max-time=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
 		--no-colors 'Don't color code console output'
 		--num-bots=[N] 'Number of bots to start out with [{default_bots}]'
+		--root=[PATH] 'Start the web server and serve up PATH when / is hit'
 		--seed=[N] 'Random number generator seed [random]'
-		--server 'Startup a web server so sdebug can be used'
 		--width=[N] 'Max number of times bots can move right without wrapping [{default_width}]'",
+		default_address = config.address,
 		default_height = local.height,
 		default_width = local.width,
 		default_bots = local.num_bots,
@@ -496,8 +498,12 @@ fn parse_options() -> (LocalConfig, Config)
 		config.seed = match_num(&matches, "seed", 1, u32::max_value());
 	}
 	
-	if matches.is_present("server") {
-		config.address = "127.0.0.1:9000".to_string();
+	if matches.is_present("address") {
+		config.address = matches.value_of("address").unwrap().to_string();
+	}
+	
+	if matches.is_present("root") {
+		config.root = matches.value_of("root").unwrap().to_string();
 	}
 	
 	if matches.is_present("log-level") {

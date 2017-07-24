@@ -7,9 +7,14 @@ use std::str::FromStr;
 /// Used to configure the `Simulation`.
 pub struct Config
 {
-	/// If set then startup a web server to control the simulation. This is
-	/// required to use GUIs or tools like sdebug. Defaults to "". Typically
-	/// if this is set it'll be set to "127.0.0.1:9000".
+	/// If set then score will startup a web server to control the simulation
+	/// and serve up this file when a browser hits the root. Files relative
+	/// to roots directory will also be served up but not files above the
+	/// directory.
+	pub root: String,
+	
+	/// The address of the web server (used if root is set). Defaults to
+	/// "127.0.0.1:9000".
 	pub address: String,
 	
 	/// Use 1_000.0 for ms, 1.0 for seconds, 0.1667 for minutes, etc.
@@ -70,7 +75,8 @@ impl Config
 	pub fn new() -> Config
 	{
 		Config {
-			address: "".to_string(),
+			root: "".to_string(),
+			address: "127.0.0.1:9000".to_string(),
 			time_units: 1_000_000.0,
 			max_secs: INFINITY,
 			num_init_stages: 1,

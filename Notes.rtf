@@ -1,14 +1,14 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-BoldItalic;
-\f3\fnil\fcharset0 Menlo-Bold;\f4\fnil\fcharset0 Menlo-Italic;\f5\fmodern\fcharset0 Courier;
-\f6\fswiss\fcharset0 ArialMT;}
+\f3\fnil\fcharset0 Menlo-Bold;\f4\fnil\fcharset0 Menlo-Italic;\f5\fswiss\fcharset0 ArialMT;
+}
 {\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red36\green38\blue41;
 \red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;\red161\green33\blue108;
-\red240\green0\blue31;\red0\green72\blue255;\red104\green0\blue254;\red140\green83\blue65;\red255\green255\blue255;
+\red240\green0\blue31;\red0\green72\blue255;\red104\green0\blue254;\red140\green83\blue65;\red0\green0\blue0;
 \red0\green0\blue0;}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\cssrgb\c18824\c20000\c21176;
 \cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;\csgenericrgb\c63137\c12941\c42353;
-\csgenericrgb\c94118\c0\c12157;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c40784\c0\c99608;\csgenericrgb\c54902\c32549\c25490;\cssrgb\c100000\c100000\c100000;
+\csgenericrgb\c94118\c0\c12157;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c40784\c0\c99608;\csgenericrgb\c54902\c32549\c25490;\csgray\c0;
 \cssrgb\c0\c0\c0;}
 \deftab720
 \pard\pardeftab720\partightenfactor0
@@ -30,7 +30,7 @@
 \pard\pardeftab720\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt \cf2 https://github.com/brson/rust-api-guidelines}}\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\cf2 \
+{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\
 https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
   \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
@@ -191,35 +191,34 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 \f1\b0 \cf0  \{\
 		\cf12 panic!\cf0 (\cf9 "handle_location_event doesn't know how to handle \{\}"\cf0 , ename);\
 	\}\
-\}\
+\}
+\fs36 \cf14 \CocoaLigature0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf14 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 \
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf2 Structure: (?<= trait) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
-Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
-\pard\pardeftab963\pardirnatural\partightenfactor0
-\cf2 \
-\
+\f0\fs48 \cf2 \CocoaLigature1 \
 \pard\pardeftab720\partightenfactor0
-\cf2 publishing a new version\
-	cargo package\
-		optional, allows you to inspect the target/package/*.crate file\
-	cargo publish\
-	\
-\
-	
-\f5\fs38\fsmilli19200 \cf14 \expnd0\expndtw0\kerning0
-\outl0\strokewidth0 \strokec14 clippy\'a0= "0.0.144"
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
-* Do another release\
-* Submit a pull request for new slug\
-* AC\
+\cf2 * AC\
 	{\field{\*\fldinst{HYPERLINK "https://www.amazon.com/s/ref=nb_sb_ss_c_1_22?url=search-alias%3Daps&field-keywords=air+conditioner+grille&sprefix=air+conditioner+grille%2Caps%2C200&crid=2U6YPEKYD4R0D"}}{\fldrslt https://www.amazon.com/s/ref=nb_sb_ss_c_1_22?url=search-alias%3Daps&field-keywords=air+conditioner+grille&sprefix=air+conditioner+grille%2Caps%2C200&crid=2U6YPEKYD4R0D}}\
+* Support simulator page\
+	- do a commit\
+	- append current time to the title\
+	- get run until working\
+	- get log working\
+	- maybe we can open a browser window when the sim starts?\
+	- use a title like \'93battlebots Simulator log\'94\
+	- get log level filtering working\
+		{\field{\*\fldinst{HYPERLINK "https://deliciousthemes.com/create-a-drop-down-navigation-menu-with-html5-and-css3/"}}{\fldrslt https://deliciousthemes.com/create-a-drop-down-navigation-menu-with-html5-and-css3/}}\
+		{\field{\*\fldinst{HYPERLINK "https://www.w3schools.com/howto/howto_js_dropdown.asp"}}{\fldrslt https://www.w3schools.com/howto/howto_js_dropdown.asp}}\
+		{\field{\*\fldinst{HYPERLINK "https://msdn.microsoft.com/en-us/library/bb250412(v=vs.85).aspx"}}{\fldrslt https://msdn.microsoft.com/en-us/library/bb250412(v=vs.85).aspx}}\
+	- get log show and hide working?\
+	- support the other tabs\
+	- get run until changed working (this will have to be context sensitive)\
 * Work on an sdebug tool:\
-	- archive existing in a branch\
-	- get back on master\
-	- score will have to take a directory to serve up files from\
+	- try using jqeury to do ajax calls\
+		save a copy of jquery locally\
+	- use a linter\
 	- make sure relative paths all land within the directory\
 	- make sure that display state looks OK\
 	- get state shouldn\'92t show \'93.display-\'93 keys\
@@ -239,7 +238,7 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 	- can we fix doc comments so that `foo` has a link?\
 	- if we add a dependency upon score then sdebug will show up as a dependent crate\
 	- support tab completion:\
-		{\field{\*\fldinst{HYPERLINK "https://robots.thoughtbot.com/tab-completion-in-gnu-readline"}}{\fldrslt \cf2 https://robots.thoughtbot.com/tab-completion-in-gnu-readline}}\
+		{\field{\*\fldinst{HYPERLINK "https://robots.thoughtbot.com/tab-completion-in-gnu-readline"}}{\fldrslt https://robots.thoughtbot.com/tab-completion-in-gnu-readline}}\
 	- readme should say how to setup toml file\
 	- readme should point to sdebug\
 	- publish a new version of score as well as sdebug\
@@ -271,7 +270,7 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 * Support get description\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf15 \expnd0\expndtw0\kerning0
+\f5\fs50\fsmilli25333 \cf15 \expnd0\expndtw0\kerning0
 * Look at TODOs\
 * Start using clippy\
 * Might be able to cleanup the code a bit by making some moduels directories\
@@ -286,7 +285,7 @@ Structure: (?<= impl) (?: (?: \\s* < [\\w:\\s,+]+ > \\s*) | \\s+) ([\\w@~&]+)\
 	- counting should only be done if should_log\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf15 \expnd0\expndtw0\kerning0
+\f5\fs50\fsmilli25333 \cf15 \expnd0\expndtw0\kerning0
 * Add an embedded web server\
 	- starts up if \'97web\
 	- waits for \'93run\'94 to be written to the web component\

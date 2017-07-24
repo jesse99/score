@@ -522,14 +522,16 @@ fn parse_options() -> (LocalConfig, Config)
 	
 	// see https://docs.rs/clap/2.24.2/clap/struct.Arg.html#method.from_usage for syntax
 	let usage = format!(
-		"--error=[N] 'Each step has a 1 in N chance of garbling a letter [{default_error}]'
+		"--address=[ADDR] 'Address for the web server to bind to [{default_address}]'
+		--error=[N] 'Each step has a 1 in N chance of garbling a letter [{default_error}]'
 		--log=[LEVEL:GLOB]... 'Overrides --log-level, glob is used to match component names'
 		--log-level=[LEVEL] 'Default log level: {log_levels} [{default_level}]'
 		--max-time=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
 		--no-colors 'Don't color code console output'
 		--repeaters=[N] 'Number of steps between the sender and receiver [{default_repeaters}]'
-		--seed=[N] 'Random number generator seed [random]'
-		--server 'Startup a web server so sdebug can be used'",
+		--root=[PATH] 'Start the web server and serve up PATH when / is hit'
+		--seed=[N] 'Random number generator seed [random]'",
+		default_address = config.address,
 		default_repeaters = local.num_repeaters,
 		default_error = local.error_rate,
 		default_level = format!("{:?}", config.log_level).to_lowercase(),
@@ -555,8 +557,12 @@ fn parse_options() -> (LocalConfig, Config)
 		config.seed = match_num(&matches, "seed", 1, u32::max_value());
 	}
 	
-	if matches.is_present("server") {
-		config.address = "127.0.0.1:9000".to_string();
+	if matches.is_present("address") {
+		config.address = matches.value_of("address").unwrap().to_string();
+	}
+	
+	if matches.is_present("root") {
+		config.root = matches.value_of("root").unwrap().to_string();
 	}
 	
 	if matches.is_present("log-level") {
