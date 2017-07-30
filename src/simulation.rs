@@ -211,8 +211,8 @@ impl Simulation
 		let mut exiting = self.init_components();
 		for command in rx_command.iter() {
 			let reply = match command {
-				RestCommand::GetLog(path, limit, level) => {
-					let lines = self.get_log_lines(&path, limit, level);
+				RestCommand::GetLogAfter(time) => {
+					let lines = self.get_log_lines(time);
 					let data = rustc_serialize::json::encode(&lines).unwrap();
 					RestReply{data, code:200}
 				},
@@ -571,16 +571,13 @@ impl Simulation
 		}
 	}
 
-	fn get_log_lines(&self, path: &glob::Pattern, limit: usize, level: LogLevel) -> VecDeque<&LogLine>
+	fn get_log_lines(&self, after_time: f64) -> VecDeque<&LogLine>
 	{
 		let mut result = VecDeque::new();
 		
 		for line in self.log_lines.iter().rev() {
-			if line.level <= level && path.matches(&line.path) {
+			if line.time > after_time {
 				result.push_front(line);
-				if result.len() >= limit {
-					break;
-				}
 			}
 		}
 		
@@ -689,7 +686,7 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 
 enum RestCommand
 {
-	GetLog(glob::Pattern, usize, LogLevel),
+	GetLogAfter(f64),
 	GetState(glob::Pattern),
 	GetTime,
 	GetTimePrecision,
@@ -755,16 +752,8 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 			
 			// In theory REST endpoints can conflict with file names within root_dir but none of
 			// the REST endpoints have an extension so this shouldn't be a problem in practice.
-			(GET) (/log/{path: String}/{limit: usize}/{level: String}) => {
-				if let Ok(path) = glob::Pattern::new(&path) {
-					if let Some(level) = LogLevel::with_str(&level) {
-						handle_endpoint(RestCommand::GetLog(path, limit, level), &tx_command, &rx_reply)
-					} else {
-						rouille::Response::empty_400()
-					}
-				} else {
-					rouille::Response::empty_400()
-				}
+			(GET) (/log/after/{time: f64}) => {
+				handle_endpoint(RestCommand::GetLogAfter(time), &tx_command, &rx_reply)
 			},
 			
 			(GET) (/state/{path: String}) => {
