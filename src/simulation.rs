@@ -213,7 +213,7 @@ impl Simulation
 			let reply = match command {
 				RestCommand::GetLogAfter(time) => {
 					let lines = self.get_log_lines(time);
-					let data = rustc_serialize::json::encode(&lines).unwrap();
+					let data = rustc_serialize::json::encode(&lines).unwrap();	
 					RestReply{data, code:200}
 				},
 				RestCommand::GetState(path) => {
@@ -230,6 +230,20 @@ impl Simulation
 					let data = rustc_serialize::json::encode(&self.precision).unwrap();
 					RestReply{data, code:200}
 				},
+				RestCommand::RunUntilLogChanged => {
+					let num_lines = self.log_lines.len();
+					while exiting.is_empty() && self.log_lines.len() == num_lines {
+						exiting = self.run_time_slice()
+					}
+					
+					let message = if exiting.is_empty() {
+						"ok"
+					} else {
+						"exited"
+					};
+					let data = rustc_serialize::json::encode(&message.to_string()).unwrap();
+					RestReply{data, code:200}
+				}
 				RestCommand::SetFloatState(path, value) => {
 					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 					store.set_float(&path, value, self.current_time);
@@ -690,6 +704,7 @@ enum RestCommand
 	GetState(glob::Pattern),
 	GetTime,
 	GetTimePrecision,
+	RunUntilLogChanged,
 	SetFloatState(String, f64),
 	SetIntState(String, i64),
 	SetStringState(String, String),
@@ -756,20 +771,8 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 				handle_endpoint(RestCommand::GetLogAfter(time), &tx_command, &rx_reply)
 			},
 			
-			(GET) (/state/{path: String}) => {
-				if let Ok(path) = glob::Pattern::new(&path) {
-					handle_endpoint(RestCommand::GetState(path), &tx_command, &rx_reply)
-				} else {
-					rouille::Response::empty_400()
-				}
-			},
-			
-			(GET) (/time) => {
-				handle_endpoint(RestCommand::GetTime, &tx_command, &rx_reply)
-			},
-			
-			(GET) (/time/precision) => {
-				handle_endpoint(RestCommand::GetTimePrecision, &tx_command, &rx_reply)
+			(POST) (/run/until/log-changed) => {
+				handle_endpoint(RestCommand::RunUntilLogChanged, &tx_command, &rx_reply)
 			},
 			
 			// These really should be PUTs but crest doesn't support PUT...
@@ -781,8 +784,24 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 				handle_endpoint(RestCommand::SetIntState(path, value), &tx_command, &rx_reply)
 			},
 			
+			(GET) (/state/{path: String}) => {
+				if let Ok(path) = glob::Pattern::new(&path) {
+					handle_endpoint(RestCommand::GetState(path), &tx_command, &rx_reply)
+				} else {
+					rouille::Response::empty_400()
+				}
+			},
+			
 			(POST) (/state/string/{path: String}/{value: String}) => {
 				handle_endpoint(RestCommand::SetStringState(path, value), &tx_command, &rx_reply)
+			},
+			
+			(GET) (/time) => {
+				handle_endpoint(RestCommand::GetTime, &tx_command, &rx_reply)
+			},
+			
+			(GET) (/time/precision) => {
+				handle_endpoint(RestCommand::GetTimePrecision, &tx_command, &rx_reply)
 			},
 			
 			(POST) (/time/{secs: f64}) => {
