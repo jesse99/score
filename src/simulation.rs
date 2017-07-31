@@ -36,6 +36,7 @@ pub struct Simulation
 	config: Config,
 	precision: usize,	// number of decimal places to include when logging, derived from config.time_units
 	current_time: Time,
+	exited: Option<String>,
 	scheduled: BinaryHeap<ScheduledEvent>,
 	rng: Box<Rng + Send>,
 	max_path_len: usize,
@@ -64,6 +65,7 @@ impl Simulation
 			config: config,
 			precision,
 			current_time: Time(0),
+			exited: None,
 			scheduled: BinaryHeap::new(),
 			rng: Box::new(new_rng(seed, 10_000)),
 			max_path_len: 0,
@@ -190,13 +192,13 @@ impl Simulation
 	// ---- Private Functions ----------------------------------------------------------------
 	fn run_normally(&mut self)
 	{
-		let mut exiting = self.init_components();
-		while exiting.is_empty() {
-			exiting = self.run_time_slice()
+		self.init_components();
+		while self.exited.is_none() {
+			self.run_time_slice()
 		}
 		
 //		self.print();
-		self.exit(exiting);
+		self.exit();
 	}
 	
 	fn run_server(&mut self)
@@ -208,9 +210,14 @@ impl Simulation
 		let (tx_reply, rx_reply) = mpsc::channel();
 		spin_up_rest(&self.config.address, &self.config.root, tx_command, rx_reply);
 
-		let mut exiting = self.init_components();
+		self.init_components();
 		for command in rx_command.iter() {
 			let reply = match command {
+				RestCommand::GetExited => {
+					let data = if self.exited.is_some() {"true"} else {"false"};
+					let data = data.to_string();
+					RestReply{data, code:200}
+				}
 				RestCommand::GetLogAfter(time) => {
 					let lines = self.get_log_lines(time);
 					let data = rustc_serialize::json::encode(&lines).unwrap();	
@@ -232,15 +239,11 @@ impl Simulation
 				},
 				RestCommand::RunUntilLogChanged => {
 					let num_lines = self.log_lines.len();
-					while exiting.is_empty() && self.log_lines.len() == num_lines {
-						exiting = self.run_time_slice()
+					while self.exited.is_none() && self.log_lines.len() == num_lines {
+						self.run_time_slice()
 					}
 					
-					let message = if exiting.is_empty() {
-						"ok"
-					} else {
-						"exited"
-					};
+					let message = if self.exited.is_some() {"exited"} else {"ok"};
 					let data = rustc_serialize::json::encode(&message.to_string()).unwrap();
 					RestReply{data, code:200}
 				}
@@ -264,15 +267,11 @@ impl Simulation
 				}
 				RestCommand::SetTime(secs) => {
 					let target = (secs*self.config.time_units) as i64;
-					while exiting.is_empty() && self.current_time.0 < target {
-						exiting = self.run_time_slice()
+					while self.exited.is_none() && self.current_time.0 < target {
+						self.run_time_slice()
 					}
 					
-					let message = if exiting.is_empty() {
-						"ok"
-					} else {
-						"exited"
-					};
+					let message = if self.exited.is_some() {"exited"} else {"ok"};
 					let data = rustc_serialize::json::encode(&message.to_string()).unwrap();
 					RestReply{data, code:200}
 				}
@@ -282,53 +281,52 @@ impl Simulation
 		
 		// Note that we don't want to exit in order to allow GUIs to inspect state at the end.
 		// TODO: but we should have some sort of /exit endpoint to allow GUIs to kill us cleanly.
-		//self.exit(exiting);
+		//self.exit();
 	}
 	
-	fn init_components(&mut self) -> &'static str
+	fn init_components(&mut self)
 	{
-		let mut exiting = "";
+		assert!(self.exited.is_none());
+
 		for i in 0..self.config.num_init_stages {
 			self.schedule_init_stage(i);
-			let exit = self.dispatch_events();
+			self.dispatch_events();
 			assert!(self.current_time.0 == 0);
-			if exit {
-				exiting = "Effector.exit was called during initialization";
+			if self.exited.is_some() {
+				self.exited = Some("Effector.exit was called during initialization".to_string());
 			}
 		}
-		exiting
 	}
 	
-	fn run_time_slice(&mut self) -> &'static str
+	fn run_time_slice(&mut self)
 	{
+		assert!(self.exited.is_none());
+
 		let max_time = if self.config.max_secs.is_infinite() {i64::max_value()} else {(self.config.max_secs*self.config.time_units) as i64};
 		if self.scheduled.is_empty() {
-			"no events"
+			self.exited = Some("no events".to_string());
 		
 		} else if self.current_time.0 >= max_time {
-			"reached config.max_secs"
+			self.exited = Some("reached config.max_secs".to_string());
 
 		} else {
-			if self.dispatch_events() {
-				"effector.exit was called"
-			} else {
-				""
-			}
+			self.dispatch_events();
 		}
 	}
 	
-	fn exit(&mut self, exiting: &str)
+	fn exit(&mut self)
 	{
 		// TODO: Might want to also print events/sec, maybe at debug
 		let elapsed = (time::get_time() - self.start_time).num_milliseconds();
+		let exited = self.exited.as_ref().unwrap().clone();
 		self.log(LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}.{}s ({})",
-			elapsed/1000, elapsed%1000, exiting));	// TODO: eventually will need a friendly_duration_str fn
+			elapsed/1000, elapsed%1000, exited));	// TODO: eventually will need a friendly_duration_str fn
 			
 		let finger_print = self.finger_print.clone();
 		self.log(LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", finger_print));
 	}
 	
-	fn dispatch_events(&mut self) -> bool
+	fn dispatch_events(&mut self)
 	{
 		self.current_time = self.scheduled.peek().unwrap().time;
 		let mut ids = Vec::new();
@@ -376,15 +374,13 @@ impl Simulation
 		// consistent which is kind of nice.
 		effects.sort_by(|a, b| a.0.cmp(&b.0));
 		
-		let mut exit = false;
 		for (id, mut e) in effects.drain(..) {
 			self.apply_effects(id, &mut e);
 			
 			if e.exit {
-				exit = true;
+				self.exited = Some("effector.exit was called".to_string())
 			}
 		}
-		exit
 	}
 	
 	fn apply_effects(&mut self, id: ComponentID, effects: &mut Effector)
@@ -598,7 +594,7 @@ impl Simulation
 		result
 	}
 
-	fn get_state(&self, path: &glob::Pattern) -> Vec<String>
+	fn get_state(&self, path: &glob::Pattern) -> Vec<(String, String)>
 	{
 		let mut removed = Vec::new();
 		for (key, value) in self.store.int_data.iter() {
@@ -611,22 +607,19 @@ impl Simulation
 		let mut result = Vec::new();
 		for (key, value) in self.store.int_data.iter() {
 			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
-				let line = format!("{} = {}", key, value.1);
-				result.push(line);
+				result.push((key.clone(), value.1.to_string()));
 			}
 		}
 		
 		for (key, value) in self.store.float_data.iter() {
 			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
-				let line = format!("{} = {}", key, value.1);
-				result.push(line);
+				result.push((key.clone(), format!("{:.6}", value.1)));
 			}
 		}
 		
 		for (key, value) in self.store.string_data.iter() {
 			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
-				let line = format!("{} = \"{}\"", key, value.1);
-				result.push(line);
+				result.push((key.clone(), value.1.clone()));
 			}
 		}
 		
@@ -702,6 +695,7 @@ enum RestCommand
 {
 	GetLogAfter(f64),
 	GetState(glob::Pattern),
+	GetExited,
 	GetTime,
 	GetTimePrecision,
 	RunUntilLogChanged,
@@ -764,26 +758,24 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 			(GET) (/) => {
 				file_response(&request, path)
 			},
-			
 			// In theory REST endpoints can conflict with file names within root_dir but none of
 			// the REST endpoints have an extension so this shouldn't be a problem in practice.
+			(GET) (/exited) => {
+				handle_endpoint(RestCommand::GetExited, &tx_command, &rx_reply)
+			},
 			(GET) (/log/after/{time: f64}) => {
 				handle_endpoint(RestCommand::GetLogAfter(time), &tx_command, &rx_reply)
 			},
-			
 			(POST) (/run/until/log-changed) => {
 				handle_endpoint(RestCommand::RunUntilLogChanged, &tx_command, &rx_reply)
 			},
-			
 			// These really should be PUTs but crest doesn't support PUT...
 			(POST) (/state/float/{path: String}/{value: f64}) => {
 				handle_endpoint(RestCommand::SetFloatState(path, value), &tx_command, &rx_reply)
 			},
-			
 			(POST) (/state/int/{path: String}/{value: i64}) => {
 				handle_endpoint(RestCommand::SetIntState(path, value), &tx_command, &rx_reply)
 			},
-			
 			(GET) (/state/{path: String}) => {
 				if let Ok(path) = glob::Pattern::new(&path) {
 					handle_endpoint(RestCommand::GetState(path), &tx_command, &rx_reply)
@@ -791,23 +783,18 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 					rouille::Response::empty_400()
 				}
 			},
-			
 			(POST) (/state/string/{path: String}/{value: String}) => {
 				handle_endpoint(RestCommand::SetStringState(path, value), &tx_command, &rx_reply)
 			},
-			
 			(GET) (/time) => {
 				handle_endpoint(RestCommand::GetTime, &tx_command, &rx_reply)
 			},
-			
 			(GET) (/time/precision) => {
 				handle_endpoint(RestCommand::GetTimePrecision, &tx_command, &rx_reply)
 			},
-			
 			(POST) (/time/{secs: f64}) => {
 				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
-			},
-			
+			},			
 			_ => {
 				let response = rouille::match_assets(&request, &root_dir);
 				if !response.is_success() {
