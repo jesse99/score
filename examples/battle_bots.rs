@@ -226,6 +226,9 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 			"lost-attack" => {
 				effector.set_int("energy", 0);
 				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
+				let event = Event::new("update");
+				let (world_id, _) = state.components.get_root(data.id);
+				effector.schedule_immediately(event, world_id);
 			}
 		);
 	});
@@ -245,7 +248,6 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 		
 		let gained = their_energy/2;
 		log_info!(effector, "energy is now {}", my_energy + gained);
-		log_info!(effector, "{} bots left", count_bots(state, my_id)-1);
 		let event = Event::with_payload("lost-attack", their_energy/2);
 		effector.schedule_immediately(event, their_id);
 		effector.set_int("energy", my_energy + gained);
@@ -257,6 +259,10 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 		let event = Event::with_payload("won-attack", my_energy/2);
 		effector.schedule_immediately(event, their_id);
 		effector.set_int("energy", 0);
+
+		let event = Event::new("update");
+		let (world_id, _) = state.components.get_root(my_id);
+		effector.schedule_immediately(event, world_id);
 	}
 }
 
@@ -328,6 +334,10 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 			"lost-attack" => {
 				effector.set_int("energy", 0);
 				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
+
+				let event = Event::new("update");
+				let (world_id, _) = state.components.get_root(data.id);
+				effector.schedule_immediately(event, world_id);
 			}
 		);
 	});
@@ -396,6 +406,15 @@ fn world_thread(local: LocalConfig, data: ThreadData)
 				log_info!(effector, "height = {}", local.height);
 				log_info!(effector, "width = {}", local.width);
 				log_info!(effector, "processing {}", event.name);
+
+				// Display state is used by GUIs, e.g. sdebug.
+				effector.set_float("display-size-x", local.width);
+				effector.set_float("display-size-y", local.height);
+				effector.set_string("display-title", "battlebots");
+			},
+			"update" => {
+				let count = count_bots(&state, data.id);
+				effector.set_string("display-title", &format!("battlebots - {} left", count));
 			}
 		);
 	});
@@ -444,11 +463,6 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	let (_, watch_data) = sim.add_active_component("watch-dog", world_id);
 	watchdog_thread(watch_data);
 		
-	let mut effector = Effector::new();
-	effector.set_float("display-size-x", local.width);
-	effector.set_float("display-size-y", local.height);
-	sim.apply(world_id, effector);
-
 	sim
 }
 

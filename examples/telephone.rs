@@ -487,6 +487,11 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 	last_port.connect_to(&receiver.inbound);
 	}
 		
+	// This is used by GUIs, e.g. sdebug.
+	let mut effector = Effector::new();
+	effector.set_string("display-title", "telephone");
+	sim.apply(world_id, effector);
+
 	// and spin up their threads.
 	sender.start(&mut sim);
 	for r in repeaters.drain(..) {
