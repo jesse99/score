@@ -16,6 +16,7 @@ use std::collections::HashMap;
 /// [`Component`]s recorded within an [`Effector`].
 pub struct Store
 {
+	pub(crate) edition: u32,
 	pub(crate) int_data: HashMap<String, (Time, i64)>,	// TODO: probably want [(Time, i64)]
 	pub(crate) float_data: HashMap<String, (Time, f64)>,
 	pub(crate) string_data: HashMap<String, (Time, String)>,
@@ -87,6 +88,13 @@ impl WriteableStore for Store
 			if old.0 == time {
 				panic!("int key '{}' has already been set", key)
 			}
+			if old.1 != value {
+				// Edition is used by REST to detect changes to values in the store so we
+				// don't want to increment it when the same value is added again.
+				self.edition = self.edition.wrapping_add(1);
+			}
+		} else {
+			self.edition = self.edition.wrapping_add(1);
 		}
 	}
 	
@@ -97,6 +105,11 @@ impl WriteableStore for Store
 			if old.0 == time {
 				panic!("float key '{}' has already been set", key)
 			}
+			if old.1 != value {
+				self.edition = self.edition.wrapping_add(1);
+			}
+		} else {
+			self.edition = self.edition.wrapping_add(1);
 		}
 	}
 		
@@ -107,6 +120,11 @@ impl WriteableStore for Store
 			if old.0 == time {
 				panic!("string key '{}' has already been set", key)
 			}
+			if old.1 != value {
+				self.edition = self.edition.wrapping_add(1);
+			}
+		} else {
+			self.edition = self.edition.wrapping_add(1);
 		}
 	}
 }
@@ -116,6 +134,7 @@ impl Store
 	pub(crate) fn new() -> Store
 	{
 		Store{
+			edition: 0,
 			int_data: HashMap::new(),
 			float_data: HashMap::new(),
 			string_data: HashMap::new()

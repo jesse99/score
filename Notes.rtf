@@ -5,13 +5,15 @@
 {\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red36\green38\blue41;
 \red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;\red161\green33\blue108;
 \red240\green0\blue31;\red0\green72\blue255;\red104\green0\blue254;\red140\green83\blue65;\red0\green0\blue0;
-\red60\green60\blue59;\red60\green60\blue59;\red203\green0\blue77;\red9\green76\blue116;\red117\green66\blue151;
-\red0\green0\blue0;}
+\red60\green60\blue59;\red117\green66\blue151;\red203\green74\blue5;\red95\green124\blue3;\red240\green240\blue240;
+\red60\green60\blue59;\red203\green0\blue77;\red9\green76\blue116;\red117\green66\blue151;\red0\green0\blue0;
+}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\cssrgb\c18824\c20000\c21176;
 \cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;\csgenericrgb\c63137\c12941\c42353;
 \csgenericrgb\c94118\c0\c12157;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c40784\c0\c99608;\csgenericrgb\c54902\c32549\c25490;\csgray\c0;
-\cssrgb\c30196\c30196\c29804;\cssrgb\c30196\c30196\c29804;\cssrgb\c84314\c0\c37255;\cssrgb\c0\c37255\c52941;\cssrgb\c53725\c34902\c65882;
-\cssrgb\c0\c0\c0;}
+\cssrgb\c30196\c30196\c29804;\cssrgb\c53725\c34902\c65882;\cssrgb\c84314\c37255\c0;\cssrgb\c44314\c54902\c0;\cssrgb\c95294\c95294\c95294;
+\cssrgb\c30196\c30196\c29804;\cssrgb\c84314\c0\c37255;\cssrgb\c0\c37255\c52941;\cssrgb\c53725\c34902\c65882;\cssrgb\c0\c0\c0;
+}
 \deftab720
 \pard\pardeftab720\partightenfactor0
 
@@ -205,15 +207,19 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 \pard\pardeftab720\sl540\partightenfactor0
 
 \f1\fs36 \cf15 \expnd0\expndtw0\kerning0
-\outl0\strokewidth0 \strokec15 \
+\outl0\strokewidth0 \strokec15 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0<\cf16 \strokec16 li\cf15 \strokec15  \cf17 \strokec17 class\cf15 \strokec15 ="\cf18 \strokec18 is-active\cf15 \strokec15 "><\cf16 \strokec16 a\cf15 \strokec15 >L\cb19 og</\cf16 \strokec16 a\cf15 \strokec15 ></\cf16 \strokec16 li\cf15 \strokec15 >\cb1 \
+\
 \
 \pard\pardeftab720\partightenfactor0
 
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 * kris disney?\
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 * Kris disney?\
 * spiderman or atomic blonde\
 * Support simulator page\
-	- support state tab\
+	- do a commit\
+	- add a checkbox to show .display- stuff\
 	- support state editing\
+		` maybe add a little icon to edit\
+		` but not for removed rows\
 	- support components tab\
 	- support map tab, probably with svg\
 	- support help (maybe as some sort of drop down)\
@@ -224,25 +230,25 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	- probably want /log/\{path\}/after/\{from-time\}\
 \pard\pardeftab720\sl540\partightenfactor0
 
-\f1\fs36 \cf16 \expnd0\expndtw0\kerning0
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf17 if\cf16  \cf17 let\cf16  Ok(path) = glob::Pattern::\cf18 new\cf16 (&path) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf17 if\cf16  \cf17 let\cf16  Some(level) = LogLevel::\cf18 with_str\cf16 (&level) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf18 handle_endpoint\cf16 (RestCommand::\cf18 GetLog\cf16 (path, limit, level), &tx_command, &rx_reply)\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf17 else\cf16  \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf18 empty_400\cf16 ()\
+\f1\fs36 \cf20 \expnd0\expndtw0\kerning0
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 if\cf20  \cf21 let\cf20  Ok(path) = glob::Pattern::\cf22 new\cf20 (&path) \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 if\cf20  \cf21 let\cf20  Some(level) = LogLevel::\cf22 with_str\cf20 (&level) \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf22 handle_endpoint\cf20 (RestCommand::\cf22 GetLog\cf20 (path, limit, level), &tx_command, &rx_reply)\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf21 else\cf20  \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf22 empty_400\cf20 ()\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf17 else\cf16  \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf18 empty_400\cf16 ()\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf21 else\cf20  \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf22 empty_400\cf20 ()\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\cf17 fn\cf16  \cf18 get_log_lines\cf16 (&\cf19 self\cf16 , path: &glob::Pattern, limit: \cf17 usize\cf16 , level: LogLevel) -> VecDeque<&LogLine>\
+\'a0\'a0\'a0\'a0\cf21 fn\cf20  \cf22 get_log_lines\cf20 (&\cf23 self\cf20 , path: &glob::Pattern, limit: \cf21 usize\cf20 , level: LogLevel) -> VecDeque<&LogLine>\
 \'a0\'a0\'a0\'a0\{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf17 let\cf16  \cf17 mut\cf16  result = VecDeque::\cf18 new\cf16 ();\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 let\cf20  \cf21 mut\cf20  result = VecDeque::\cf22 new\cf20 ();\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf17 for\cf16  line \cf17 in\cf16  \cf19 self\cf16 .log_lines.\cf18 iter\cf16 ().\cf18 rev\cf16 () \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf17 if\cf16  line.level <= level && path.\cf18 matches\cf16 (&line.path) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0result.\cf18 push_front\cf16 (line);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf17 if\cf16  result.\cf18 len\cf16 () >= limit \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf17 break\cf16 ;\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 for\cf20  line \cf21 in\cf20  \cf23 self\cf20 .log_lines.\cf22 iter\cf20 ().\cf22 rev\cf20 () \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 if\cf20  line.level <= level && path.\cf22 matches\cf20 (&line.path) \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0result.\cf22 push_front\cf20 (line);\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 if\cf20  result.\cf22 len\cf20 () >= limit \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 break\cf20 ;\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
@@ -312,7 +318,7 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 * Support get description\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f5\fs50\fsmilli25333 \cf20 \expnd0\expndtw0\kerning0
+\f5\fs50\fsmilli25333 \cf24 \expnd0\expndtw0\kerning0
 * Look at TODOs\
 * Start using clippy\
 * Might be able to cleanup the code a bit by making some modules directories\
@@ -332,7 +338,7 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	#back color path gray =~ blah\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f5\fs50\fsmilli25333 \cf20 \expnd0\expndtw0\kerning0
+\f5\fs50\fsmilli25333 \cf24 \expnd0\expndtw0\kerning0
 * Add persistence?\
 	- maybe with some simple viewer tools\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
@@ -344,7 +350,7 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 	- counting should only be done if should_log\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f5\fs50\fsmilli25333 \cf20 \expnd0\expndtw0\kerning0
+\f5\fs50\fsmilli25333 \cf24 \expnd0\expndtw0\kerning0
 * Add an embedded web server\
 	- starts up if \'97web\
 	- waits for \'93run\'94 to be written to the web component\

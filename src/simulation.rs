@@ -247,6 +247,16 @@ impl Simulation
 					let data = rustc_serialize::json::encode(&message.to_string()).unwrap();
 					RestReply{data, code:200}
 				}
+				RestCommand::RunUntilStateChanged => {
+					let old_edition = self.store.edition;
+					while self.exited.is_none() && self.store.edition == old_edition {
+						self.run_time_slice()
+					}
+					
+					let message = if self.exited.is_some() {"exited"} else {"ok"};
+					let data = rustc_serialize::json::encode(&message.to_string()).unwrap();
+					RestReply{data, code:200}
+				}
 				RestCommand::SetFloatState(path, value) => {
 					let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 					store.set_float(&path, value, self.current_time);
@@ -623,7 +633,7 @@ impl Simulation
 			}
 		}
 		
-		result.sort();
+		result.sort_by(|a, b| a.0.cmp(&b.0));
 		result
 	}
 }
@@ -699,6 +709,7 @@ enum RestCommand
 	GetTime,
 	GetTimePrecision,
 	RunUntilLogChanged,
+	RunUntilStateChanged,
 	SetFloatState(String, f64),
 	SetIntState(String, i64),
 	SetStringState(String, String),
@@ -768,6 +779,9 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 			},
 			(POST) (/run/until/log-changed) => {
 				handle_endpoint(RestCommand::RunUntilLogChanged, &tx_command, &rx_reply)
+			},
+			(POST) (/run/until/state-changed) => {
+				handle_endpoint(RestCommand::RunUntilStateChanged, &tx_command, &rx_reply)
 			},
 			// These really should be PUTs but crest doesn't support PUT...
 			(POST) (/state/float/{path: String}/{value: f64}) => {
