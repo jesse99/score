@@ -604,7 +604,7 @@ impl Simulation
 		result
 	}
 
-	fn get_state(&self, path: &glob::Pattern) -> Vec<(String, String)>
+	fn get_state(&self, path: &glob::Pattern) -> Vec<(String, String, String)>
 	{
 		let mut removed = Vec::new();
 		for (key, value) in self.store.int_data.iter() {
@@ -617,19 +617,19 @@ impl Simulation
 		let mut result = Vec::new();
 		for (key, value) in self.store.int_data.iter() {
 			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
-				result.push((key.clone(), value.1.to_string()));
+				result.push((key.clone(), value.1.to_string(), "int".to_string()));
 			}
 		}
 		
 		for (key, value) in self.store.float_data.iter() {
 			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
-				result.push((key.clone(), format!("{:.6}", value.1)));
+				result.push((key.clone(), format!("{:.6}", value.1), "float".to_string()));
 			}
 		}
 		
 		for (key, value) in self.store.string_data.iter() {
 			if path.matches(&key) && !removed.iter().any(|r| key.starts_with(r)) {
-				result.push((key.clone(), value.1.clone()));
+				result.push((key.clone(), value.1.clone(), "string".to_string()));
 			}
 		}
 		
