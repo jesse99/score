@@ -97,15 +97,15 @@ fn count_bots(state: &SimState, id: ComponentID) -> i64
 	root.children.iter().filter(|&id| is_bot(state, *id)).fold(0, |sum, _| sum + 1)
 }
 
-fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> (ComponentID, f64)
+fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
 {
 	let (_, root) = state.components.get_root(data.id);
 	root.children.iter()
 		.filter(|&id| *id != data.id && is_bot(state, *id))
-		.fold((NO_COMPONENT, INFINITY), |dist, &id| {
+		.fold(0.0, |dist, &id| {
 			// Ignore bots that are far away.
 			let (candidate, _, _) = bot_dist_squared(local, state, id, data.id, delta);
-			if candidate <= 64.0 {(id, dist.1 + candidate)} else {dist}
+			if candidate <= 64.0 {dist + candidate} else {dist}
 		})
 }
 
@@ -128,18 +128,17 @@ fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) ->
 	(result.0, result.1, result.2)
 }
 
-fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (ComponentID, f64, f64)
+fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (f64, f64)
 {
 	// See which direction we can move (including not moving at all) which will put us the
 	// furthest from other bots).
 	let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
 	let result = deltas.iter()
-		//             0=(id, dx, dy)    1=dist
-		.fold(((NO_COMPONENT, 0.0, 0.0), INFINITY), |best, delta| {
-			let (their_id, dist) = get_distance_to_nearby_bots(local, state, data, delta);
+		//      0=delta    1=dist
+		.fold(((0.0, 0.0), INFINITY), |best, delta| {
+			let dist = get_distance_to_nearby_bots(local, state, data, delta);
 			if dist < best.1 {
-				assert!(their_id != NO_COMPONENT);
-				((their_id, delta.0, delta.1), dist)
+				(*delta, dist)
 			} else {
 				best
 			}
@@ -194,13 +193,12 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				// If we have enough energy to move then see which direction would be furthest
 				// from all the other bots (including not moving at all).
 				let delay = if energy > 1 {
-					let (their_id, best_dx, best_dy) = dir_furthest_from_other_bots(&local, &state, &data);
+					let (best_dx, best_dy) = dir_furthest_from_other_bots(&local, &state, &data);
 					if best_dx != 0.0 || best_dy != 0.0 {
-						let their_name = state.get_string(their_id, "display-name");
-						log_excessive!(effector, "fleeing {} moving by {:.1}, {:.1}", their_name, best_dx, best_dy);
+						log_excessive!(effector, "moving by {:.1}, {:.1}", best_dx, best_dy);
 						offset_bot(&state, data.id, &mut effector, best_dx, best_dy);
 						effector.set_int("energy", energy - 1);
-						effector.set_string("display-details", &format!("fleeing {} ({})", their_name, energy-1));
+						effector.set_string("display-details", &format!("fleeing ({})", energy-1));
 						effector.set_string("display-color", "SandyBrown");
 						MOVE_DELAY
 					} else {
@@ -309,7 +307,7 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				if energy > 10 {
 					let (closest, dx, dy) = find_closest_bot(&local, &state, &data);
 					if closest != NO_COMPONENT {
-						if dx*dx + dy*dy <= 1.0 {
+						if dx*dx + dy*dy <= 8.0 {
 							handle_attack(&mut effector, &state, data.id, closest);
 						} else {
 							handle_chase(&mut effector, &state, dx, dy, data.id, closest);
