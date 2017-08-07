@@ -155,7 +155,7 @@ fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut XorShiftRng, effecto
 	let delay = 0.1 + 0.9*rng.next_f64();
 	effector.schedule_after_secs(event, id, delay);
 	effector.set_int("energy", 100);
-	effector.set_string("display-description", &format!("({})", 100));
+	effector.set_string("display-details", &format!("{} energy", 100));
 }
 
 // This bot will run from all the other bots and will never initiate an attack.
@@ -182,8 +182,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 			// more typically to one of their OutPorts.
 			"init 0" => {
 				init_bot(&local, data.id, &mut rng, &mut effector);
-				let short = ('a' as i8) + (bot_num as i8);
-				effector.set_string("display-short-name", &short.to_string());
+				effector.set_string("display-name", &format!("C{}", bot_num));
 			},
 			"timer" => {
 				let energy = state.get_int(data.id, "energy");
@@ -197,7 +196,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 						log_excessive!(effector, "moving by {:?}", best_delta);
 						offset_bot(&state, data.id, &mut effector, best_delta.0, best_delta.1);
 						effector.set_int("energy", energy - 1);
-						effector.set_string("display-description", &format!("({})", energy-1));
+						effector.set_string("display-details", &format!("{} energy", energy-1));
 						effector.set_string("display-color", "SandyBrown");
 						MOVE_DELAY
 					} else {
@@ -221,7 +220,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int("energy", energy + *bonus);
-				effector.set_string("display-description", &format!("({})", energy + *bonus));
+				effector.set_string("display-details", &format!("{} energy", energy + *bonus));
 			},
 			"lost-attack" => {
 				effector.set_int("energy", 0);
@@ -251,7 +250,7 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 		let event = Event::with_payload("lost-attack", their_energy/2);
 		effector.schedule_immediately(event, their_id);
 		effector.set_int("energy", my_energy + gained);
-		effector.set_string("display-description", &format!("({})", my_energy + gained));
+		effector.set_string("display-details", &format!("{} energy", my_energy + gained));
 		
 	} else {
 		log_info!(effector, "{} won ({} < {})", their_path, my_energy, their_energy);
@@ -280,7 +279,7 @@ fn handle_chase(effector: &mut Effector, state: &SimState, dx: f64, dy: f64, my_
 	};
 	offset_bot(state, my_id, effector, delta.0, delta.1);
 	effector.set_int("energy", my_energy - 1);
-	effector.set_string("display-description", &format!("({})", my_energy - 1));
+	effector.set_string("display-details", &format!("{} energy", my_energy - 1));
 }
 
 // This bot will chase the closest bot to it and attack bots that are nearby.
@@ -292,8 +291,7 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 		process_events!(data, event, state, effector,
 			"init 0" => {
 				init_bot(&local, data.id, &mut rng, &mut effector);
-				let short = ('A' as i8) + (bot_num as i8);
-				effector.set_string("display-short-name", &short.to_string());
+				effector.set_string("display-name", &format!("A{}", bot_num));
 			},
 			"timer" => {
 				let energy = state.get_int(data.id, "energy");
@@ -329,7 +327,7 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
 				log_info!(effector, "energy is now {}", energy + *bonus);
 				effector.set_int("energy", energy + *bonus);
-				effector.set_string("display-description", &format!("({})", energy + *bonus));
+				effector.set_string("display-details", &format!("{} energy", energy + *bonus));
 			},
 			"lost-attack" => {
 				effector.set_int("energy", 0);

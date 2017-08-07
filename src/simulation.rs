@@ -218,6 +218,11 @@ impl Simulation
 					let data = data.to_string();
 					RestReply{data, code:200}
 				}
+				RestCommand::GetLog => {
+					let lines = self.get_log_lines(-1.0);
+					let data = rustc_serialize::json::encode(&lines).unwrap();	
+					RestReply{data, code:200}
+				},
 				RestCommand::GetLogAfter(time) => {
 					let lines = self.get_log_lines(time);
 					let data = rustc_serialize::json::encode(&lines).unwrap();	
@@ -237,19 +242,8 @@ impl Simulation
 					let data = rustc_serialize::json::encode(&self.precision).unwrap();
 					RestReply{data, code:200}
 				},
-				RestCommand::RunUntilLogChanged => {
-					let num_lines = self.log_lines.len();
-					while self.exited.is_none() && self.log_lines.len() == num_lines {
-						self.run_time_slice()
-					}
-					
-					let message = if self.exited.is_some() {"exited"} else {"ok"};
-					let data = rustc_serialize::json::encode(&message.to_string()).unwrap();
-					RestReply{data, code:200}
-				}
-				RestCommand::RunUntilStateChanged => {
-					let old_edition = self.store.edition;
-					while self.exited.is_none() && self.store.edition == old_edition {
+				RestCommand::RunOnce => {
+					if self.exited.is_none() {
 						self.run_time_slice()
 					}
 					
@@ -703,13 +697,13 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 
 enum RestCommand
 {
+	GetLog,
 	GetLogAfter(f64),
 	GetState(glob::Pattern),
 	GetExited,
 	GetTime,
 	GetTimePrecision,
-	RunUntilLogChanged,
-	RunUntilStateChanged,
+	RunOnce,
 	SetFloatState(String, f64),
 	SetIntState(String, i64),
 	SetStringState(String, String),
@@ -774,15 +768,18 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 			(GET) (/exited) => {
 				handle_endpoint(RestCommand::GetExited, &tx_command, &rx_reply)
 			},
+			(GET) (/log) => {
+				handle_endpoint(RestCommand::GetLog, &tx_command, &rx_reply)
+			},
 			(GET) (/log/after/{time: f64}) => {
 				handle_endpoint(RestCommand::GetLogAfter(time), &tx_command, &rx_reply)
 			},
-			(POST) (/run/until/log-changed) => {
-				handle_endpoint(RestCommand::RunUntilLogChanged, &tx_command, &rx_reply)
+			(POST) (/run/once) => {
+				handle_endpoint(RestCommand::RunOnce, &tx_command, &rx_reply)
 			},
-			(POST) (/run/until/state-changed) => {
-				handle_endpoint(RestCommand::RunUntilStateChanged, &tx_command, &rx_reply)
-			},
+			(POST) (/run/until/{secs: f64}) => {
+				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
+			},			
 			// These really should be PUTs but crest doesn't support PUT...
 			(POST) (/state/float/{path: String}/{value: f64}) => {
 				handle_endpoint(RestCommand::SetFloatState(path, value), &tx_command, &rx_reply)
@@ -806,9 +803,6 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 			(GET) (/time/precision) => {
 				handle_endpoint(RestCommand::GetTimePrecision, &tx_command, &rx_reply)
 			},
-			(POST) (/time/{secs: f64}) => {
-				handle_endpoint(RestCommand::SetTime(secs), &tx_command, &rx_reply)
-			},			
 			_ => {
 				let response = rouille::match_assets(&request, &root_dir);
 				if !response.is_success() {
