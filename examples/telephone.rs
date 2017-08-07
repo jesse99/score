@@ -9,7 +9,7 @@ extern crate rand;
 extern crate score;
 
 use clap::{App, ArgMatches};
-use rand::{Rng, SeedableRng, XorShiftRng};
+use rand::{Rng, SeedableRng, StdRng};
 use score::*;
 use std::fmt::Display;
 use std::process;
@@ -284,7 +284,7 @@ impl ManglerComponent
 		// Note that it is important that components use the seed given to them by the simulation.
 		// If they use other sources of randomness then simulations won't be deterministic which
 		// makes bugs much harder to reproduce.
-		let mut rng = XorShiftRng::from_seed([self.data.seed; 4]);
+		let mut rng = StdRng::from_seed(&[self.data.seed]);
 		
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
@@ -310,7 +310,7 @@ impl ManglerComponent
 		});
 	}
 	
-	fn mangle(&self, rng: &mut XorShiftRng, old: &str) -> String
+	fn mangle(&self, rng: &mut StdRng, old: &str) -> String
 	{
 		let mut new = "".to_string();
 		for ch in old.chars() {

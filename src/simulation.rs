@@ -5,7 +5,7 @@ use effector::*;
 use event::*;
 use glob;
 use logging::*;
-use rand::{Rng, SeedableRng, XorShiftRng};
+use rand::{Rng, SeedableRng, StdRng};
 use rouille;
 use rustc_serialize;
 use sim_state::*;
@@ -151,7 +151,7 @@ impl Simulation
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
-		let seed = get_seed(self.config.seed, id.0 as u32);
+		let seed = get_seed(self.config.seed, id.0 as usize);
 		(id, ThreadData::new(id, rxd, txe, seed))
 	}
 	
@@ -670,18 +670,18 @@ fn end_escape() -> &'static str
 	"\x1b[0m"
 }
 
-fn get_seed(seed: u32, offset: u32) -> u32
+fn get_seed(seed: usize, offset: usize) -> usize
 {
-	let seed = if seed != 0 {seed} else {time::get_time().nsec as u32};
+	let seed = if seed != 0 {seed} else {time::get_time().nsec as usize};
 	seed + offset	// offset is used to give each thread its own random stream
 }
 
 // We care about speed much more than we care about a cryptographic RNG so
-// XorShiftRng should be plenty good enough.
-fn new_rng(seed: u32, offset: u32) -> XorShiftRng
+// StdRng should be plenty good enough.
+fn new_rng(seed: usize, offset: u32) -> StdRng
 {
-	let seed = get_seed(seed, offset);
-	XorShiftRng::from_seed([seed; 4])
+	let seed = get_seed(seed, offset as usize);
+	StdRng::from_seed(&[seed])
 }
 
 fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector>)

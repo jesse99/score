@@ -29,13 +29,13 @@ pub struct ThreadData
 	/// extern crate score;
 	/// extern crate rand;
 	///
-	/// use rand::{Rng, SeedableRng, XorShiftRng};
+	/// use rand::{Rng, SeedableRng, StdRng};
 	/// use score::*;
 	/// use std::thread;
 	///
 	/// fn component_thread(data: ThreadData)
 	/// {
-	/// 	let mut rng = XorShiftRng::from_seed([data.seed; 4]);
+	/// 	let mut rng = StdRng::from_seed(&[data.seed]);
 	/// 	thread::spawn(move || {
 	/// 		process_events!(data, event, state, effector,
 	/// 			"init 0" => {
@@ -51,12 +51,12 @@ pub struct ThreadData
 	/// # fn main() {
 	/// # }
 	/// ```
-	pub seed: u32,	// TODO: document stuff to be careful of, eg HashMap iteration
+	pub seed: usize,	// TODO: document stuff to be careful of, eg HashMap iteration
 }
 
 impl ThreadData
 {
-	pub(crate) fn new(id: ComponentID, rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector>, seed: u32) -> ThreadData
+	pub(crate) fn new(id: ComponentID, rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector>, seed: usize) -> ThreadData
 	{
 		ThreadData{id, rx, tx, seed: seed}
 	}

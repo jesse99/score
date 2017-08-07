@@ -32,7 +32,7 @@ pub struct Config
 	/// Random number generator seed. Defaults to 0 which means seed with
 	/// entropy. Note that if you want deterministic results you should
 	/// use a fixed seed.
-	pub seed: u32,
+	pub seed: usize,
 	
 	/// Default log level to use. Defaults to Info.
 	pub log_level: LogLevel,

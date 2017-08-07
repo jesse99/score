@@ -10,7 +10,7 @@ extern crate rand;
 extern crate score;
 
 use clap::{App, ArgMatches};
-use rand::{Rng, SeedableRng, XorShiftRng};
+use rand::{Rng, SeedableRng, StdRng};
 use score::*;
 use std::collections::HashMap;
 use std::f64::INFINITY;
@@ -48,6 +48,7 @@ fn move_bot(effector: &mut Effector, x: f64, y: f64)
 {
 	effector.set_float("display-location-x", x);
 	effector.set_float("display-location-y", y);
+	log_debug!(effector, "moved to {:.2}, {:.2}", x, y);
 }
 
 fn offset_bot(state: &SimState, id: ComponentID, effector: &mut Effector, dx: f64, dy: f64)
@@ -57,9 +58,10 @@ fn offset_bot(state: &SimState, id: ComponentID, effector: &mut Effector, dx: f6
 
 	effector.set_float("display-location-x", x + dx);
 	effector.set_float("display-location-y", y + dy);
+	log_debug!(effector, "moved to {:.1}, {:.1}", x + dx, y + dy);
 }
 
-fn randomize_location(local: &LocalConfig, rng: &mut XorShiftRng, effector: &mut Effector)
+fn randomize_location(local: &LocalConfig, rng: &mut StdRng, effector: &mut Effector)
 {
 	let x = rng.gen_range(0.0, local.width);
 	let y = rng.gen_range(0.0, local.height);
@@ -95,15 +97,15 @@ fn count_bots(state: &SimState, id: ComponentID) -> i64
 	root.children.iter().filter(|&id| is_bot(state, *id)).fold(0, |sum, _| sum + 1)
 }
 
-fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
+fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> (ComponentID, f64)
 {
 	let (_, root) = state.components.get_root(data.id);
 	root.children.iter()
 		.filter(|&id| *id != data.id && is_bot(state, *id))
-		.fold(0.0, |dist, &id| {
+		.fold((NO_COMPONENT, INFINITY), |dist, &id| {
 			// Ignore bots that are far away.
 			let (candidate, _, _) = bot_dist_squared(local, state, id, data.id, delta);
-			if candidate <= 16.0 {dist + candidate} else {dist}
+			if candidate <= 64.0 {(id, dist.1 + candidate)} else {dist}
 		})
 }
 
@@ -126,17 +128,18 @@ fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) ->
 	(result.0, result.1, result.2)
 }
 
-fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (f64, f64)
+fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (ComponentID, f64, f64)
 {
 	// See which direction we can move (including not moving at all) which will put us the
 	// furthest from other bots).
 	let deltas = vec!((0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0));
 	let result = deltas.iter()
-		//      0=delta    1=dist
-		.fold(((0.0, 0.0), INFINITY), |best, delta| {
-			let dist = get_distance_to_nearby_bots(local, state, data, delta);
+		//             0=(id, dx, dy)    1=dist
+		.fold(((NO_COMPONENT, 0.0, 0.0), INFINITY), |best, delta| {
+			let (their_id, dist) = get_distance_to_nearby_bots(local, state, data, delta);
 			if dist < best.1 {
-				(*delta, dist)
+				assert!(their_id != NO_COMPONENT);
+				((their_id, delta.0, delta.1), dist)
 			} else {
 				best
 			}
@@ -144,7 +147,7 @@ fn dir_furthest_from_other_bots(local: &LocalConfig, state: &SimState, data: &Th
 	result.0
 }
 
-fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut XorShiftRng, effector: &mut Effector)
+fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut StdRng, effector: &mut Effector)
 {
 	// The only way components can affect the simulation state is through an
 	// Effector. This prevents spooky action at a distance and also allows
@@ -161,7 +164,7 @@ fn init_bot(local: &LocalConfig, id: ComponentID, rng: &mut XorShiftRng, effecto
 // This bot will run from all the other bots and will never initiate an attack.
 fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 {
-	let mut rng = XorShiftRng::from_seed([data.seed; 4]);
+	let mut rng = StdRng::from_seed(&[data.seed]);
 
 	thread::spawn(move || {
 		// data is ThreadData and contains the component's id, mpsc channels to communicate
@@ -191,20 +194,23 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				// If we have enough energy to move then see which direction would be furthest
 				// from all the other bots (including not moving at all).
 				let delay = if energy > 1 {
-					let best_delta = dir_furthest_from_other_bots(&local, &state, &data);
-					if best_delta.0 != 0.0 || best_delta.1 != 0.0 {
-						log_excessive!(effector, "moving by {:?}", best_delta);
-						offset_bot(&state, data.id, &mut effector, best_delta.0, best_delta.1);
+					let (their_id, best_dx, best_dy) = dir_furthest_from_other_bots(&local, &state, &data);
+					if best_dx != 0.0 || best_dy != 0.0 {
+						let their_name = state.get_string(their_id, "display-name");
+						log_excessive!(effector, "fleeing {} moving by {:.1}, {:.1}", their_name, best_dx, best_dy);
+						offset_bot(&state, data.id, &mut effector, best_dx, best_dy);
 						effector.set_int("energy", energy - 1);
-						effector.set_string("display-details", &format!("{} energy", energy-1));
+						effector.set_string("display-details", &format!("fleeing {} ({})", their_name, energy-1));
 						effector.set_string("display-color", "SandyBrown");
 						MOVE_DELAY
 					} else {
 						log_excessive!(effector, "no others bots are nearby");
+						effector.set_string("display-details", &format!("energy {}", energy));
 						effector.set_string("display-color", "Black");
 						MOVE_DELAY/2.0
 					}
 				} else {
+					effector.set_string("display-details", &format!("energy {}", energy));
 					effector.set_string("display-color", "DarkGray");
 					MOVE_DELAY
 				};
@@ -217,10 +223,10 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 			},
 			"won-attack" => {
 				let energy = state.get_int(data.id, "energy");
-				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
-				log_info!(effector, "energy is now {}", energy + *bonus);
-				effector.set_int("energy", energy + *bonus);
-				effector.set_string("display-details", &format!("{} energy", energy + *bonus));
+				let &(ref other, ref bonus) = event.expect_payload::<(String, i64)>("won-attack should have an (String. i64) payload");
+				log_info!(effector, "energy is now {}", energy + bonus);
+				effector.set_int("energy", energy + bonus);
+				effector.set_string("display-details", &format!("beat {} ({})", other, energy + bonus));
 			},
 			"lost-attack" => {
 				effector.set_int("energy", 0);
@@ -250,12 +256,14 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 		let event = Event::with_payload("lost-attack", their_energy/2);
 		effector.schedule_immediately(event, their_id);
 		effector.set_int("energy", my_energy + gained);
-		effector.set_string("display-details", &format!("{} energy", my_energy + gained));
+		let their_name = state.get_string(their_id, "display-name");
+		effector.set_string("display-details", &format!("beat {} ({})", their_name, my_energy + gained));
 		
 	} else {
 		log_info!(effector, "{} won ({} < {})", their_path, my_energy, their_energy);
 		effector.remove();
-		let event = Event::with_payload("won-attack", my_energy/2);
+		let name = state.get_string(their_id, "display-name");
+		let event = Event::with_payload("won-attack", (name, my_energy/2));
 		effector.schedule_immediately(event, their_id);
 		effector.set_int("energy", 0);
 
@@ -279,13 +287,14 @@ fn handle_chase(effector: &mut Effector, state: &SimState, dx: f64, dy: f64, my_
 	};
 	offset_bot(state, my_id, effector, delta.0, delta.1);
 	effector.set_int("energy", my_energy - 1);
-	effector.set_string("display-details", &format!("{} energy", my_energy - 1));
+	let their_name = state.get_string(their_id, "display-name");
+	effector.set_string("display-details", &format!("chasing {} ({})", their_name, my_energy - 1));
 }
 
 // This bot will chase the closest bot to it and attack bots that are nearby.
 fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 {
-	let mut rng = XorShiftRng::from_seed([data.seed; 4]);
+	let mut rng = StdRng::from_seed(&[data.seed]);
 
 	thread::spawn(move || {
 		process_events!(data, event, state, effector,
@@ -309,12 +318,14 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				
 					} else {
 						log_debug!(effector, "didn't find a bot to chase");
+						effector.set_string("display-details", &format!("energy {}", energy));
 						effector.set_string("display-color", "Black");
 					}
 
 				} else {
 					// If we are very low health then just wait for someone to get close
 					// and hope we still win.
+					effector.set_string("display-details", &format!("energy {}", energy));
 					effector.set_string("display-color", "DarkGray");
 					log_debug!(effector, "energy is to low to chase after anyone");
 				}
@@ -324,10 +335,10 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 			},
 			"won-attack" => {
 				let energy = state.get_int(data.id, "energy");
-				let bonus = event.expect_payload::<i64>("won-attack should have an i64 payload");
-				log_info!(effector, "energy is now {}", energy + *bonus);
-				effector.set_int("energy", energy + *bonus);
-				effector.set_string("display-details", &format!("{} energy", energy + *bonus));
+				let &(ref other, ref bonus) = event.expect_payload::<(String, i64)>("won-attack should have an (String, i64) payload");
+				log_info!(effector, "energy is now {}", energy + bonus);
+				effector.set_int("energy", energy + bonus);
+				effector.set_string("display-details", &format!("beat {} ({})", other, energy + bonus));
 			},
 			"lost-attack" => {
 				effector.set_int("energy", 0);
@@ -507,7 +518,7 @@ fn parse_options() -> (LocalConfig, Config)
 	}
 	
 	if matches.is_present("seed") {
-		config.seed = match_num(&matches, "seed", 1, u32::max_value());
+		config.seed = match_num(&matches, "seed", 1, usize::max_value());
 	}
 	
 	if matches.is_present("address") {
