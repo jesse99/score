@@ -47,18 +47,18 @@ impl Components
 	}
 	
 	/// The root is the component that is the grand parent of all components.
-	pub fn get_root(&self, id: ComponentID) -> (ComponentID, &Component)
+	pub fn get_root(&self) -> (ComponentID, &Component)
 	{
-		assert!(id != NO_COMPONENT);
-
-		let mut id = id;
-		loop {
-			let c = self.get(id);
-			if c.parent == NO_COMPONENT {
-				return (id, c);
+		// TODO: Might want to optimize this in case people do weird things
+		// like adding the root last.
+		for (index, comp) in self.components.iter().enumerate() {
+			let id = ComponentID(index);
+			if comp.parent == NO_COMPONENT {
+				return (id, comp);
 			}
-			id = c.parent;
 		}
+
+		panic!("Failed to find the root");
 	}
 	
 	/// Returns the id for the topmost parent of the component,

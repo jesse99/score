@@ -213,6 +213,16 @@ impl Simulation
 		self.init_components();
 		for command in rx_command.iter() {
 			let reply = match command {
+				RestCommand::GetComponents => {
+					if !self.components.is_empty() {
+						let lines = self.get_components();
+						let data = rustc_serialize::json::encode(&lines).unwrap();	
+						let data = data.to_string();
+						RestReply{data, code:200}
+					} else {
+						RestReply{data: "no components".to_string(), code:404}
+					}
+				}
 				RestCommand::GetExited => {
 					let data = if self.exited.is_some() {"true"} else {"false"};
 					let data = data.to_string();
@@ -598,6 +608,37 @@ impl Simulation
 		result
 	}
 
+	fn create_component_entry(&self, removed: &Vec<String>, id: ComponentID, component: &Component) -> ComponentEntry
+	{		
+		let mut children = Vec::with_capacity(component.children.len());
+		for child_id in component.children.iter() {
+			let child = self.components.get(*child_id);
+			if !removed.contains(&child.name) {
+				let child_entry = self.create_component_entry(removed, *child_id, child);
+				children.push(child_entry);
+			}
+		}
+		
+		let name = component.name.clone();
+		let key = self.components.path(id) + ".display-details";
+		let details = if self.store.contains(&key) {self.store.get_string(&key)} else {"".to_string()};
+		ComponentEntry{name, details, children}
+	}
+
+	fn get_components(&self) -> ComponentEntry
+	{
+		let mut removed = Vec::new();
+		for (key, value) in self.store.int_data.iter() {
+			if key.ends_with(".removed") && value.1 == 1 {
+				let (prefix, _) = key.split_at(key.len() - ".removed".len());
+				removed.push(prefix.to_string());
+			}
+		}
+
+		let (id, root) = self.components.get_root();
+		self.create_component_entry(&removed, id, root)
+	}
+	
 	fn get_state(&self, path: &glob::Pattern) -> Vec<(String, String, String)>
 	{
 		let mut removed = Vec::new();
@@ -697,6 +738,7 @@ fn no_op_thread(rx: mpsc::Receiver<(Event, SimState)>, tx: mpsc::Sender<Effector
 
 enum RestCommand
 {
+	GetComponents,
 	GetLog,
 	GetLogAfter(f64),
 	GetState(glob::Pattern),
@@ -723,6 +765,14 @@ struct LogLine
 	path: String,
 	level: LogLevel,
 	message: String,
+}
+
+#[derive(RustcEncodable)]
+struct ComponentEntry
+{
+	name: String,
+	details: String,
+	children: Vec<ComponentEntry>,
 }
 
 fn file_response(request: &rouille::Request, path: &Path) -> rouille::Response
@@ -765,6 +815,9 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 			},
 			// In theory REST endpoints can conflict with file names within root_dir but none of
 			// the REST endpoints have an extension so this shouldn't be a problem in practice.
+			(GET) (/components) => {
+				handle_endpoint(RestCommand::GetComponents, &tx_command, &rx_reply)
+			},
 			(GET) (/exited) => {
 				handle_endpoint(RestCommand::GetExited, &tx_command, &rx_reply)
 			},

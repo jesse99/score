@@ -91,15 +91,15 @@ fn is_bot(state: &SimState, id: ComponentID) -> bool
 	state.contains(id, "display-location-x") && state.get_int(id, "energy") > 0 && !state.was_removed(id)
 }
 
-fn count_bots(state: &SimState, id: ComponentID) -> i64
+fn count_bots(state: &SimState) -> i64
 {
-	let (_, root) = state.components.get_root(id);
+	let (_, root) = state.components.get_root();
 	root.children.iter().filter(|&id| is_bot(state, *id)).fold(0, |sum, _| sum + 1)
 }
 
 fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &ThreadData, delta: &(f64, f64)) -> f64
 {
-	let (_, root) = state.components.get_root(data.id);
+	let (_, root) = state.components.get_root();
 	root.children.iter()
 		.filter(|&id| *id != data.id && is_bot(state, *id))
 		.fold(0.0, |dist, &id| {
@@ -112,7 +112,7 @@ fn get_distance_to_nearby_bots(local: &LocalConfig, state: &SimState, data: &Thr
 fn find_closest_bot(local: &LocalConfig, state: &SimState, data: &ThreadData) -> (ComponentID, f64, f64)
 {
 	let zero = (0.0, 0.0);
-	let (_, root) = state.components.get_root(data.id);
+	let (_, root) = state.components.get_root();
 	let result = root.children.iter()
 		.filter(|&id| *id != data.id && is_bot(state, *id))
 		
@@ -230,7 +230,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				effector.set_int("energy", 0);
 				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 				let event = Event::new("update");
-				let (world_id, _) = state.components.get_root(data.id);
+				let (world_id, _) = state.components.get_root();
 				effector.schedule_immediately(event, world_id);
 			}
 		);
@@ -266,7 +266,7 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 		effector.set_int("energy", 0);
 
 		let event = Event::new("update");
-		let (world_id, _) = state.components.get_root(my_id);
+		let (world_id, _) = state.components.get_root();
 		effector.schedule_immediately(event, world_id);
 	}
 }
@@ -343,7 +343,7 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 				effector.remove();	// this will drop the tx side of data.rx which will cause our this thread to exit
 
 				let event = Event::new("update");
-				let (world_id, _) = state.components.get_root(data.id);
+				let (world_id, _) = state.components.get_root();
 				effector.schedule_immediately(event, world_id);
 			}
 		);
@@ -420,7 +420,7 @@ fn world_thread(local: LocalConfig, data: ThreadData)
 				effector.set_string("display-title", "battlebots");
 			},
 			"update" => {
-				let count = count_bots(&state, data.id);
+				let count = count_bots(&state);
 				effector.set_string("display-title", &format!("battlebots - {} left", count));
 			}
 		);
