@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 pub struct Components
 {
 	components: Vec<Component>,
+	max_log_path: usize,
 }
 
 pub struct ComponentsIterator<'a>
@@ -15,9 +16,9 @@ pub struct ComponentsIterator<'a>
 
 impl Components
 {
-	pub(crate) fn new() -> Components
+	pub(crate) fn new(max_log_path: usize) -> Components
 	{
-		Components {components: Vec::new()}
+		Components {components: Vec::new(), max_log_path}
 	}
 	
 	/// Dump state to stdout.
@@ -35,7 +36,7 @@ impl Components
 	}
 	
 	/// Note that this, and related methods, can return a reference to
-	/// a removed `Component`. This is not a problem in general but if
+	/// a removed [`Component`]. This is not a problem in general but if
 	/// you are regularly sending events to a component that may have
 	/// been removed then you can make your simulation more efficient
 	/// by asking `SimState` if the component has been removed.
@@ -138,26 +139,28 @@ impl Components
 	}
 	
 	/// Returns the path from the top component downwards. Returns "removed"
-	/// if id or a parent of id has been removed. Note that this does not
-	/// include a root prefix because it's a little silly to include it
-	/// everywhere when it never changes.
-	pub fn path(&self, id: ComponentID) -> String
+	/// if id or a parent of id has been removed.
+	pub fn full_path(&self, mut id: ComponentID) -> String
 	{
 		let mut path = Vec::new();
 		
-		let mut c = self.get(id);
-		if c.parent == NO_COMPONENT {
-			return c.name.clone()	// special case the root so that it's not called ""
-		}
-		
-		while c.parent != NO_COMPONENT {
+		while id != NO_COMPONENT {
+			let c = self.get(id);
 			path.insert(0, c.name.clone());
-			c = self.get(c.parent);
+			id = c.parent;
 		}
 		
 		path.join(".")
 	}
-		
+				
+	/// Like path except that the path is truncated from the left using max_log_path
+	/// from [`Config`].
+	pub fn display_path(&self, id: ComponentID) -> String
+	{
+		let path = self.full_path(id);
+		format!("{0:<1$}", path, self.max_log_path)
+	}
+				
 	pub fn is_empty(&self) -> bool
 	{
 		self.components.is_empty()

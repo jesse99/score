@@ -6,12 +6,16 @@
 \red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;\red161\green33\blue108;
 \red240\green0\blue31;\red0\green72\blue255;\red104\green0\blue254;\red140\green83\blue65;\red0\green0\blue0;
 \red33\green118\blue199;\red242\green242\blue242;\red60\green60\blue59;\red60\green60\blue59;\red203\green0\blue77;
-\red9\green76\blue116;\red117\green66\blue151;\red0\green0\blue0;}
+\red117\green66\blue151;\red9\green76\blue116;\red203\green74\blue5;\red240\green240\blue240;\red95\green124\blue3;
+\red51\green136\blue141;\red203\green0\blue77;\red9\green76\blue116;\red117\green66\blue151;\red0\green0\blue0;
+}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\cssrgb\c18824\c20000\c21176;
 \cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;\csgenericrgb\c63137\c12941\c42353;
 \csgenericrgb\c94118\c0\c12157;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c40784\c0\c99608;\csgenericrgb\c54902\c32549\c25490;\csgray\c0;
 \cssrgb\c14902\c54510\c82353;\cssrgb\c96078\c96078\c96078;\cssrgb\c30196\c30196\c29804;\cssrgb\c30196\c30196\c29804;\cssrgb\c84314\c0\c37255;
-\cssrgb\c0\c37255\c52941;\cssrgb\c53725\c34902\c65882;\cssrgb\c0\c0\c0;}
+\cssrgb\c53725\c34902\c65882;\cssrgb\c0\c37255\c52941;\cssrgb\c84314\c37255\c0;\cssrgb\c95294\c95294\c95294;\cssrgb\c44314\c54902\c0;
+\cssrgb\c24314\c60000\c62353;\cssrgb\c84314\c0\c37255;\cssrgb\c0\c37255\c52941;\cssrgb\c53725\c34902\c65882;\cssrgb\c0\c0\c0;
+}
 \deftab720
 \pard\pardeftab720\partightenfactor0
 
@@ -216,18 +220,69 @@ display-details\
 	\
 \
 \
+path = \cf18 \outl0\strokewidth0 aggresive-4.energy\cf17 \outl0\strokewidth0 \strokec17 \
+window.name = .world.aggresive-4\
 \pard\pardeftab720\partightenfactor0
 
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 zero to hero\
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
+\pard\pardeftab720\sl540\partightenfactor0
+
+\f1\fs36 \cf17 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec17 \'a0\'a0\'a0\'a0\cf19 \strokec19 const\cf17 \strokec17  \cf20 \strokec20 new_filtered\cf17 \strokec17  = \cf20 \strokec20 new_state\cf17 \strokec17 .\cf21 \strokec21 filter\cf17 \strokec17 ((\cf20 \strokec20 s\cf17 \strokec17 ) \cf19 \strokec19 =>\cf17 \strokec17  \cf21 \strokec21 show_state\cf17 \strokec17 (\cf20 \strokec20 s\cf17 \strokec17 [\cf22 \strokec22 0\cf17 \strokec17 ]));\
+\'a0\'a0\'a0\'a0\cf19 \strokec19 const\cf17 \strokec17  \cf20 \strokec20 old_filtered\cf17 \strokec17  = \cf20 \strokec20 SDEBUG\cf17 \strokec17 .\cf20 \strokec20 old_state\cf17 \strokec17 .\cf21 \strokec21 filter\cf17 \strokec17 ((\cf20 \strokec20 s\cf17 \strokec17 ) \cf19 \strokec19 =>\cf17 \strokec17  \cf21 \strokec21 show_state\cf17 \strokec17 (\cf20 \strokec20 s\cf17 \strokec17 [\cf22 \cb23 \strokec22 0\cf17 \strokec17 ]));\cb1 \
 \
+\cf19 \strokec19 function\cf17 \strokec17  \cf21 \strokec21 components_has_changed\cf17 \strokec17 (\cf20 \strokec20 new_state\cf17 \strokec17 )\
+\{\
+\'a0\'a0\'a0\'a0\cf19 \strokec19 function\cf17 \strokec17  \cf21 \strokec21 flatten\cf17 \strokec17 (\cf20 \strokec20 result\cf17 \strokec17 , \cf20 \strokec20 prefix\cf17 \strokec17 , \cf20 \strokec20 state\cf17 \strokec17 )\
+\'a0\'a0\'a0\'a0\{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 \strokec19 const\cf17 \strokec17  \cf20 \strokec20 path\cf17 \strokec17  = \cf20 \strokec20 prefix\cf17 \strokec17  + "\cf24 \strokec24 .\cf17 \strokec17 " + \cf20 \strokec20 state\cf17 \strokec17 .name;\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 \strokec19 const\cf17 \strokec17  \cf20 \strokec20 line\cf17 \strokec17  = \cf20 \strokec20 path\cf17 \strokec17  + "\cf24 \strokec24  - \cf17 \strokec17 " + \cf20 \strokec20 state\cf17 \strokec17 .\cf20 \strokec20 details\cf17 \strokec17 ;\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf20 \strokec20 result\cf17 \strokec17 .\cf25 \strokec25 push\cf17 \strokec17 (\cf20 \strokec20 line\cf17 \strokec17 );\
 \
-* Support components tab:\
-	- do a commit\
-	- open up a new page when clicking on a link\
-	- maybe use italics for details\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 \strokec19 for\cf17 \strokec17  (\cf19 \strokec19 const\cf17 \strokec17  \cf20 \strokec20 child\cf17 \strokec17  of \cf20 \strokec20 state\cf17 \strokec17 .\cf20 \strokec20 children\cf17 \strokec17 ) \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf21 \strokec21 flatten\cf17 \strokec17 (\cf20 \strokec20 result\cf17 \strokec17 , \cf20 \strokec20 path\cf17 \strokec17 , \cf20 \strokec20 child\cf17 \strokec17 );\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
+\'a0\'a0\'a0\'a0\}\
+\
+\'a0\'a0\'a0\'a0\cf19 \strokec19 var\cf17 \strokec17  \cf20 \strokec20 old_flat\cf17 \strokec17  = [];\
+\'a0\'a0\'a0\'a0\cf19 \strokec19 var\cf17 \strokec17  \cf20 \strokec20 new_flat\cf17 \strokec17  = [];\
+\
+\'a0\'a0\'a0\'a0\cf21 \strokec21 flatten\cf17 \strokec17 (\cf20 \strokec20 old_flat\cf17 \strokec17 , "", \cf20 \strokec20 SDEBUG\cf17 \strokec17 .\cf20 \strokec20 old_state\cf17 \strokec17 );\
+\'a0\'a0\'a0\'a0\cf21 \strokec21 flatten\cf17 \strokec17 (\cf20 \strokec20 new_flat\cf17 \strokec17 , "", \cf20 \strokec20 new_state\cf17 \strokec17 );\
+\
+\'a0\'a0\'a0\'a0\cf20 \strokec20 old_flat\cf17 \strokec17  = \cf20 \strokec20 old_flat\cf17 \strokec17 .\cf25 \strokec25 sort\cf17 \strokec17 ();\
+\'a0\'a0\'a0\'a0\cf20 \strokec20 new_flat\cf17 \strokec17  = \cf20 \strokec20 new_flat\cf17 \strokec17 .\cf25 \strokec25 sort\cf17 \strokec17 ();\
+\
+\'a0\'a0\'a0\'a0\cf19 \strokec19 if\cf17 \strokec17  (\cf20 \strokec20 new_flat\cf17 \strokec17 .length != \cf20 \strokec20 old_flat\cf17 \strokec17 .length)\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 \strokec19 return\cf17 \strokec17  \cf22 \strokec22 true\cf17 \strokec17 ;\
+\
+\'a0\'a0\'a0\'a0\cf19 \strokec19 for\cf17 \strokec17  (\cf19 \strokec19 var\cf17 \strokec17  \cf20 \strokec20 i\cf17 \strokec17  = \cf22 \strokec22 0\cf17 \strokec17 ; \cf20 \strokec20 i\cf17 \strokec17  < \cf20 \strokec20 new_flat\cf17 \strokec17 .length; \cf20 \strokec20 i\cf17 \strokec17 ++) \{\
+\cb23 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 \strokec19 if\cf17 \strokec17  (\cf20 \strokec20 new_flat\cf17 \strokec17 [\cf20 \strokec20 i\cf17 \strokec17 ] != \cf20 \strokec20 old_flat\cf17 \strokec17 [\cf20 \strokec20 i\cf17 \strokec17 ]) \{\cb1 \
+\cb23 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 \strokec19 return\cf17 \strokec17  \cf22 \strokec22 true\cf17 \strokec17 ;\cb1 \
+\cb23 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\cb1 \
+\cb23 \'a0\'a0\'a0\'a0\}\cb1 \
+\cb23 \'a0\'a0\'a0\'a0\cf19 \strokec19 return\cf17 \strokec17  \cf22 \strokec22 false\cf17 \strokec17 ;\cb1 \
+\cb23 \}\cb1 \
+\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf25 \strokec25 format!\cf17 \strokec17 (\cf24 \strokec24 "\{0:<1$\}"\cf17 \strokec17 , path, ma\cb23 x_log_path)\cb1 \
+\
+GetComponents\
+GetLog\
+\
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
+* Check edward jones\
+* Credit card\
+* Print labels\
+* Open up a new page when clicking on a link\
+	- clicking on map should open a window\
+	- handle window.focus event and refresh state\
+		` see how often this is called\
+		` another possibility is {\field{\*\fldinst{HYPERLINK "https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API"}}{\fldrslt https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API}}\
+* Should be a menu to control displayed log level\
 * Support map:\
 	- would be cool to have a checkbox for animated runs\
-	- click should open a new window\
 - \'97root is a really crappy name\
 * Should have a comment somewhere describing display state options\
 * Support simulator page\
@@ -240,24 +295,24 @@ display-details\
 \pard\pardeftab720\sl540\partightenfactor0
 
 \f1\fs36 \cf18 \expnd0\expndtw0\kerning0
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  \cf19 let\cf18  Ok(path) = glob::Pattern::\cf20 new\cf18 (&path) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  \cf19 let\cf18  Some(level) = LogLevel::\cf20 with_str\cf18 (&level) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf20 handle_endpoint\cf18 (RestCommand::\cf20 GetLog\cf18 (path, limit, level), &tx_command, &rx_reply)\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf19 else\cf18  \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf20 empty_400\cf18 ()\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf26 if\cf18  \cf26 let\cf18  Ok(path) = glob::Pattern::\cf27 new\cf18 (&path) \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf26 if\cf18  \cf26 let\cf18  Some(level) = LogLevel::\cf27 with_str\cf18 (&level) \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf27 handle_endpoint\cf18 (RestCommand::\cf27 GetLog\cf18 (path, limit, level), &tx_command, &rx_reply)\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf26 else\cf18  \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf27 empty_400\cf18 ()\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf19 else\cf18  \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf20 empty_400\cf18 ()\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf26 else\cf18  \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf27 empty_400\cf18 ()\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\cf19 fn\cf18  \cf20 get_log_lines\cf18 (&\cf21 self\cf18 , path: &glob::Pattern, limit: \cf19 usize\cf18 , level: LogLevel) -> VecDeque<&LogLine>\
+\'a0\'a0\'a0\'a0\cf26 fn\cf18  \cf27 get_log_lines\cf18 (&\cf28 self\cf18 , path: &glob::Pattern, limit: \cf26 usize\cf18 , level: LogLevel) -> VecDeque<&LogLine>\
 \'a0\'a0\'a0\'a0\{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 let\cf18  \cf19 mut\cf18  result = VecDeque::\cf20 new\cf18 ();\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf26 let\cf18  \cf26 mut\cf18  result = VecDeque::\cf27 new\cf18 ();\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 for\cf18  line \cf19 in\cf18  \cf21 self\cf18 .log_lines.\cf20 iter\cf18 ().\cf20 rev\cf18 () \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  line.level <= level && path.\cf20 matches\cf18 (&line.path) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0result.\cf20 push_front\cf18 (line);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  result.\cf20 len\cf18 () >= limit \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 break\cf18 ;\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf26 for\cf18  line \cf26 in\cf18  \cf28 self\cf18 .log_lines.\cf27 iter\cf18 ().\cf27 rev\cf18 () \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf26 if\cf18  line.level <= level && path.\cf27 matches\cf18 (&line.path) \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0result.\cf27 push_front\cf18 (line);\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf26 if\cf18  result.\cf27 len\cf18 () >= limit \{\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf26 break\cf18 ;\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
@@ -328,7 +383,7 @@ display-details\
 * Support get description\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf22 \expnd0\expndtw0\kerning0
+\f6\fs50\fsmilli25333 \cf29 \expnd0\expndtw0\kerning0
 * Look at TODOs\
 * Start using clippy\
 * Might be able to cleanup the code a bit by making some modules directories\
@@ -348,7 +403,7 @@ display-details\
 	#back color path gray =~ blah\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf22 \expnd0\expndtw0\kerning0
+\f6\fs50\fsmilli25333 \cf29 \expnd0\expndtw0\kerning0
 * Add persistence?\
 	- maybe with some simple viewer tools\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
@@ -360,7 +415,7 @@ display-details\
 	- counting should only be done if should_log\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf22 \expnd0\expndtw0\kerning0
+\f6\fs50\fsmilli25333 \cf29 \expnd0\expndtw0\kerning0
 * Add an embedded web server\
 	- starts up if \'97web\
 	- waits for \'93run\'94 to be written to the web component\

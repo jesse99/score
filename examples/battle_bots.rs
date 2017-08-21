@@ -245,7 +245,7 @@ fn handle_attack(effector: &mut Effector, state: &SimState, my_id: ComponentID, 
 	let my_energy = state.get_int(my_id, "energy");
 	let their_energy = state.get_int(their_id, "energy");
 	
-	let their_path = state.components.path(their_id);
+	let their_path = state.components.display_path(their_id);
 	if my_energy >= their_energy {
 		log_info!(effector, "{} lost ({} >= {})", their_path, my_energy, their_energy);
 		
@@ -275,7 +275,7 @@ fn handle_chase(effector: &mut Effector, state: &SimState, dx: f64, dy: f64, my_
 {
 	let my_energy = state.get_int(my_id, "energy");
 
-	let their_path = state.components.path(their_id);
+	let their_path = state.components.display_path(their_id);
 	log_info!(effector, "chasing {}", their_path);
 	
 	let delta = if dx.abs() > dy.abs() {
@@ -357,7 +357,7 @@ fn bots_have_changed(locations: &mut HashMap<String, i64>, state: &SimState) -> 
 	let mut moved = false;
 
 	for (id, _) in state.components.iter() {
-		let path = state.components.path(id);
+		let path = state.components.full_path(id);
 		let path = path + "energy";
 		
 		if state.contains(id, "energy") {

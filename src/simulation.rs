@@ -39,7 +39,7 @@ pub struct Simulation
 	exited: Option<String>,
 	scheduled: BinaryHeap<ScheduledEvent>,
 	rng: Box<Rng + Send>,
-	max_path_len: usize,
+	largest_path: usize,
 	start_time: time::Timespec,
 	event_num: u64,
 	finger_print: u64,
@@ -59,7 +59,7 @@ impl Simulation
 		let seed = config.seed;
 		Simulation {
 			store: Arc::new(Store::new()),
-			components: Arc::new(Components::new()),
+			components: Arc::new(Components::new(config.max_log_path)),
 			event_senders: Vec::new(),
 			effector_receivers: Vec::new(),
 			config: config,
@@ -68,7 +68,7 @@ impl Simulation
 			exited: None,
 			scheduled: BinaryHeap::new(),
 			rng: Box::new(new_rng(seed, 10_000)),
-			max_path_len: 0,
+			largest_path: 0,
 			start_time: time::get_time(),
 			event_num: 0,
 			finger_print: 0,
@@ -93,7 +93,7 @@ impl Simulation
 		println!("Scheduled:");
 		for s in self.scheduled.iter() {
 			let t = (s.time.0 as f64)/self.config.time_units;
-			let path = self.components.path(s.to);
+			let path = self.components.full_path(s.to);
 			println!("   {:.1$}s {2} -> {3}", t, self.precision, s.event.name, path);
 		}
 	}
@@ -117,8 +117,8 @@ impl Simulation
 		let components = Arc::get_mut(&mut self.components).unwrap();
 		components.append(id, component, parent);
 		}
-		let path = self.components.path(id);
-		self.max_path_len = max(path.len(), self.max_path_len);
+		let path = self.components.full_path(id);
+		self.largest_path = max(path.len(), self.largest_path);
 		self.event_senders.push(None);
 		self.effector_receivers.push(None);
 		id
@@ -146,8 +146,8 @@ impl Simulation
 		let components = Arc::get_mut(&mut self.components).unwrap();
 		components.append(id, component, parent);
 		}
-		let path = self.components.path(id);
-		self.max_path_len = max(path.len(), self.max_path_len);
+		let path = self.components.full_path(id);
+		self.largest_path = max(path.len(), self.largest_path);
 		self.event_senders.push(Some(txd));
 		self.effector_receivers.push(Some(rxe));
 		
@@ -354,7 +354,7 @@ impl Simulation
 			// TODO: If we use speculative execution we'll need to be careful not to do
 			// anything wrong when REST is being used. Maybe just disable speculation.
 			if self.should_log(LogLevel::Excessive, NO_COMPONENT) {
-				let path = self.components.path(e.to);
+				let path = self.components.display_path(e.to);
 				let num = self.event_num;
 				self.log(LogLevel::Excessive, NO_COMPONENT, &format!("dispatching #{} '{}' to {}", num, e.event.name, path));
 			}
@@ -432,7 +432,7 @@ impl Simulation
 		self.install_removed_thread(id);
 		
 		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
-		let key = self.components.path(id) + ".removed";
+		let key = self.components.full_path(id) + ".removed";
 		store.set_int(&key, 1, self.current_time);
 		}
 		
@@ -468,7 +468,7 @@ impl Simulation
 	
 	fn schedule(&mut self, event: Event, to: ComponentID, time: Time)
 	{
-//		let path = self.components.path(to);
+//		let path = self.components.full_path(to);
 //		let t = (time.0 as f64)/self.config.time_units;
 //		self.log(LogLevel::Debug, NO_COMPONENT, &format!("scheduling {} for {} to {:.3}", event.name, path, t));
 		
@@ -486,7 +486,7 @@ impl Simulation
 	{
 		for (to, event, secs) in effects.events.drain(..) {	// we drain because we want to move the event into our list of scheduled events
 			let time = self.add_secs(secs);
-//			let path = self.components.path(to);
+//			let path = self.components.full_path(to);
 //			self.log(LogLevel::Info, NO_COMPONENT, &format!("scheduling {} to {} at {:.3}", event.name, path, secs));
 			self.schedule(event, to, time);
 		}
@@ -494,7 +494,7 @@ impl Simulation
 
 	fn apply_stores(&mut self, effects: &Effector, id: ComponentID)
 	{
-		let path = self.components.path(id);
+		let path = self.components.full_path(id);
 		let store = Arc::get_mut(&mut self.store).expect("Has a component retained a reference to the store?");
 
 		store.int_data.reserve(effects.store.int_data.len());
@@ -545,7 +545,7 @@ impl Simulation
 
 		if !self.config.root.is_empty() {
 			let time = (self.current_time.0 as f64)/self.config.time_units;
-			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
+			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.full_path(id)};
 //			let level = format!("{}", level);
 			let message = message.to_string();
 			let line = LogLine{time, path, level, message};
@@ -555,8 +555,8 @@ impl Simulation
 
 	fn logged_path(&self, id: ComponentID) -> String
 	{
-		let mut path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.path(id)};
-		if self.config.max_log_path > 0 && self.max_path_len > self.config.max_log_path {
+		let mut path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.full_path(id)};
+		if self.config.max_log_path > 0 && self.largest_path > self.config.max_log_path {
 			let len = path.len();
 			if len > self.config.max_log_path {
 				format!("…{}", path.split_off(len - self.config.max_log_path))
@@ -564,7 +564,7 @@ impl Simulation
 				format!("{0:<1$}", path, self.config.max_log_path)
 			}
 		} else {
-			format!("{0:<1$}", path, self.max_path_len)
+			format!("{0:<1$}", path, self.largest_path)
 		}
 	}
 	
@@ -620,9 +620,10 @@ impl Simulation
 		}
 		
 		let name = component.name.clone();
-		let key = self.components.path(id) + ".display-details";
+		let path = self.components.full_path(id);
+		let key = format!("{}.display-details", path);
 		let details = if self.store.contains(&key) {self.store.get_string(&key)} else {"".to_string()};
-		ComponentEntry{name, details, children}
+		ComponentEntry{path, name, details, children}
 	}
 
 	fn get_components(&self) -> ComponentEntry
@@ -770,6 +771,7 @@ struct LogLine
 #[derive(RustcEncodable)]
 struct ComponentEntry
 {
+	path: String,
 	name: String,
 	details: String,
 	children: Vec<ComponentEntry>,

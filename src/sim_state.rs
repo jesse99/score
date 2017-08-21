@@ -22,35 +22,35 @@ impl SimState
 	pub fn was_removed(&self, id: ComponentID) -> bool
 	{
 		let store:&Store = self.store.borrow();
-		let key = self.components.path(id) + ".removed";
+		let key = self.components.full_path(id) + ".removed";
 		store.contains(&key)
 	}
 
 	pub fn contains(&self, id: ComponentID, key: &str) -> bool
 	{
 		let store:&Store = self.store.borrow();
-		let path = format!("{}.{}", self.components.path(id), key);
+		let path = format!("{}.{}", self.components.full_path(id), key);
 		store.contains(&path)
 	}
 
 	pub fn get_int(&self, id: ComponentID, key: &str) -> i64
 	{
 		let store:&Store = self.store.borrow();
-		let path = format!("{}.{}", self.components.path(id), key);
+		let path = format!("{}.{}", self.components.full_path(id), key);
 		store.get_int(&path)
 	}
 
 	pub fn get_float(&self, id: ComponentID, key: &str) -> f64
 	{
 		let store:&Store = self.store.borrow();
-		let path = format!("{}.{}", self.components.path(id), key);
+		let path = format!("{}.{}", self.components.full_path(id), key);
 		store.get_float(&path)
 	}
 
 	pub fn get_string(&self, id: ComponentID, key: &str) -> String
 	{
 		let store:&Store = self.store.borrow();
-		let path = format!("{}.{}", self.components.path(id), key);
+		let path = format!("{}.{}", self.components.full_path(id), key);
 		store.get_string(&path)
 	}
 }
