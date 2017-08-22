@@ -5,11 +5,11 @@ use std::fmt;
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, RustcEncodable)]
 pub enum LogLevel
 {
-	Error,	// update log_levels if this changes
-	Warning,
-	Info,
-	Debug,
-	Excessive
+	Error = 0,	// update log_levels if this changes
+	Warning = 1,
+	Info = 2,
+	Debug = 3,
+	Excessive = 4
 }
 
 /// For use in --help messages.

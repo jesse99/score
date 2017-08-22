@@ -546,9 +546,9 @@ impl Simulation
 		if !self.config.root.is_empty() {
 			let time = (self.current_time.0 as f64)/self.config.time_units;
 			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.full_path(id)};
-//			let level = format!("{}", level);
+			let index = level as u8;
 			let message = message.to_string();
-			let line = LogLine{time, path, level, message};
+			let line = LogLine{time, path, level, index, message};
 			self.log_lines.push(line);
 		}
 	}
@@ -765,6 +765,7 @@ struct LogLine
 	time: f64,
 	path: String,
 	level: LogLevel,
+	index: u8,
 	message: String,
 }
 
