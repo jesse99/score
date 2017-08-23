@@ -5,7 +5,7 @@ use sim_time::*;
 use store::*;
 use std::f64::EPSILON;
 
-/// Effectors are returned by `Component`s after they process an `Event`.
+/// Effectors are returned by [`Component`]s after they process an [`Event`].
 /// The effector encapsulates the state changes the component wishes to make.
 pub struct Effector
 {
@@ -57,7 +57,7 @@ impl Effector
 		self.exit = true;
 	}
 	
-	/// This will swap in a `Component` thread that drops all events and add a removed=1
+	/// This will swap in a [`Component`] thread that drops all events and add a removed=1
 	/// data entry to the store (so GUIs can stop rendering the component). Note that
 	/// this is done for the associated component and all its children.
 	pub fn remove(&mut self)
@@ -68,18 +68,32 @@ impl Effector
 	/// Use these methods to write out new values for data associated with the component.
 	/// Note that when the data is written to the main store the name will be appended
 	/// onto the component's path.
+	///
+	/// There is one special int valued key:
+	/// * removed - This is added when score removes a component via `Effector`'s remove method.
+	/// Client code should use [`SimState`]'s was_removed method instead of directly accessing
+	/// this value.
 	pub fn set_int(&mut self, name: &str, value: i64)
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		self.store.set_int(name, value, Time(0));
 	}
 	
+	/// There are several special float valued keys:
+	/// * display-location-x and y - These are used by GUIs (like sdebug) to position top level
+	/// component's within a map view (the origin is at the upper left).
+	/// * display-size-x and y - The dimensions of the map view.
 	pub fn set_float(&mut self, name: &str, value: f64)
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		self.store.set_float(name, value, Time(0));
 	}
 		
+	/// There are several special string valued keys:
+	/// * display-color - An X11 color name used by GUI map views when drawing top level components.
+	/// * display-details - Arbitrary text used when drawing top level component and displaying component hierarchies.
+	/// * display-name - For now this is used instead of an icon when drawing components in sdebug's map view.
+	/// * display-title - Used to give GUIs a simulation specific name for header text.
 	pub fn set_string(&mut self, name: &str, value: &str)
 	{
 		assert!(!name.is_empty(), "name should not be empty");
