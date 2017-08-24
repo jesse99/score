@@ -1,17 +1,12 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
-{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-BoldItalic;
-\f3\fnil\fcharset0 Menlo-Bold;\f4\fnil\fcharset0 Menlo-Italic;\f5\fmodern\fcharset0 Courier;
-\f6\fswiss\fcharset0 ArialMT;}
-{\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red36\green38\blue41;
-\red37\green127\blue159;\red13\green0\blue129;\red43\green39\blue19;\red235\green236\blue237;\red161\green33\blue108;
-\red240\green0\blue31;\red0\green72\blue255;\red104\green0\blue254;\red140\green83\blue65;\red0\green0\blue0;
-\red33\green118\blue199;\red242\green242\blue242;\red60\green60\blue59;\red60\green60\blue59;\red203\green0\blue77;
-\red9\green76\blue116;\red117\green66\blue151;\red0\green0\blue0;}
-{\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\cssrgb\c18824\c20000\c21176;
-\cssrgb\c16863\c56863\c68627;\cssrgb\c6275\c6275\c58039;\cssrgb\c22353\c20000\c9412;\cssrgb\c93725\c94118\c94510;\csgenericrgb\c63137\c12941\c42353;
-\csgenericrgb\c94118\c0\c12157;\csgenericrgb\c0\c28235\c100000;\csgenericrgb\c40784\c0\c99608;\csgenericrgb\c54902\c32549\c25490;\csgray\c0;
-\cssrgb\c14902\c54510\c82353;\cssrgb\c96078\c96078\c96078;\cssrgb\c30196\c30196\c29804;\cssrgb\c30196\c30196\c29804;\cssrgb\c84314\c0\c37255;
-\cssrgb\c0\c37255\c52941;\cssrgb\c53725\c34902\c65882;\cssrgb\c0\c0\c0;}
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 ArialMT;
+}
+{\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red0\green0\blue0;
+\red60\green60\blue59;\red60\green60\blue59;\red203\green0\blue77;\red9\green76\blue116;\red117\green66\blue151;
+\red95\green124\blue3;\red240\green240\blue240;\red161\green33\blue108;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgray\c0;
+\cssrgb\c30196\c30196\c29804;\cssrgb\c30196\c30196\c29804;\cssrgb\c84314\c0\c37255;\cssrgb\c0\c37255\c52941;\cssrgb\c53725\c34902\c65882;
+\cssrgb\c44314\c54902\c0;\cssrgb\c95294\c95294\c95294;\csgenericrgb\c63137\c12941\c42353;\cssrgb\c0\c0\c0;}
 \deftab720
 \pard\pardeftab720\partightenfactor0
 
@@ -74,271 +69,64 @@ curl http://127.0.0.1:9000/log/all\
 \
 curl -X PUT http://127.0.0.1:9000/set/time/10\
 \
-\
-\pard\pardeftab720\sl300\partightenfactor0
-
-\fs32 \cf4 \expnd0\expndtw0\kerning0
-#[derive(\cf5 PartialEq\cf4 )]\
-\cf6 enum\cf4  \cf5 MyEnum\cf4  \{ ... \}\cf7 \cb8 \
-
-\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \
-\pard\pardeftab963\pardirnatural\partightenfactor0
-
-\f1\fs40 \cf0 (cmd(\cf9 "follow log [level]"\cf0 ),              get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow log <path> [level]"\cf0 ),       get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow map"\cf0 ),                      get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow state"\cf0 ),                    get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "follow state <path>"\cf0 ),             get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-\
-(cmd(\cf9 \'93get components\'93\cf0 ),                  get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 \'93get components <path>\'93\cf0 ),           get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 \'93get map\'94\cf0 ),                         get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-\
-(cmd(\cf9 "run"\cf0 ),                             get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run log [level]"\cf0 ),                 get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run log <path> [level]"\cf0 ),          get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run map"\cf0 ),                         get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run state"\cf0 ),                       get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-(cmd(\cf9 "run state <path>"\cf0 ),                get_log_all,    \cf9 "print the logs for all components"\cf0 ),\
-\pard\pardeftab963\pardirnatural\partightenfactor0
-
-\f0\fs48 \cf2 \
-\
-\pard\pardeftab963\pardirnatural\partightenfactor0
-
-\f1\fs40 \cf0 \
-\pard\pardeftab963\pardirnatural\partightenfactor0
-
-\f2\i\b \cf10 /// Helper for components that want to maintain an (x, y) position. This will handle the
-\f1\i0\b0 \cf0 \
-
-\f2\i\b \cf10 /// following events:
-\f1\i0\b0 \cf0 \
-
-\f2\i\b \cf10 /// * "set-location" - Sets the data using an (f64, f64) event payload.
-\f1\i0\b0 \cf0 \
-
-\f2\i\b \cf10 /// * "offset-location" - Add values to the data using an (f64, f64) event payload.
-\f1\i0\b0 \cf0 \
-
-\f2\i\b \cf10 /// Note that this will panic if sent an event not listed above.
-\f1\i0\b0 \cf0 \
-
-\f2\i\b \cf10 ///
-\f1\i0\b0 \cf0 \
-
-\f2\i\b \cf10 /// If origin is missing GUIs should assume zero, if size is missing GUIs should assume
-\f1\i0\b0 \cf0 \
-
-\f2\i\b \cf10 /// 1.0, if units are missing then GUIs should assume meters.
-\f1\i0\b0 \cf0 \
-
-\f3\b \cf11 pub
-\f1\b0 \cf0  
-\f3\b \cf11 fn
-\f1\b0 \cf0  
-\f3\b handle_location_event
-\f1\b0 (
-\f4\i \cf11 id
-\f1\i0 \cf0 : ComponentID, 
-\f4\i \cf11 state
-\f1\i0 \cf0 : &SimState, 
-\f4\i \cf11 event
-\f1\i0 \cf0 : &Event, 
-\f4\i \cf11 effector
-\f1\i0 \cf0 : &
-\f3\b \cf11 mut
-\f1\b0 \cf0  Effector)\
-\{\
-	
-\f3\b \cf11 let
-\f1\b0 \cf0  cname = &(*state.components).get(id).name;\
-	
-\f3\b \cf11 let
-\f1\b0 \cf0  ename = &event.name;\
-	
-\f3\b \cf11 if
-\f1\b0 \cf0  ename == \cf9 "set-location"\cf0  \{\
-		
-\f3\b \cf11 let
-\f1\b0 \cf0  loc = event.expect_payload::<(\cf11 f64\cf0 , \cf11 f64\cf0 )>(&\cf12 format!\cf0 (\cf9 "component \{\} set-location should have an (f64, f64) payload"\cf0 , cname));\
-		log_info!(effector, \cf9 "setting location to \{:.1\}, \{:.1\}"\cf0 , loc\cf13 .0\cf0 , loc\cf13 .1\cf0 );\
-		effector.set_float(\cf9 "display-location-x"\cf0 , loc\cf13 .0\cf0 );\
-		effector.set_float(\cf9 "display-location-y"\cf0 , loc\cf13 .1\cf0 );\
-		\
-	\} 
-\f3\b \cf11 else
-\f1\b0 \cf0  
-\f3\b \cf11 if
-\f1\b0 \cf0  ename == \cf9 "offset-location"\cf0  \{\
-		
-\f3\b \cf11 let
-\f1\b0 \cf0  path = state.components.path(id);\
-		
-\f3\b \cf11 let
-\f1\b0 \cf0  x = state.store.get_float(&(path.clone() + \cf9 ".display-location-x"\cf0 ));\
-		
-\f3\b \cf11 let
-\f1\b0 \cf0  y = state.store.get_float(&(path + \cf9 ".display-location-y"\cf0 ));\
-\
-		
-\f3\b \cf11 let
-\f1\b0 \cf0  loc = event.expect_payload::<(\cf11 f64\cf0 , \cf11 f64\cf0 )>(&\cf12 format!\cf0 (\cf9 "component \{\} offset-location should have an (f64, f64) payload"\cf0 , cname));\
-		log_info!(effector, \cf9 "setting location to \{:.1\}, \{:.1\}"\cf0 , x+loc\cf13 .0\cf0 , y+loc\cf13 .1\cf0 );\
-		effector.set_float(\cf9 "display-location-x"\cf0 , x+loc\cf13 .0\cf0 );\
-		effector.set_float(\cf9 "display-location-y"\cf0 , y+loc\cf13 .1\cf0 );\
-		\
-	\} 
-\f3\b \cf11 else
-\f1\b0 \cf0  \{\
-		\cf12 panic!\cf0 (\cf9 "handle_location_event doesn't know how to handle \{\}"\cf0 , ename);\
-	\}\
-\}\
-\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "http://es6-features.org/#Constants"}}{\fldrslt 
-\fs36 \cf14 \CocoaLigature0 http://es6-features.org/#Constants}}
-\fs36 \cf14 \CocoaLigature0 \
+\fs36 \cf4 \CocoaLigature0 http://es6-features.org/#Constants}}
+\fs36 \cf4 \CocoaLigature0 \
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
 \f0\fs48 \cf2 \CocoaLigature1 \
-\pard\pardeftab720\sl320\partightenfactor0
-
-\f5\fs28 \cf15 \cb16 \expnd0\expndtw0\kerning0
-\outl0\strokewidth0 \strokec15 \
 \pard\pardeftab720\sl540\partightenfactor0
 
-\f1\fs36 \cf17 \cb1 \strokec17 	\
-\pard\pardeftab720\sl540\partightenfactor0
-\cf18 \outl0\strokewidth0 \
-display-color\
-\pard\pardeftab720\sl540\partightenfactor0
-\cf18 display-details\
-\pard\pardeftab720\sl540\partightenfactor0
-\cf17 \outl0\strokewidth0 \strokec17 display-location-x and y\
-display-name\
-\pard\pardeftab720\sl540\partightenfactor0
-\cf18 \outl0\strokewidth0 display-size-x and y\
-display-title\
-\pard\pardeftab720\sl540\partightenfactor0
-\cf17 \outl0\strokewidth0 \strokec17 \
+\f1\fs36 \cf5 \expnd0\expndtw0\kerning0
+\
+display-details\
 \
 \
+\pard\pardeftab720\sl540\partightenfactor0
+\cf6 \outl0\strokewidth0 \strokec6 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf7 \strokec7 let\cf6 \strokec6  me = state.component.\cf8 \strokec8 get_component\cf6 \strokec6 (\cf9 \strokec9 self\cf6 \strokec6 .id);\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf7 \strokec7 let\cf6 \strokec6  (root_id, _) = state.components.\cf8 \strokec8 get_root\cf6 \strokec6 (me);\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf7 \strokec7 let\cf6 \strokec6  event = Event::\cf8 \strokec8 new\cf6 \strokec6 (\cf10 \strokec10 "sent-message"\cf6 \strokec6 );\
+\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cb11 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0effector.\cf8 \strokec8 schedule_immediately\cf6 \strokec6 (event, root_id);\cb1 \
+\pard\pardeftab720\sl540\partightenfactor0
+\cf6 \cb11 \'a0\'a0\'a0\'a0\cb1 \
 \
 \pard\pardeftab720\sl380\partightenfactor0
-\cf17 \
+\cf5 \outl0\strokewidth0 \
 \pard\pardeftab720\partightenfactor0
 
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 * Returns\
-* Make sure that telephone looks OK\
-* Would be cool to have a checkbox for animated runs\
-	- could have a checkbox under the run until button\
-	- would need to change Run Until to Stop\
-	- would need to disable Run Until Changed\
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Returns\
 - \'97root is a really crappy name\
 * Support simulator page\
 	- support help (maybe as some sort of drop down)\
 		` although a new page would make it easier to compare\
 	- maybe we can open a browser window when the sim starts?\
 		` probably rather OS specific\
-* Need support for component pages\
-	- probably want /log/\{path\}/after/\{from-time\}\
 \pard\pardeftab720\sl540\partightenfactor0
-
-\f1\fs36 \cf18 \expnd0\expndtw0\kerning0
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  \cf19 let\cf18  Ok(path) = glob::Pattern::\cf20 new\cf18 (&path) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  \cf19 let\cf18  Some(level) = LogLevel::\cf20 with_str\cf18 (&level) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf20 handle_endpoint\cf18 (RestCommand::\cf20 GetLog\cf18 (path, limit, level), &tx_command, &rx_reply)\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf19 else\cf18  \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf20 empty_400\cf18 ()\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\} \cf19 else\cf18  \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0rouille::Response::\cf20 empty_400\cf18 ()\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\cf19 fn\cf18  \cf20 get_log_lines\cf18 (&\cf21 self\cf18 , path: &glob::Pattern, limit: \cf19 usize\cf18 , level: LogLevel) -> VecDeque<&LogLine>\
-\'a0\'a0\'a0\'a0\{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 let\cf18  \cf19 mut\cf18  result = VecDeque::\cf20 new\cf18 ();\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 for\cf18  line \cf19 in\cf18  \cf21 self\cf18 .log_lines.\cf20 iter\cf18 ().\cf20 rev\cf18 () \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  line.level <= level && path.\cf20 matches\cf18 (&line.path) \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0result.\cf20 push_front\cf18 (line);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 if\cf18  result.\cf20 len\cf18 () >= limit \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf19 break\cf18 ;\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0result\
-\'a0\'a0\'a0\'a0\}\
-
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Use a background pattern\
+\cf2 * Use a background pattern\
 \pard\pardeftab720\partightenfactor0
 \cf2 * Work on an sdebug tool:\
-	- try using jqeury to do ajax calls\
-		save a copy of jquery locally\
-	- use a linter\
-	- make sure relative paths all land within the directory\
-	- make sure that display state looks OK\
-	- get state shouldn\'92t show \'93.display-\'93 keys\
 	- support get map\
 		svg would make mousing easier\
-			{\field{\*\fldinst{HYPERLINK "http://dmitrybaranovskiy.github.io/raphael/"}}{\fldrslt \cf2 http://dmitrybaranovskiy.github.io/raphael/}}\
+			{\field{\*\fldinst{HYPERLINK "http://dmitrybaranovskiy.github.io/raphael/"}}{\fldrslt http://dmitrybaranovskiy.github.io/raphael/}}\
 		support all the weird display options (using defaults where indicated)\
 		units should default to components, i.e. 0,0 for first item, 1,0 for second\
 		infer world size if it isnt set\
 		make sure all of the battle bots display state is actually used\
-	- support follow\
 	- should have a 
-\f1\fs40 \cf9 favicon.ico
+\f1\fs40 \cf12 favicon.ico
 \f0\fs48 \cf2 \
-	- might be able to use cross-document messaging to make other windows update\
-	- support get components\
-		maybe include display-description\
-		could also include state descriptions\
-	- make sure that we can get info about the root, eg \'93get components .\'94\
-	- support run\
-	- support run with options\
-	- verb and target can be abbreviated (as long as there is no ambiguity)\
-	- can we fix doc comments so that `foo` has a link?\
 	- if we add a dependency upon score then sdebug will show up as a dependent crate\
-	- support tab completion:\
-		{\field{\*\fldinst{HYPERLINK "https://robots.thoughtbot.com/tab-completion-in-gnu-readline"}}{\fldrslt https://robots.thoughtbot.com/tab-completion-in-gnu-readline}}\
 	- readme should say how to setup toml file\
 	- readme should point to sdebug\
 	- publish a new version of score as well as sdebug\
-* Support run-until:\
-	- run-until target path?		run until the associated target changes\
-	- target can be log, map, store, component\
-* Support repeat:\
-	- repeat delay?		repeat the last command until control-Ced\
-	- maybe call this follow?\
-	- delay does a sleep for that many time units\
-* set state should support globs?\
-* Support component:\
-	- get component path?	print hierarchy\
-	- may want a way for components to customize this \
-* Support time:\
-	- set time N		set time forward or backward (time suffix)\
-	- set time +N time-suffix	advance time\
-	- set time -N time-suffix		roll-back time (undo effectors)\
-	- get time		print current time\
-* Support map:\
-	- set map size 10 10		display dimensions\
-	- get map size		print display and actual dimensions\
-	- maybe an option to show removed components\
-	- document location-x/y, display-name, display-color\
-	- probably need display-width/height too\
-	- bots should set display-name to \'931.100\'94\
-	- aggressive should be red, cowardly blue, maybe set dead to gray\
-	* Add get removed, and maybe get removed path\
-* Support get description\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf22 \expnd0\expndtw0\kerning0
+\f2\fs50\fsmilli25333 \cf13 \expnd0\expndtw0\kerning0
 * Look at TODOs\
 * Start using clippy\
 * Might be able to cleanup the code a bit by making some modules directories\
-* sdebug log should have a textarea at the bottom to control display\
+* Could have a specialized project just to show log files:\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 
 \f0\fs48 \cf2 \kerning1\expnd0\expndtw0 	# comments are hash mark in first column\
@@ -354,7 +142,7 @@ display-title\
 	#back color path gray =~ blah\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf22 \expnd0\expndtw0\kerning0
+\f2\fs50\fsmilli25333 \cf13 \expnd0\expndtw0\kerning0
 * Add persistence?\
 	- maybe with some simple viewer tools\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
@@ -366,7 +154,7 @@ display-title\
 	- counting should only be done if should_log\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f6\fs50\fsmilli25333 \cf22 \expnd0\expndtw0\kerning0
+\f2\fs50\fsmilli25333 \cf13 \expnd0\expndtw0\kerning0
 * Add an embedded web server\
 	- starts up if \'97web\
 	- waits for \'93run\'94 to be written to the web component\
@@ -403,5 +191,9 @@ display-title\
 * support multiple cores but not the cloud\
 * probably just want to use code to configure\
 * wonder if es could be sucked into the store\
-* rsimnet, rsimserver\
+\pard\pardeftab720\partightenfactor0
+\cf2 * Would be cool to have a checkbox for animated runs\
+	- could have a checkbox under the run until button\
+	- would need to change Run Until to Stop\
+	- would need to disable Run Until Changed\
 }

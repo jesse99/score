@@ -16,6 +16,13 @@ use std::process;
 use std::str::FromStr;
 use std::thread;
 
+const DISPLAY_WIDTH: f64 = 50.0;
+const DISPLAY_HEIGHT: f64 = 100.0;
+
+const START_X: f64 = 25.0;
+const START_Y: f64 = 5.0;
+const DY: f64 = 10.0;
+
 // This is the message we send.
 const POEM: &str = "Tyger Tyger, burning bright,\nIn the forests of the night;\nWhat immortal hand or eye,\nCould frame thy fearful symmetry?\n\nIn what distant deeps or skies.\nBurnt the fire of thine eyes?\nOn what wings dare he aspire?\nWhat the hand, dare seize the fire?\n\nAnd what shoulder, & what art,\nCould twist the sinews of thy heart?\nAnd when thy heart began to beat,\nWhat dread hand? & what dread feet?\n\nWhat the hammer? what the chain,\nIn what furnace was thy brain?\nWhat the anvil? what dread grasp,\nDare its deadly terrors clasp!\n\nWhen the stars threw down their spears\nAnd water'd heaven with their tears:\nDid he smile his work to see?\nDid he who made the Lamb make thee?\n\nTyger Tyger burning bright,\nIn the forests of the night:\nWhat immortal hand or eye,\nDare frame thy fearful symmetry?";
 
@@ -87,8 +94,10 @@ impl SenderDevice
 		// Set some state for the device. We could use a thread to do this but it's simpler
 		// to just use an Effector.
 		let mut effector = Effector::new();
-		effector.set_float("display-location-x", 0.0);
-		effector.set_float("display-location-y", 0.0);
+		effector.set_string("display-name", "sender-0");
+		effector.set_string("display-color", "blue");
+		effector.set_float("display-location-x", START_X);
+		effector.set_float("display-location-y", START_Y);
 		sim.apply(self.id, effector);
 	}
 }
@@ -144,8 +153,9 @@ impl RepeaterDevice
 		
 		// Set our state.
 		let mut effector = Effector::new();
-		effector.set_float("display-location-x", (self.index + 1) as f64);
-		effector.set_float("display-location-y", 0.0);
+		effector.set_string("display-name", &format!("repeat-{}", self.index));
+		effector.set_float("display-location-x", START_X);
+		effector.set_float("display-location-y", START_Y + DY*(self.index + 1) as f64);
 		sim.apply(self.id, effector);
 	}
 }
@@ -182,8 +192,10 @@ impl ReceiverDevice
 		self.mangler.start();
 		
 		let mut effector = Effector::new();
-		effector.set_float("display-location-x", (num_repeaters + 1) as f64);
-		effector.set_float("display-location-y", 0.0);
+		effector.set_string("display-name", "receiver-0");
+		effector.set_string("display-color", "green");
+		effector.set_float("display-location-x", START_X);
+		effector.set_float("display-location-y", START_Y + DY*(num_repeaters + 1) as f64);
 		sim.apply(self.id, effector);
 	}
 }
@@ -230,8 +242,6 @@ impl SenderComponent
 				// more typically to one of their OutPorts.
 				"init 0" => {
 					log_info!(effector, "init");
-					effector.set_float("display-location-x", 0.0);
-					effector.set_float("display-location-y", 0.0);
 				
 					let event = Event::new("timer");
 					effector.schedule_immediately(event, self.id);
@@ -289,8 +299,6 @@ impl ManglerComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", 0.0);
-					effector.set_float("display-location-y", 2.0);
 				},
 				"text" => {
 					let old = event.expect_payload::<String>("text should have a String payload");
@@ -358,8 +366,6 @@ impl StatsComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", 0.0);
-					effector.set_float("display-location-y", 1.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");
@@ -401,8 +407,6 @@ impl RepeaterComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", 0.0);
-					effector.set_float("display-location-y", 0.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload").clone();
@@ -435,8 +439,6 @@ impl ReceiverComponent
 		thread::spawn(move || {
 			process_events!(self.data, event, state, effector,
 				"init 0" => {
-					effector.set_float("display-location-x", 0.0);
-					effector.set_float("display-location-y", 0.0);
 				},
 				"text" => {
 					let text = event.expect_payload::<String>("text should have a String payload");
@@ -489,6 +491,8 @@ fn create_sim(local: LocalConfig, config: Config) -> Simulation
 		
 	// This is used by GUIs, e.g. sdebug.
 	let mut effector = Effector::new();
+	effector.set_float("display-size-x", DISPLAY_WIDTH);
+	effector.set_float("display-size-y", DISPLAY_HEIGHT);
 	effector.set_string("display-title", "telephone");
 	sim.apply(world_id, effector);
 
@@ -559,7 +563,7 @@ fn parse_options() -> (LocalConfig, Config)
 	}
 	
 	if matches.is_present("seed") {
-		config.seed = match_num(&matches, "seed", 1, u32::max_value());
+		config.seed = match_num(&matches, "seed", 1, usize::max_value());
 	}
 	
 	if matches.is_present("address") {
