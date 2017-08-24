@@ -8,12 +8,12 @@ use std::str::FromStr;
 pub struct Config
 {
 	/// If set then score will startup a web server to control the simulation
-	/// and serve up this file when a browser hits the root. Files relative
-	/// to roots directory will also be served up but not files above the
+	/// and serve up this file when a browser hits "/". Files relative
+	/// to home_path's directory will also be served up but not files above the
 	/// directory.
-	pub root: String,
+	pub home_path: String,
 	
-	/// The address of the web server (used if root is set). Defaults to
+	/// The address of the web server (used if home_path is set). Defaults to
 	/// "127.0.0.1:9000".
 	pub address: String,
 	
@@ -75,7 +75,7 @@ impl Config
 	pub fn new() -> Config
 	{
 		Config {
-			root: "".to_string(),
+			home_path: "".to_string(),
 			address: "127.0.0.1:9000".to_string(),
 			time_units: 1_000_000.0,
 			max_secs: INFINITY,

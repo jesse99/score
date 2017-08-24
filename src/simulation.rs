@@ -177,13 +177,13 @@ impl Simulation
 	/// config.max_secs elapses, or `Effector`s exit method was called.
 	pub fn run(&mut self)
 	{
-		if self.config.root.is_empty() {
+		if self.config.home_path.is_empty() {
 			self.run_normally();
 		} else {
-			if Path::new(&self.config.root).is_file() {
+			if Path::new(&self.config.home_path).is_file() {
 				self.run_server();
 			} else {
-				eprintln!("'{}' is not a file", self.config.root);
+				eprintln!("'{}' is not a file", self.config.home_path);
 				process::exit(1);
 			}
 		}
@@ -208,7 +208,7 @@ impl Simulation
 
 		let (tx_command, rx_command) = mpsc::channel();
 		let (tx_reply, rx_reply) = mpsc::channel();
-		spin_up_rest(&self.config.address, &self.config.root, tx_command, rx_reply);
+		spin_up_rest(&self.config.address, &self.config.home_path, tx_command, rx_reply);
 
 		self.init_components();
 		for command in rx_command.iter() {
@@ -543,7 +543,7 @@ impl Simulation
 			}
 		}
 
-		if !self.config.root.is_empty() {
+		if !self.config.home_path.is_empty() {
 			let time = (self.current_time.0 as f64)/self.config.time_units;
 			let path = if id == NO_COMPONENT {"simulation".to_string()} else {self.components.full_path(id)};
 			let index = level as u8;
@@ -797,10 +797,10 @@ fn file_response(request: &rouille::Request, path: &Path) -> rouille::Response
 // For debugging can do stuff like:
 //    curl http://127.0.0.1:9000/log/all
 //    curl -X POST http://127.0.0.1:9000/time/10
-fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: mpsc::Receiver<RestReply>)
+fn spin_up_rest(address: &str, home_path: &str, tx_command: mpsc::Sender<RestCommand>, rx_reply: mpsc::Receiver<RestReply>)
 {
 	let addr = address.to_string();
-	let root = root.to_string();
+	let home_path = home_path.to_string();
 	
 	// rouille will spawn up a thread for each client that attaches and there's no good
 	// way to clone the channels into them so we need to use a mutex to serialize access.
@@ -808,7 +808,7 @@ fn spin_up_rest(address: &str, root: &str, tx_command: mpsc::Sender<RestCommand>
 	let rx_reply = Mutex::new(rx_reply);
 
 	thread::spawn(move|| {rouille::start_server(&addr, move |request| {
-		let path = Path::new(&root);
+		let path = Path::new(&home_path);
 		let root_dir = path.parent().unwrap();
 
 //		println!("{} {}", request.method(), request.url());

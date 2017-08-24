@@ -533,12 +533,12 @@ fn parse_options() -> (LocalConfig, Config)
 	let usage = format!(
 		"--address=[ADDR] 'Address for the web server to bind to [{default_address}]'
 		--error=[N] 'Each step has a 1 in N chance of garbling a letter [{default_error}]'
+		--home=[PATH] 'Start the web server and serve up PATH when / is hit'
 		--log=[LEVEL:GLOB]... 'Overrides --log-level, glob is used to match component names'
 		--log-level=[LEVEL] 'Default log level: {log_levels} [{default_level}]'
 		--max-time=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
 		--no-colors 'Don't color code console output'
 		--repeaters=[N] 'Number of steps between the sender and receiver [{default_repeaters}]'
-		--root=[PATH] 'Start the web server and serve up PATH when / is hit'
 		--seed=[N] 'Random number generator seed [random]'",
 		default_address = config.address,
 		default_repeaters = local.num_repeaters,
@@ -570,8 +570,8 @@ fn parse_options() -> (LocalConfig, Config)
 		config.address = matches.value_of("address").unwrap().to_string();
 	}
 	
-	if matches.is_present("root") {
-		config.root = matches.value_of("root").unwrap().to_string();
+	if matches.is_present("home") {
+		config.home_path = matches.value_of("home").unwrap().to_string();
 	}
 	
 	if matches.is_present("log-level") {

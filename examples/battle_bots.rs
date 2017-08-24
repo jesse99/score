@@ -482,12 +482,12 @@ fn parse_options() -> (LocalConfig, Config)
 	let usage = format!(
 		"--address=[ADDR] 'Address for the web server to bind to [{default_address}]'
 		--height=[N] 'Max number of times bots can move up without running into a wall [{default_height}]'
+		--home=[PATH] 'Start the web server and serve up PATH when / is hit'
 		--log=[LEVEL:GLOB]... 'Overrides --log-level, glob is used to match component names'
 		--log-level=[LEVEL] 'Default log level: {log_levels} [{default_level}]'
 		--max-time=[TIME] 'Maximum time to run the simulation, use {time_suffixes} suffixes [no limit]'
 		--no-colors 'Don't color code console output'
 		--num-bots=[N] 'Number of bots to start out with [{default_bots}]'
-		--root=[PATH] 'Start the web server and serve up PATH when / is hit'
 		--seed=[N] 'Random number generator seed [random]'
 		--width=[N] 'Max number of times bots can move right without wrapping [{default_width}]'",
 		default_address = config.address,
@@ -523,8 +523,8 @@ fn parse_options() -> (LocalConfig, Config)
 		config.address = matches.value_of("address").unwrap().to_string();
 	}
 	
-	if matches.is_present("root") {
-		config.root = matches.value_of("root").unwrap().to_string();
+	if matches.is_present("home") {
+		config.home_path = matches.value_of("home").unwrap().to_string();
 	}
 	
 	if matches.is_present("log-level") {
