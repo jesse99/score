@@ -21,6 +21,7 @@ use std::path::Path;
 use std::process;
 use std::sync::Arc;
 use std::sync::{mpsc, Mutex};
+use std::time::{Duration};
 use std::thread;
 use time;
 
@@ -127,7 +128,6 @@ impl Simulation
 	/// Adds a component that is expected to spin up a thread taking [`ThreadData`].
 	pub fn add_active_component(&mut self, name: &str, parent: ComponentID) -> (ComponentID, ThreadData)
 	{
-		// TODO: probably should have an usage example
 		assert!(!name.is_empty(), "name should not be empty");
 		assert!(parent != NO_COMPONENT || self.components.is_empty(), "can't have more than one root component");
 		assert!(name.chars().nth(0).unwrap().is_alphabetic());
@@ -376,11 +376,18 @@ impl Simulation
 		let mut effects = Vec::with_capacity(ids.len());
 		for id in ids {
 			if let Some(ref rx) = self.effector_receivers[id.0] {
-				let e = rx.recv().expect(&format!("rx failed for id {}", id.0));	// TODO: use the timeout version and panic if it takes too long
-				effects.push((id, e));
+				let ms = 5000;
+				match rx.recv_timeout(Duration::from_millis(ms)) {
+					Ok(e) =>  effects.push((id, e)),
+
+					// 5s should be an ample amount of time for even a complex component to respond
+					Err(mpsc::RecvTimeoutError::Timeout) => panic!("Component {} took longer than {} ms to send effects", self.components.get(id).name, ms),
+
+					// Components should use Effector.remove if they want to become inactive.
+					Err(mpsc::RecvTimeoutError::Disconnected) => panic!("Component {} has disconnected from the simulation", self.components.get(id).name)
+				}
 			} else {
-				let c = self.components.get(id);
-				panic!("Failed to receive an effector from component {}", c.name);
+				panic!("Failed to receive an effector from component {}", self.components.get(id).name);
 			}
 		}
 		

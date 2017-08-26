@@ -170,7 +170,6 @@ impl Components
 	{
 		assert!(id != NO_COMPONENT);
 
-		// TODO: should check for cycles, maybe only in debug
 		if parent != NO_COMPONENT {
 			self.check_for_dupes(parent, &component);
 		}
