@@ -97,64 +97,43 @@ Sun 3rd\
 \f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
 \
 * Cat sitter\
-\pard\pardeftab720\sl480\partightenfactor0
-
-\f2\fs50\fsmilli25333 \cf9 \expnd0\expndtw0\kerning0
-* dispatch_events should timeout\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+\cf2 * Need copyrights\
 \pard\pardeftab720\partightenfactor0
-
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Work on an sdebug tool:\
+\cf2 * Work on an sdebug tool:\
 \pard\pardeftab720\partightenfactor0
 \cf2 	- readme should say how to setup toml file\
 	- readme should point to sdebug\
 	- publish a new version of score as well as sdebug\
 \pard\pardeftab720\partightenfactor0
 \cf2 	- if we add a dependency upon score then sdebug will show up as a dependent crate\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+\cf2 * Start working on snet\
 \pard\pardeftab720\sl480\partightenfactor0
 
 \f2\fs50\fsmilli25333 \cf9 \expnd0\expndtw0\kerning0
 * Start using clippy\
-* Might be able to cleanup the code a bit by making some modules directories\
 * Add persistence?\
 	- maybe with some simple viewer tools\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Start working on snet\
-* Check parallelism:\
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Check parallelism:\
 	- maintain a list of buckets where the bucket number is how many threads executed\
 	- log that at debug\
 	- counting should only be done if should_log\
-\pard\pardeftab720\sl480\partightenfactor0
-
-\f2\fs50\fsmilli25333 \cf9 \expnd0\expndtw0\kerning0
-* Add an embedded web server\
-	- starts up if \'97web\
-	- waits for \'93run\'94 to be written to the web component\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 * Persist the store\
 * Try 
 \fs36 \cf0 \expnd0\expndtw0\kerning0
 #[warn(unused_must_use)]
 \fs48 \cf2 \kerning1\expnd0\expndtw0 \
 * Try separate executioners\
 * goals: deterministic, extensible, parallel, off-line analysis, portable, fast\
-* use a write-once temporal store\
-		- string keys, typed values\
-			` for log lines auto-append onto the last value\
-		- when running just use last recorded value\
-		- for re-running just track keys that were registered by the client\
-		- instead of a global lock, might want to have a concept of root nodes and put locks on those\
 * Probably should have make targets to check finger prints\
 * Could have optimistic parallelism:\
 	- default to scheduling num cores components\
 	- commit those that didn\'92t do a read from a key that a later time slice wrote to\
 	- otherwise commit those that executed at the same time slice\
 	- maybe self-adapt to scale back optimism\
-* Need copyrights\
 * could have reflected tables to encode meta info: units, blurb, default value, maybe ranges\
-* http server uses REST to allow stuff to be get and set\
-	0 can have integration tests\
 * might also want some static sort of reporters\
 	- maybe a version that spits out escaped text for console runs\
 	- another could do rtf or markdown\
