@@ -163,13 +163,6 @@ impl Store
 			}
 		}
 	}
-
-	// TODO:
-	// persist old state
-	// flush all the state to a file on exit
-	// need to expose state via a REST API
-	// reflected metadata
-	// stuff GUIs will need for replay
 }
 
 #[cfg(test)]
