@@ -26,7 +26,8 @@ be hard to implement).
 * There should be a GUI tool to analyze simulations as they run.
 
 versions:
-* 0.1.0 - added an embedded REST server to support GUIs like sdebug
+* 0.2.0 - added an embedded REST server to support GUIs like sdebug
+* 0.1.0 - lots of improvements 
 * 0.0.1 - initial release
 
 Online documentation for the released version can be found on [crates.io](https://crates.io/crates/score).
