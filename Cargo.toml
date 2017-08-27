@@ -6,7 +6,7 @@ repository = "https://github.com/jesse99/score"
 description = "Discrete event simulation library"
 readme = "README.md"
 keywords = ["discrete", "simulation"]
-categories = ["science"]
+categories = ["science", "simulation"]
 license = "GPL-3.0"
 
 [[example]]
