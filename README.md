@@ -1,6 +1,6 @@
 About score
 =============
-score is a general purpose discrete event simulator. The key types are:
+score is a general purpose discrete event simulator written in rust. The key types are:
 * *Simulation* is responsible for coordinating the execution of the simulation.
 * *Component*s are used to define the structure of the simulation. *Active* components
 have a thread used to handle events.
@@ -18,6 +18,8 @@ score's goals include:
 * It should be efficient and take advantage of multiple cores. Currently all components that
 have a scheduled event at the same time process the event in parallel. It should also be
 possible to leverage effectors to do speculative parallel execution.
+* Side effects should be carefully controlled, In particular the *only* way for a component
+to affect another component should be via an event.
 * Simulation execution should be deterministic across different runs and across platforms.
 * It should support off line analysis of simulation results. (This isn't in yet but shouldn't
 be hard to implement).
