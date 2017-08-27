@@ -16,7 +16,7 @@ components.
 score's goals include:
 * It should be flexible enough to simulate pretty much any sort of discrete event simulation.
 * It should be efficient and take advantage of multiple cores. Currently all components that
-have a scheduled event at the same time process the event in parallel. It should also be
+have a scheduled event at the same time process the events in parallel. It should also be
 possible to leverage effectors to do speculative parallel execution.
 * Side effects should be carefully controlled, In particular the *only* way for a component
 to affect another component should be via an event.
@@ -26,7 +26,7 @@ be hard to implement).
 * There should be a GUI tool to analyze simulations as they run.
 
 versions:
-* 0.1.0 - added an embedded REST server to support GUIs like sdevug
+* 0.1.0 - added an embedded REST server to support GUIs like sdebug
 * 0.0.1 - initial release
 
 Online documentation for the released version can be found on [crates.io](https://crates.io/crates/score).
