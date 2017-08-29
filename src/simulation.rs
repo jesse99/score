@@ -114,7 +114,7 @@ impl Simulation
 		}
 	}
 	
-	/// Adds a `Component` that is not intended to receive `Event`s.
+	/// Adds a [`Component`] that is not intended to receive `Event`s.
 	/// These can be used to organize related components together which
 	/// can make navigation nicer within GUIs.
 	pub fn add_component(&mut self, name: &str, parent: ComponentID) -> ComponentID
@@ -171,7 +171,7 @@ impl Simulation
 	}
 	
 	/// Use this if you want to update the store, or log, or schedule events when
-	/// initializing components. Often used to avoid spinning up a thread,
+	/// initializing components. Often used to avoid spinning up a thread.
 	pub fn apply(&mut self, id: ComponentID, mut effects: Effector)
 	{
 		assert!(!effects.exit);
@@ -189,7 +189,7 @@ impl Simulation
 	}
 	
 	/// Dispatches events until there are no more events left to dispatch,
-	/// config.max_secs elapses, or `Effector`s exit method was called.
+	/// config.max_secs elapses, or [`Effector`]s exit method was called.
 	pub fn run(&mut self)
 	{
 		if self.config.home_path.is_empty() {
