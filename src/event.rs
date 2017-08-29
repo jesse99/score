@@ -71,4 +71,17 @@ impl Event
 			panic!("event {} {} (missing payload)", self.name, message);
 		}
 	}
+
+	pub fn expect_mut_payload<T: Any>(&mut self, message: &str) -> &mut T
+	{
+		if let Some(ref mut value) = self.payload {
+			if let Some(x) = value.downcast_mut::<T>() {
+				x
+			} else {
+				panic!("event {} {} (downcast failed)", self.name, message);
+			}
+		} else {
+			panic!("event {} {} (missing payload)", self.name, message);
+		}
+	}
 }
