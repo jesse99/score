@@ -18,6 +18,7 @@
 //! in creating type safe [`Component`] structs. See the [`connect`] macro for an example.
 use component::*;
 use effector::*;
+use logging::*;
 use event::*;
 use std::any::Any;
 use std::marker::PhantomData;
@@ -167,19 +168,27 @@ impl<T: Any + Send> OutPort<T>
 	}
 
 	/// Queue up an event to be processed ASAP.
+	/// Drops the event if the port isn't connected to an `InPort`.
 	pub fn send_payload(&self, effector: &mut Effector, name: &str, payload: T)
 	{
-		assert!(self.remote_id != NO_COMPONENT);
-		let event = Event::with_port_payload(name, &self.remote_port, payload);
-		effector.schedule_immediately(event, self.remote_id);
+		if self.remote_id != NO_COMPONENT {
+			let event = Event::with_port_payload(name, &self.remote_port, payload);
+			effector.schedule_immediately(event, self.remote_id);
+		} else {
+			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", name));
+		}
 	}
 	
 	/// Queue up an event to be processed after secs time elapses.
+	/// Drops the event if the port isn't connected to an `InPort`.
 	pub fn send_payload_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: T)
 	{
-		assert!(self.remote_id != NO_COMPONENT);
-		let event = Event::with_port_payload(name, &self.remote_port, payload);
-		effector.schedule_after_secs(event, self.remote_id, secs);
+		if self.remote_id != NO_COMPONENT {
+			let event = Event::with_port_payload(name, &self.remote_port, payload);
+			effector.schedule_after_secs(event, self.remote_id, secs);
+		} else {
+			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", name));
+		}
 	}
 
 	pub fn connect_to(&mut self, port: &InPort<T>)
@@ -198,18 +207,26 @@ impl<T: Any + Send> OutPort<T>
 impl OutPort<()>
 {
 	/// Queue up an event with no payload to be processed ASAP.
+	/// Drops the event if the port isn't connected to an `InPort`.
 	pub fn send(&self, effector: &mut Effector, name: &str)
 	{
-		assert!(self.remote_id != NO_COMPONENT);
-		let event = Event::with_port(name, &self.remote_port);
-		effector.schedule_immediately(event, self.remote_id);
+		if self.remote_id != NO_COMPONENT {
+			let event = Event::with_port(name, &self.remote_port);
+			effector.schedule_immediately(event, self.remote_id);
+		} else {
+			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", name));
+		}
 	}
 	
 	/// Queue up an event with no payload to be processed after secs time elapses.
+	/// Drops the event if the port isn't connected to an `InPort`.
 	pub fn send_after_secs(&self, effector: &mut Effector, name: &str, secs: f64)
 	{
-		assert!(self.remote_id != NO_COMPONENT);
-		let event = Event::with_port(name, &self.remote_port);
-		effector.schedule_after_secs(event, self.remote_id, secs);
+		if self.remote_id != NO_COMPONENT {
+			let event = Event::with_port(name, &self.remote_port);
+			effector.schedule_after_secs(event, self.remote_id, secs);
+		} else {
+			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", name));
+		}
 	}
 }
