@@ -117,10 +117,11 @@ impl Event
 macro_rules! process_events
 {
 	($data:expr, $event:ident, $state:ident, $effector:ident, $($name:pat => $code:expr),+) => ({
-		for ($event, $state) in $data.rx.iter() {
+		for (mut $event, $state) in $data.rx.iter() {
+			$event.port_name += "";	// suppress unused_mut warning (#[allow(unused_mut)] doesn't seem to work with macros)
 			let mut $effector = Effector::new();
 			{
-				let ename = &$event.name;
+				let ename = $event.name.clone();	// annoying to clone but if we use a reference then components can't forward the event
 				match ename.as_ref() {
 					$($name => $code)+
 					
