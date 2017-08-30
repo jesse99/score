@@ -47,12 +47,6 @@ impl Event
 		Event{name: name.to_string(), port_name: "".to_string(), payload: Some(Box::new(payload))}
 	}
 
-	pub fn with_box<T: Any + Send>(name: &str, payload: Box<T>) -> Event
-	{
-		assert!(!name.is_empty(), "name should not be empty");
-		Event{name: name.to_string(), port_name: "".to_string(), payload: Some(payload)}
-	}
-
 	pub fn with_port(name: &str, port: &str) -> Event
 	{
 		assert!(!name.is_empty(), "name should not be empty");
@@ -63,12 +57,6 @@ impl Event
 	{
 		assert!(!name.is_empty(), "name should not be empty");
 		Event{name: name.to_string(), port_name: port.to_string(), payload: Some(Box::new(payload))}
-	}
-
-	pub fn with_port_box<T: Any + Send>(name: &str, port: &str, payload: Box<T>) -> Event
-	{
-		assert!(!name.is_empty(), "name should not be empty");
-		Event{name: name.to_string(), port_name: port.to_string(), payload: Some(payload)}
 	}
 
 	// Returns a reference to the value. Panics if there is no value or it isn't a T.
@@ -86,12 +74,12 @@ impl Event
 	}
 
 	// Moves the value out of the event. Panics if there is no value or it isn't a T.
-	pub fn take_payload<T: Any>(&mut self) -> Box<T>
+	pub fn take_payload<T: Any>(&mut self) -> T
 	{
 		match self.payload.take() {
 			Some(boxed) => {
 				match boxed.downcast::<T>() {
-					Ok(value) => value,
+					Ok(value) => *value,
 					Err(_) => panic!("event {} (downcast failed)", self.name)
 				}
 			},

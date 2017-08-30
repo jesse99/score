@@ -426,7 +426,7 @@ impl RepeaterComponent
 				},
 				"text" => {
 					let text = event.take_payload();
-					self.lower_out.send_box(&mut effector, "text", text);
+					self.lower_out.send_payload(&mut effector, "text", text);
 				}
 			);
 		});
