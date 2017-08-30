@@ -47,6 +47,12 @@ impl Event
 		Event{name: name.to_string(), port_name: "".to_string(), payload: Some(Box::new(payload))}
 	}
 
+	pub fn with_box<T: Any + Send>(name: &str, payload: Box<T>) -> Event
+	{
+		assert!(!name.is_empty(), "name should not be empty");
+		Event{name: name.to_string(), port_name: "".to_string(), payload: Some(payload)}
+	}
+
 	pub fn with_port(name: &str, port: &str) -> Event
 	{
 		assert!(!name.is_empty(), "name should not be empty");
@@ -59,7 +65,14 @@ impl Event
 		Event{name: name.to_string(), port_name: port.to_string(), payload: Some(Box::new(payload))}
 	}
 
-	pub fn expect_payload<T: Any>(&self, message: &str) -> &T
+	pub fn with_port_box<T: Any + Send>(name: &str, port: &str, payload: Box<T>) -> Event
+	{
+		assert!(!name.is_empty(), "name should not be empty");
+		Event{name: name.to_string(), port_name: port.to_string(), payload: Some(payload)}
+	}
+
+	// Returns a reference to the value. Panics if there is no value or it isn't a T.
+	pub fn payload_ref<T: Any>(&self, message: &str) -> &T
 	{
 		if let Some(ref value) = self.payload {
 			if let Some(x) = value.downcast_ref::<T>() {
@@ -72,16 +85,17 @@ impl Event
 		}
 	}
 
-	pub fn expect_mut_payload<T: Any>(&mut self, message: &str) -> &mut T
+	// Moves the value out of the event. Panics if there is no value or it isn't a T.
+	pub fn take_payload<T: Any>(&mut self) -> Box<T>
 	{
-		if let Some(ref mut value) = self.payload {
-			if let Some(x) = value.downcast_mut::<T>() {
-				x
-			} else {
-				panic!("event {} {} (downcast failed)", self.name, message);
-			}
-		} else {
-			panic!("event {} {} (missing payload)", self.name, message);
+		match self.payload.take() {
+			Some(boxed) => {
+				match boxed.downcast::<T>() {
+					Ok(value) => value,
+					Err(_) => panic!("event {} (downcast failed)", self.name)
+				}
+			},
+			None => panic!("event {} (missing payload)", self.name)
 		}
 	}
 }
@@ -121,7 +135,7 @@ macro_rules! process_events
 			$event.port_name += "";	// suppress unused_mut warning (#[allow(unused_mut)] doesn't seem to work with macros)
 			let mut $effector = Effector::new();
 			{
-				let ename = $event.name.clone();	// annoying to clone but if we use a reference then components can't forward the event
+				let ename = $event.name.clone();	// annoying to clone but using a reference can cause problems with components that want to acquire a mutable reference to the event
 				match ename.as_ref() {
 					$($name => $code)+
 					

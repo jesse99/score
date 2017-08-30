@@ -193,23 +193,25 @@ impl<T: Any + Send> OutPort<T>
 
 	/// Queue up an event to be processed ASAP.
 	/// Drops the event if the port isn't connected to an `InPort`.
-	pub fn send_event(&self, effector: &mut Effector, event: Event)
+	pub fn send_box(&self, effector: &mut Effector, name: &str, payload: Box<T>)
 	{
 		if self.remote_id != NO_COMPONENT {
+			let event = Event::with_port_box(name, &self.remote_port, payload);
 			effector.schedule_immediately(event, self.remote_id);
 		} else {
-			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", event.name));
+			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", name));
 		}
 	}
 	
 	/// Queue up an event to be processed after secs time elapses.
 	/// Drops the event if the port isn't connected to an `InPort`.
-	pub fn send_event_after_secs(&self, effector: &mut Effector, event: Event, secs: f64)
+	pub fn send_box_after_secs(&self, effector: &mut Effector, name: &str, secs: f64, payload: Box<T>)
 	{
 		if self.remote_id != NO_COMPONENT {
+			let event = Event::with_port_box(name, &self.remote_port, payload);
 			effector.schedule_after_secs(event, self.remote_id, secs);
 		} else {
-			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", event.name));
+			effector.log(LogLevel::Warning, &format!("Dropping event '{}' (out port isn't connected)", name));
 		}
 	}
 

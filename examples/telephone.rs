@@ -317,7 +317,7 @@ impl ManglerComponent
 				"init 0" => {
 				},
 				"text" => {
-					let old = event.expect_payload::<String>("text should have a String payload");
+					let old = event.payload_ref::<String>("text should have a String payload");
 					if event.port_name == "upper_in" {
 						let new = if self.upper_out.is_connected() {
 							old.to_string()						// we're on the downward path of repeater
@@ -384,7 +384,7 @@ impl StatsComponent
 				"init 0" => {
 				},
 				"text" => {
-					let text = event.expect_payload::<String>("text should have a String payload");
+					let text = event.payload_ref::<String>("text should have a String payload");
 					if event.port_name == "lower_in" {
 						let err = compute_error(text);
 						log_debug!(effector, "{:.1}% error", err);
@@ -425,8 +425,8 @@ impl RepeaterComponent
 				"init 0" => {
 				},
 				"text" => {
-					let text = event.expect_payload::<String>("text should have a String payload").clone();
-					self.lower_out.send_payload(&mut effector, "text", text);
+					let text = event.take_payload();
+					self.lower_out.send_box(&mut effector, "text", text);
 				}
 			);
 		});
@@ -457,7 +457,7 @@ impl ReceiverComponent
 				"init 0" => {
 				},
 				"text" => {
-					let text = event.expect_payload::<String>("text should have a String payload");
+					let text = event.payload_ref::<String>("text should have a String payload");
 					let err = compute_error(&text);
 					log_info!(effector, "{:.1}% total error", err);
 					log_excessive!(effector, "{}", text);

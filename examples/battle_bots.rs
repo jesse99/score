@@ -237,7 +237,7 @@ fn cowardly_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 			},
 			"won-attack" => {
 				let energy = state.get_int(data.id, "energy");
-				let &(ref other, ref bonus) = event.expect_payload::<(String, i64)>("won-attack should have an (String. i64) payload");
+				let &(ref other, ref bonus) = event.payload_ref::<(String, i64)>("won-attack should have an (String. i64) payload");
 				log_info!(effector, "energy is now {}", energy + bonus);
 				effector.set_int("energy", energy + bonus);
 				effector.set_string("display-details", &format!("beat {} ({})", other, energy + bonus));
@@ -349,7 +349,7 @@ fn aggresive_thread(local: LocalConfig, data: ThreadData, bot_num: i32)
 			},
 			"won-attack" => {
 				let energy = state.get_int(data.id, "energy");
-				let &(ref other, ref bonus) = event.expect_payload::<(String, i64)>("won-attack should have an (String, i64) payload");
+				let &(ref other, ref bonus) = event.payload_ref::<(String, i64)>("won-attack should have an (String, i64) payload");
 				log_info!(effector, "energy is now {}", energy + bonus);
 				effector.set_int("energy", energy + bonus);
 				effector.set_string("display-details", &format!("beat {} ({})", other, energy + bonus));
