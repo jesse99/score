@@ -190,7 +190,9 @@ impl Simulation
 	
 	/// Dispatches events until there are no more events left to dispatch,
 	/// config.max_secs elapses, or [`Effector`]s exit method was called.
-	pub fn run(&mut self)
+	/// Returns a finger print which can be used to verify that simulation
+	/// runs with the same seeds are deterministic.
+	pub fn run(&mut self) -> u64
 	{
 		if self.config.home_path.is_empty() {
 			self.run_normally();
@@ -202,6 +204,7 @@ impl Simulation
 				process::exit(1);
 			}
 		}
+		self.finger_print
 	}
 	
 	// ---- Private Functions ----------------------------------------------------------------
@@ -351,7 +354,7 @@ impl Simulation
 		self.log(LogLevel::Debug, NO_COMPONENT, &format!("exiting sim, run time was {}.{}s ({})",
 			elapsed/1000, elapsed%1000, exited));	// TODO: eventually will need a friendly_duration_str fn
 			
-		let finger_print = self.finger_print.clone();
+		let finger_print = self.finger_print;
 		self.log(LogLevel::Info, NO_COMPONENT, &format!("finger print = {:X}", finger_print));
 	}
 	
