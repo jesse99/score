@@ -87,7 +87,8 @@ pub struct Config
 
 impl Config
 {
-	pub fn new() -> Config
+	/// Use a fixed RNG seed (unless seed is zero).
+	pub fn with_seed(seed: usize) -> Config
 	{
 		Config {
 			home_path: "".to_string(),
@@ -95,7 +96,7 @@ impl Config
 			time_units: 1_000_000.0,
 			max_secs: INFINITY,
 			num_init_stages: 1,
-			seed: 0,
+			seed,
 			log_level: LogLevel::Info,
 			log_levels: HashMap::new(),
 			max_log_path: 20,
@@ -106,6 +107,12 @@ impl Config
 			debug_escape_code: "".to_string(),
 			excessive_escape_code: "\x1b[1;38;5;244m".to_string(),
 		}
+	}
+
+	/// Use a random RNG seed.
+	pub fn new() -> Config
+	{
+		Config::with_seed(0)
 	}
 
 	/// Helper for parsing command line options. Returns an error if the
