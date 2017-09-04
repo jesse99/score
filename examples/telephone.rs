@@ -155,7 +155,7 @@ impl RepeaterDevice
 		self.repeater.lower_out.connect_to(&self.stats.upper_in);
 		self.stats.upper_out.connect_to(&self.repeater.lower_in);
 		
-		// Write together stats and mangler.
+		// Wire together stats and mangler.
 		self.stats.lower_out.connect_to(&self.mangler.upper_in);
 		self.mangler.upper_out.connect_to(&self.stats.lower_in);
 	

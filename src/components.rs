@@ -176,6 +176,11 @@ impl Components
 		format!("{0:<1$}", path, self.max_log_path)
 	}
 				
+	pub fn len(&self) -> usize
+	{
+		self.components.len()
+	}
+	
 	pub fn is_empty(&self) -> bool
 	{
 		self.components.is_empty()
