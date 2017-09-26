@@ -399,7 +399,7 @@ impl Simulation
 					Ok(e) =>  effects.push((id, e)),
 
 					// 5s should be an ample amount of time for even a complex component to respond
-					Err(mpsc::RecvTimeoutError::Timeout) => panic!("Component {} took longer than {} ms to send effects", self.components.get(id).name, ms),
+					Err(mpsc::RecvTimeoutError::Timeout) => panic!("Component {} took longer than {} ms to send back effects", self.components.get(id).name, ms),
 
 					// Components should use Effector.remove if they want to become inactive.
 					Err(mpsc::RecvTimeoutError::Disconnected) => panic!("Component {} has disconnected from the simulation", self.components.get(id).name)
