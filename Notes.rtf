@@ -1,14 +1,12 @@
 {\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf830
-{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 ArialMT;
-}
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 HelveticaNeue;
+\f3\froman\fcharset0 Times-Roman;\f4\fswiss\fcharset0 ArialMT;}
 {\colortbl;\red255\green255\blue255;\red2\green2\blue2;\red9\green80\blue208;\red0\green0\blue0;
-\red60\green60\blue59;\red254\green228\blue200;\red60\green60\blue59;\red203\green0\blue77;\red9\green76\blue116;
-\red203\green74\blue5;\red95\green124\blue3;\red130\green130\blue130;\red240\green240\blue240;\red51\green136\blue141;
-\red167\green54\blue202;\red91\green88\blue76;\red165\green66\blue16;\red0\green0\blue0;}
+\red60\green60\blue59;\red165\green66\blue16;\red83\green83\blue83;\red159\green159\blue159;\red38\green38\blue38;
+\red0\green0\blue0;\red249\green249\blue249;\red60\green60\blue59;}
 {\*\expandedcolortbl;;\csgenericrgb\c784\c784\c784;\cssrgb\c0\c41176\c85098;\csgray\c0;
-\cssrgb\c30196\c30196\c29804;\cssrgb\c100000\c91449\c82330;\cssrgb\c30196\c30196\c29804;\cssrgb\c84314\c0\c37255;\cssrgb\c0\c37255\c52941;
-\cssrgb\c84314\c37255\c0;\cssrgb\c44314\c54902\c0;\cssrgb\c58039\c58039\c58039;\cssrgb\c95294\c95294\c95294;\cssrgb\c24314\c60000\c62353;
-\cssrgb\c72157\c32941\c83137;\cssrgb\c43137\c41961\c36863;\cssrgb\c71373\c33725\c6667;\cssrgb\c0\c0\c0;}
+\cssrgb\c30196\c30196\c29804;\cssrgb\c71373\c33725\c6667;\cssrgb\c40000\c40000\c40000;\cssrgb\c68627\c68627\c68627;\cssrgb\c20000\c20000\c20000;
+\cssrgb\c0\c0\c0;\cssrgb\c98039\c98039\c98039;\cssrgb\c30196\c30196\c29804;}
 \deftab720
 \pard\pardeftab720\partightenfactor0
 
@@ -29,8 +27,10 @@
 \pard\pardeftab720\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://github.com/brson/rust-api-guidelines"}}{\fldrslt \cf2 https://github.com/brson/rust-api-guidelines}}\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\
+{\field{\*\fldinst{HYPERLINK "https://deterministic.space/elegant-apis-in-rust.html"}}{\fldrslt \cf2 https://deterministic.space/elegant-apis-in-rust.html}}\cf2 \
 https://pascalhertleif.de/artikel/good-practices-for-writing-rust-libraries/\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "http://cglab.ca/~abeinges/blah/too-many-lists/book/README.html"}}{\fldrslt \cf2 http://cglab.ca/~abeinges/blah/too-many-lists/book/README.html}}\
   \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 {\field{\*\fldinst{HYPERLINK "https://rust-lang.github.io/book/second-edition/index.html"}}{\fldrslt \cf2 https://rust-lang.github.io/book/second-edition/index.html}}\
@@ -82,67 +82,22 @@ curl -X PUT http://127.0.0.1:9000/set/time/10\
 
 \f1\fs36 \cf5 \expnd0\expndtw0\kerning0
 \
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 \CocoaLigature0 cargo test -- --nocapture\
-\cb6 \
-
-\f0\fs48 \cf2 \cb1 \CocoaLigature1 \
-\pard\pardeftab720\sl420\partightenfactor0
-
-\f1\fs28 \cf7 \expnd0\expndtw0\kerning0
-\outl0\strokewidth0 \strokec7     #[test]\
-    \cf8 \strokec8 fn\cf7 \strokec7  \cf9 \strokec9 ipv4_to_ipv4\cf7 \strokec7 ()\
-\'a0\'a0\'a0\'a0\{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  config = Config::\cf9 \strokec9 with_seed\cf7 \strokec7 (\cf10 \strokec10 1\cf7 \strokec7 );\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  \cf8 \strokec8 mut\cf7 \strokec7  sim = Simulation::\cf9 \strokec9 new\cf7 \strokec7 (config);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  world_id = sim.\cf9 \strokec9 add_component\cf7 \strokec7 (\cf11 \strokec11 "world"\cf7 \strokec7 , NO_COMPONENT);\
-\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf12 \strokec12 // Create the devices,\cf7 \strokec7 \
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  \cf8 \strokec8 mut\cf7 \strokec7  sender = IPv4Component::\cf9 \strokec9 new\cf7 \strokec7 (&\cf8 \strokec8 mut\cf7 \strokec7  sim, world_id);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  receiver = IPv4Component::\cf9 \strokec9 new\cf7 \strokec7 (&\cf8 \strokec8 mut\cf7 \strokec7  sim, world_id);\
-\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf12 \strokec12 // wire them together,\cf7 \strokec7 \
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0last_port.\cf9 \strokec9 connect_to\cf7 \strokec7 (&r.inbound);\
-\
-\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  \cf8 \strokec8 mut\cf7 \strokec7  last_port = &\cf8 \strokec8 mut\cf7 \strokec7  sender.outbound;\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 for\cf7 \strokec7  r \cf8 \strokec8 in\cf7 \strokec7  repeaters.\cf9 \strokec9 iter_mut\cf7 \strokec7 () \{\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0last_port.\cf9 \strokec9 connect_to\cf7 \strokec7 (&r.inbound);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0last_port = &\cf8 \strokec8 mut\cf7 \strokec7  r.outbound;\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0last_port.\cf9 \strokec9 connect_to\cf7 \strokec7 (&receiver.inbound);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf12 \strokec12 // This is used by GUIs, e.g. sdebug.\cf7 \strokec7 \
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  \cf8 \strokec8 mut\cf7 \strokec7  effector = Effector::\cf9 \strokec9 new\cf7 \strokec7 ();\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0effector.\cf9 \strokec9 set_float\cf7 \strokec7 (\cf11 \strokec11 "display-size-x"\cf7 \strokec7 , DISPLAY_WIDTH);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0effector.\cf9 \strokec9 set_float\cf7 \strokec7 (\cf11 \strokec11 "display-size-y"\cf7 \strokec7 , DISPLAY_HEIGHT);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0effector.\cf9 \strokec9 set_string\cf7 \strokec7 (\cf11 \strokec11 "display-title"\cf7 \strokec7 , \cf11 \strokec11 "telephone"\cf7 \strokec7 );\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0sim.\cf9 \strokec9 apply\cf7 \strokec7 (world_id, effector);\
-\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf12 \strokec12 // and spin up their threads.\cf7 \strokec7 \
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0sender.\cf9 \strokec9 start\cf7 \strokec7 (&\cf8 \strokec8 mut\cf7 \strokec7  sim);\
-\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 for\cf7 \strokec7  \cb13 r \cf8 \strokec8 in\cf7 \strokec7  repeaters.\cf9 \strokec9 drain\cf7 \strokec7 (..) \{\cb1 \
-\cb13 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0r.\cf9 \strokec9 start\cf7 \strokec7 (&\cf8 \strokec8 mut\cf7 \strokec7  sim);\cb1 \
-\cb13 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\}\cb1 \
-\cb13 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0receiver.\cf9 \strokec9 start\cf7 \strokec7 (&\cf8 \strokec8 mut\cf7 \strokec7  sim, local.num_repeaters);\cb1 \
-\cb13 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf8 \strokec8 let\cf7 \strokec7  finger_print = sim.\cf9 \strokec9 run\cf7 \strokec7 ();\cb1 \
-\cb13 \'a0\'a0\'a0\'a0\'a0\'a0\'a0\'a0\cf14 \strokec14 assert_eq!\cf7 \strokec7 (\cf10 \strokec10 0\cf7 \strokec7 , finger_print);\cb1 \
-\cb13 \'a0\'a0\'a0\'a0\}\cb1 \
-\
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
-
-\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
-\cf2 \
+\cf0 \kerning1\expnd0\expndtw0 \CocoaLigature0 cargo test -- --nocapture
+\fs28 \cf5 \expnd0\expndtw0\kerning0
+\CocoaLigature1 \
 
-\b        user\
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+
+\b \cf2        user\
 \
        application\
 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 
-\b0      socket?\
+\b0 \cf2      socket?\
 \
 udp        tcp         
 \b transport\
@@ -162,34 +117,126 @@ IPv4       IPv6
 
 \b0       \\        /\
        \\     /\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 
-\b         
+\b \cf2         
 \b0 MAC             
 \b link\
-        \
-        physical\
- 
+         
 \b0 \
-\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f1\fs42 \cf15 \expnd0\expndtw0\kerning0
-\outl0\strokewidth0 \strokec15 fn\cf16 \strokec16 (\cf17 \strokec17 i32\cf16 \strokec16 ) -> \cf17 \strokec17 i32\
-fn pointer (doesn\'92t accept a closure)\
+\f1\fs42 \cf6 \expnd0\expndtw0\kerning0
 \
+\pard\pardeftab720\sl440\qr\partightenfactor0
 
+\f2\fs36\fsmilli18200 \cf7 can use mem::replace to extract a value from a mutable reference\
+	Option has a take method to make that even easier
+\fs26 \cf8 \
+\pard\pardeftab720\sl380\partightenfactor0
+
+\f1\fs27\fsmilli13600 \cf9 rustc --explain E0106\
+\pard\pardeftab720\sl300\partightenfactor0
+
+\f2\fs26 \cf10 \cb11 \
+\pard\pardeftab720\sl480\partightenfactor0
+
+\f0\fs48 \cf2 \cb1 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab720\sl420\partightenfactor0
+
+\f1\fs28 \cf5 \expnd0\expndtw0\kerning0
+\
+\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \
+\
+8.3.2.1 Data frame format\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://wireless.wiki.kernel.org/en/developers/documentation/mac80211/queues"}}{\fldrslt \cf2 https://wireless.wiki.kernel.org/en/developers/documentation/mac80211/queues}}\
+QoS\
+BK	32\
+BE	0\
+VI		128\
+VO	192\
+\
+expose\
+	type\
+	subtype\
+	to/from ds\
+	more frags\
+	retry\
+	more data\
+	protected\
+	order\
+	duration/id\
+	bssid, SA, DA, TA, RA (maybe make these options)\
+	frag number\
+	seq number\
+	qos\
+	tid (later)\
+	power saving\
+	\
+9.3.2\
+	\
+\pard\pardeftab720\sl300\sa240\partightenfactor0
+
+\f3\fs26\fsmilli13333 \cf10 \expnd0\expndtw0\kerning0
+8.2.4.1 Frame Control field 
+\fs24 \
+
+\fs26\fsmilli13333 8.2.4.1.2 Protocol Version field 
+\fs24 \
+
+\fs26\fsmilli13333 8.2.4.1.3 Type and Subtype fields 
+\fs24 \
+
+\fs26\fsmilli13333 8.2.4.1.4 To DS and From DS fields 
+\fs24 \
+
+\fs26\fsmilli13333 8.2.4.1.5 More Fragments field 
+\fs24 \
+
+\fs26\fsmilli13333 8.2.4.1.6 Retry field 
+\fs24 \
+
+\fs26\fsmilli13333 8.2.4.1.7 Power Management field 
+\fs24 \
+
+\fs26\fsmilli13333 8.2.4.1.8 More Data field 
+\fs24 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+
+\f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab720\sl300\sa240\partightenfactor0
+\cf2 \
+\
+Sat-Mon morning - James\
+Monday - walk through/maid\
+Wed-Sat - sitter\
+Thurs - 5am pickup\
+Oct 14 - Kris\
+\pard\pardeftab720\sl420\partightenfactor0
+
+\f1\fs28 \cf12 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec12 \
+\
+\
+\pard\pardeftab720\sl300\sa240\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://stackoverflow.com/questions/2177143/how-to-renew-an-iphone-development-certificate"}}{\fldrslt 
+\f0\fs48 \cf2 \strokec5 https://stackoverflow.com/questions/2177143/how-to-renew-an-iphone-development-certificate}}
 \f0\fs48 \cf2 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 \
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
 \cf2 \
-* Nails\
-* Dish washer\
-* Status report\
 * Create an echo app:\
-	- get internet to internet working\
-	- add in link layer\
-	- add in physical layer\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+\cf2 	- try and get tcpdump working, may need a WirelessMediumComponent	\
+		{\field{\*\fldinst{HYPERLINK "https://wiki.wireshark.org/Development/LibpcapFileFormat"}}{\fldrslt https://wiki.wireshark.org/Development/LibpcapFileFormat}}\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardeftab720\pardirnatural\partightenfactor0
+\cf2 	- add in physical layer\
 	- add in transport layer\
-	- try and get tcpdump working\
 \
 	- add lower_transport component\
 	- might want internet and transport components\
@@ -197,11 +244,15 @@ fn pointer (doesn\'92t accept a closure)\
 	- do a commit once unit test works again\
 	- make file should probably check checksum\
 		or just have main do it\
+		integration test?\
 	- could have a make check\
 		runs all examples\
 		uses \'97finger-print option (examples assert if finger print option is used)\
 	- for unit tests could just feed inputs into a component and look at outputs\
 		maybe build a sim to do that\
+* Could use {\field{\*\fldinst{HYPERLINK "https://crates.io/crates/lazy_static"}}{\fldrslt https://crates.io/crates/lazy_static}} to make a global config object\
+	- or the thread_local module\
+* ansi-term: color coding output\
 * Start working on snet:\
 	- write an IP test: two IP components directly connected\
 	- send an IP packet to loopback\
@@ -209,7 +260,7 @@ fn pointer (doesn\'92t accept a closure)\
 	- can we save off pcaps?\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f2\fs50\fsmilli25333 \cf18 \expnd0\expndtw0\kerning0
+\f4\fs50\fsmilli25333 \cf10 \expnd0\expndtw0\kerning0
 * Start using clippy\
 * Add persistence?\
 	- maybe with some simple viewer tools\
@@ -246,7 +297,7 @@ fn pointer (doesn\'92t accept a closure)\
 	- would need to disable Run Until Changed\
 \pard\pardeftab720\sl480\partightenfactor0
 
-\f2\fs50\fsmilli25333 \cf18 \expnd0\expndtw0\kerning0
+\f4\fs50\fsmilli25333 \cf10 \expnd0\expndtw0\kerning0
 * Could have a specialized project just to show log files:\
 \pard\pardeftab963\pardirnatural\partightenfactor0
 

@@ -128,8 +128,10 @@ macro_rules! process_events
 					$($name => $code)+
 					
 					_ => {
-						let cname = &(*$state.components).get($data.id).name;
-						panic!("component {} can't handle event {}", cname, ename);
+						if !ename.starts_with("init ") {
+							let cname = &(*$state.components).get($data.id).name;
+							panic!("component {} can't handle event {}", cname, ename);
+						}
 					}
 				}
 			}
