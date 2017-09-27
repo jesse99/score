@@ -180,7 +180,7 @@ impl Simulation
 	
 	/// SImilar to apply but easier to use (and more borrow check friendly) when multiple components
 	/// need to be configured.
-	pub fn configure<P, C>(&mut self, callback: C)
+	pub fn configure<C>(&mut self, callback: C)
 		where C: Fn (ComponentID, &Component, &mut Effector) -> ()
 	{
 		let mut effects = Vec::with_capacity(self.components.len());	// we use this to appease the borrow checker
