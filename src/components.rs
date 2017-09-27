@@ -124,9 +124,22 @@ impl Components
 		return None
 	}
 	
-	/// Does a breadth first check for the first child that satisfies the predicate.
 	pub fn for_each_child<P, C>(&self, id: ComponentID, predicate: P, callback: C)
 		where P: Fn (ComponentID, &Component) -> bool, C: Fn (ComponentID, &Component) -> ()
+	{
+		assert!(id != NO_COMPONENT);
+
+		let component = &self.components[id.0];
+		for &child_id in component.children.iter() {
+			let child = self.get(child_id);
+			if predicate(child_id, child) {
+				callback(child_id, child);
+			}
+		}
+	}
+	
+	pub fn for_each_child_mut<P, C>(&self, id: ComponentID, predicate: P, callback: &mut C)
+		where P: Fn (ComponentID, &Component) -> bool, C: FnMut (ComponentID, &Component) -> ()
 	{
 		assert!(id != NO_COMPONENT);
 

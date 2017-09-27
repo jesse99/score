@@ -42,7 +42,7 @@ pub struct Config
 	
 	/// Number of times to send an "init N" event to active components.
 	/// Defaults to 1.
-	pub num_init_stages: i32,
+	pub num_init_stages: i32,	// TODO: don't think this makes sense
 	
 	/// Random number generator seed. Defaults to 0 which means seed with
 	/// entropy. Note that if you want deterministic results you should
