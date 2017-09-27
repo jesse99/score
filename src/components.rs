@@ -175,6 +175,11 @@ impl Components
 		}
 	}
 		
+	pub fn len(&self) -> usize
+	{
+		self.components.len()
+	}
+	
 	/// Iterates over all the components.
 	pub fn iter(&self) -> ComponentsIterator
 	{

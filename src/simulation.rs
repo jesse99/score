@@ -178,6 +178,26 @@ impl Simulation
 		self.apply_effects(id, &mut effects);
 	}
 	
+	/// SImilar to apply but easier to use (and more borrow check friendly) when multiple components
+	/// need to be configured.
+	pub fn configure<P, C>(&mut self, callback: C)
+		where C: Fn (ComponentID, &Component, &mut Effector) -> ()
+	{
+		let mut effects = Vec::with_capacity(self.components.len());	// we use this to appease the borrow checker
+
+		for (id, component) in self.components.iter() {
+			let mut effector = Effector::new();
+			callback(id, component, &mut effector);
+
+			assert!(!effector.exit);
+			effects.push((id, effector));
+		}
+
+		for (id, mut effector) in effects.drain(..) {
+			self.apply_effects(id, &mut effector);
+		}
+	}
+	
 	/// Use this if you want to do something random when initializing components.
 	pub fn rng(&mut self) -> &mut Box<Rng + Send>
 	{
