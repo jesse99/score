@@ -30,6 +30,9 @@ pub struct SimState
 	/// changes to the simulation happen after all events at time T have
 	/// finished processing.
 	pub store: Arc<Store>,
+
+	/// Seconds into the simulation at which the event was dispatched.
+	pub time: f64,
 }
 
 impl SimState

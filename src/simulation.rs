@@ -400,7 +400,8 @@ impl Simulation
 			
 			self.event_num += 1;
 			if let Some(ref tx) = self.event_senders[e.to.0] {
-				let state = SimState{store: self.store.clone(), components: self.components.clone()};
+				let time = (self.current_time.0 as f64)/self.config.time_units;
+				let state = SimState{store: self.store.clone(), components: self.components.clone(), time};
 				tx.send((e.event, state)).unwrap();
 			} else {
 				let c = self.components.get(e.to);
