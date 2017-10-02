@@ -30,7 +30,7 @@ pub struct OutPort<T: Any + Send>
 	/// The ID of the component the InPort is part of.
 	pub remote_id: ComponentID,
 	
-	/// Optionl name of the InPort, e.g. an ethernet switch could use this
+	/// Optional name of the InPort, e.g. an ethernet switch could use this
 	/// to send the event back out all but the port a packet came in on. This
 	/// is assigned to the port_name field of [`Event`].
 	pub remote_port: String,
@@ -144,7 +144,7 @@ impl<T: Any + Send> InPort<T>
 		}
 	}
 
-	/// When this is used the [`Event`]'sport_name will be set which allows components
+	/// When this is used the [`Event`]'s port_name will be set which allows components
 	/// to take different actions depending upon how the event arrived.
 	pub fn with_port_name(id: ComponentID, port: &str) -> InPort<T>
 	{

@@ -402,11 +402,13 @@ impl Simulation
 			if let Some(ref tx) = self.event_senders[e.to.0] {
 				let time = (self.current_time.0 as f64)/self.config.time_units;
 				let state = SimState{store: self.store.clone(), components: self.components.clone(), time};
-				tx.send((e.event, state)).unwrap();
+				if let Err(err) = tx.send((e.event, state)) {
+					let c = self.components.get(e.to);
+					panic!("Got an error sending to component {}: {}", c.name, err);
+				}
 			} else {
 				let c = self.components.get(e.to);
-				panic!("Attempt to send event {} to component {} which isn't an active component",
-					e.event.name, c.name);
+				panic!("Attempt to send event {} to component {} which isn't an active component", e.event.name, c.name);
 			}
 		}
 		
