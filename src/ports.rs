@@ -46,7 +46,7 @@ pub struct OutPort<T: Any + Send>
 pub struct InPort<T: Any + Send>
 {
 	target_id: ComponentID,
-	target_port: String,
+	pub target_port: String,
 	dummy: PhantomData<T>,
 }
 
